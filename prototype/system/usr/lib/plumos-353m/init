@@ -41,6 +41,14 @@ adb_pid=$!
 trap power_action USR1
 export PLUMOS_FAST_BOOT=1
 attempt=0
+if [ -f /storage/.please_resize_me ]; then
+    if "$payload/first-boot"; then
+        echo 'plumOS-RK3566: first boot storage ready'
+    else
+        echo 'plumOS-RK3566: first boot storage failed; ADB recovery available'
+        attempt=5
+    fi
+fi
 while [ "$attempt" -lt 5 ]; do
     "$payload/start-frontend" &
     frontend=$!

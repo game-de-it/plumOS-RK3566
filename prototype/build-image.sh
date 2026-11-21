@@ -52,22 +52,27 @@ stage = Path(sys.argv[1])
 base = stage / "JELOS.pseudo"
 rewritten = stage / "JELOS.pseudo.new"
 issue = shlex.quote(str(stage / "etc/issue"))
+replacements = {
+    b"etc/issue": f"etc/issue f 644 0 0 cat {issue}\n".encode(),
+    b"usr/lib/systemd/systemd": (
+        b"usr/lib/systemd/systemd s 777 0 0 ../plumos-353m/init\n"
+    ),
+}
 # Keep the pseudo data offsets relative to the original data section.
 # Replace the existing inode definition before merging the additions.
-replaced = 0
 with base.open("rb") as source, rewritten.open("wb") as target:
     for entry in source:
-        if entry.startswith(b"etc/issue R "):
-            entry = f"etc/issue f 644 0 0 cat {issue}\n".encode()
-            replaced += 1
+        name = entry.split(b" ", 1)[0]
+        if name in replacements:
+            entry = replacements.pop(name)
         target.write(entry)
         if entry == b"# START OF DATA - DO NOT MODIFY\n":
             shutil.copyfileobj(source, target, length=8 * 1024 * 1024)
             break
     else:
         raise SystemExit("JELOS SquashFS pseudo data marker missing")
-if replaced != 1:
-    raise SystemExit("Expected exactly one /etc/issue in JELOS SYSTEM")
+if replacements:
+    raise SystemExit(f"Missing expected files in JELOS SYSTEM: {list(replacements)}")
 rewritten.replace(base)
 
 # These paths already exist in JELOS and retain their original inode metadata.
@@ -89,6 +94,7 @@ PY
 "$squash/mksquashfs" - "$stage_system" -no-progress -processors 8 -comp lzo -b 524288 \
     -no-xattrs -pf "$stage/JELOS.pseudo" -pf "$stage/353m.pseudo"
 "$squash/unsquashfs" -lln "$stage_system" \
+    usr/lib/plumos-353m/init usr/lib/plumos-353m/first-boot usr/lib/systemd/systemd \
     usr/lib/plumos-353m/adbd usr/lib/plumos-353m/frontend/bin/plumos-controller-ui \
     usr/lib/systemd/system/emustation.service.d/plumos-353m.conf \
     usr/lib/systemd/system/jelos.target.wants/plumos-usb-adb.service \
@@ -104,6 +110,7 @@ cat > "$stage/post-sysroot.sh" <<'HOOK'
 # plumOS-353M boot overlay
 plumos_splash_dir=/sysroot/usr/lib/plumos-353m/boot-splash
 . "$plumos_splash_dir/boot-splash.sh"
+check_update() { :; }
 HOOK
 "$fat/mcopy" -o -i "$volume" "$stage_system" ::/SYSTEM
 "$fat/mcopy" -o -i "$volume" "$stage/SYSTEM.md5" ::/SYSTEM.md5
@@ -112,6 +119,12 @@ HOOK
 "$fat/mcopy" -i "$volume" ::/SYSTEM "$stage/SYSTEM.readback"
 cmp "$stage_system" "$stage/SYSTEM.readback"
 "$squash/unsquashfs" -cat "$stage/SYSTEM.readback" etc/issue | cmp - "$stage/etc/issue"
+"$squash/unsquashfs" -lln "$stage/SYSTEM.readback" usr/lib/systemd/systemd |
+    grep -F 'usr/lib/systemd/systemd -> ../plumos-353m/init'
+for file in init first-boot; do
+    "$squash/unsquashfs" -cat "$stage/SYSTEM.readback" "usr/lib/plumos-353m/$file" |
+        cmp - "$payload/$file"
+done
 for file in KERNEL rk3566-rg353m-linux.dtb extlinux/extlinux.conf; do
     "$fat/mtype" -i "$source_img@@$offset" "::/$file" > "$stage/before"
     "$fat/mtype" -i "$volume" "::/$file" > "$stage/after"

@@ -19,14 +19,14 @@ RG353Mの内蔵液晶とゲームパッドで、GKD mini PLUS由来のplumOSフ�
 
 ## 新規SDカードと実機確認
 
-1. `output/plumOS-353M-prototype-r3.img` を予備のmicroSDに書き込み、RG353MのTF1へ挿します。r3には起動時のplumOSロゴと、r2の物理A・Bの割り当て修正を含みます。評価時はTF2を空にして起動経路を単純にします。
+1. `output/plumOS-RK3566-rg353m-pid1-prototype.img` を予備のmicroSDに書き込み、RG353MのTF1へ挿します。初回は、既存のGPT `p4` をext4の `/storage` として拡張する進捗画面が表示されます。評価時はTF2を空にして起動経路を単純にします。
 2. フロントエンドが表示されたら、十字キーでカーソルを移動し、STARTでメニューを開き、Aで項目を開いてBで戻れるか確認します。表示の向きも確認します。
 3. Macをロック解除して、データ通信対応のUSBケーブルでRG353MのOTG端子と接続します。macOSにアクセサリの接続許可が表示されたら許可します。
 
 Macでの確認とアプリの転送例です。コマンドはプロジェクトのディレクトリから実行します。
 
 ```sh
-(cd output && shasum -a 256 -c plumOS-353M-prototype-r3.img.sha256)
+(cd output && shasum -a 256 -c plumOS-RK3566-rg353m-pid1-prototype.img.sha256)
 ./output/adb devices -l
 ./output/adb shell 'cat /tmp/plumos-fe-ready; cat /proc/cmdline'
 ./output/adb shell 'journalctl -b -u emustation.service -u plumos-usb-adb.service --no-pager'
@@ -65,7 +65,9 @@ ADBはUSB専用で、試作機のrootシェルを認証なしで公開します�
 
 ## Bubble由来のPID 1を試す
 
-`PLUMOS_TRY_PID1=1` を付けて `deploy-boot-overlay.sh` を実行すると、次の1回だけJELOSが呼び出すinitの箇所にplumOSの `init` をバインドします。起動時に試行フラグを消費するため、その次の再起動は既存の起動経路に戻ります。現段階ではパーティション配置と初回セットアップは既存試作のままです。
+新しいSDイメージでは、JELOSのinitramfsが使う引き渡し先をplumOS initに接続しています。初回は起動元SDの既存ext4領域だけを拡張します。利用者用FAT32パーティションの作成は次の段階です。
+
+旧systemd試作のSDで `PLUMOS_TRY_PID1=1` を付けて `deploy-boot-overlay.sh` を実行すると、次の1回だけJELOSが呼び出すinitの箇所にplumOSの `init` をバインドします。起動時に試行フラグを消費するため、その次の再起動は元の起動経路へ戻ります。
 
 FEの再試行と電源要求の処理は、Bubble `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` のSystem側 `/init` を参照しています。USB ADBを並列に起動し、入力デバイスはsysfsからも検出できます。既存のライブラリキャッシュがある場合はFE表示前の全走査を省きます。[BubbleのSystem側init](https://github.com/game-de-it/plumOS-Bubble/blob/ec81d42c0c2c39e7a32973bfe4df9b3027512a5d/rootfs/bubble-frontend/init)
 

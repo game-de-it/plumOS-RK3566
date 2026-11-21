@@ -68,3 +68,11 @@ Bubble `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` の `boot-splash.png` と、�
 MacにDocker Desktop 4.99.0をインストールしました。Docker Engine 29.9.3でBubble `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` のDockerfileを使い、`linux/arm64` の `plumos-rk3566-bubble-tools:ec81d42` を構築しました。
 
 `prototype/build-frontend-docker.sh` でJELOSの共有ライブラリを使ってフロントエンドとライブラリスキャナーをビルドしました。生成物はAArch64 ELFで、Dockerコンテナ内で両方の `--help` の実行を確認しました。RG353Mでは既存SDのジャーナル待ちが継続しており、PID 1試作の実機配備は未検証です。
+
+### plumOS PID 1のSDイメージ
+
+初回書き込み用に `plumOS-RK3566-rg353m-pid1-prototype.img` を作成しました。JELOSのカーネル、DTB、ブート領域とGPTは元イメージと比較しました。FAT32から `SYSTEM` を読み戻し、JELOSの引き渡し先からplumOS initへのリンク、初回拡張スクリプト、DockerでビルドしたFE・スキャナー、Bubble由来の初回進捗フレームを照合しました。
+
+Dockerの別テストでは、元イメージの複製を拡大した後にGPTの既存 `p4` を拡張し、取り出したext4を新しい容量へ拡張しました。UUIDの維持と、GPTが4区画のままであることを確認しました。この段階の初回セットアップは既存のext4拡張までです。利用者用FAT32の作成と、完成SDからのRG353M実機起動は未検証です。
+
+イメージのSHA-256は `7c23a956f6c49cdc92b05ba974f2254f928c266c18c1cf60cfc7ae065bbe5bc2` です。

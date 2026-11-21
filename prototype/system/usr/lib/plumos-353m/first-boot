@@ -1,0 +1,34 @@
+#!/bin/sh
+set -eu
+splash=/usr/lib/plumos-353m/boot-splash
+show() {
+    "$splash/boot-splash" "$splash/$1.xrgb" || :
+}
+check_ext4() {
+    result=0
+    e2fsck -pf "$storage" || result=$?
+    [ "$result" -le 1 ]
+}
+trap 'result=$?; if [ "$result" -ne 0 ]; then show provision-error; fi' EXIT
+show provision-start
+flash=$(awk '$2=="/flash" {print $1}' /proc/mounts)
+storage=$(awk '$2=="/storage" && $3=="ext4" {print $1}' /proc/mounts)
+case "$flash" in /dev/mmcblk*p3) ;; *) exit 1 ;; esac
+disk=${flash%p3}
+test "$storage" = "${disk}p4"
+test "$(cat "/sys/class/block/${disk##*/}/device/type")" = SD
+test "$(blkid -s LABEL -o value "$storage")" = STORAGE
+test ! -e "${disk}p5"
+test -f /storage/.please_resize_me
+umount /storage
+show provision-resize
+parted -fs "$disk" print
+parted -s "$disk" resizepart 4 100%
+check_ext4
+resize2fs "$storage"
+check_ext4
+mount -t ext4 -o rw,noatime "$storage" /storage
+rm /storage/.please_resize_me
+sync
+show provision-complete
+sleep 1

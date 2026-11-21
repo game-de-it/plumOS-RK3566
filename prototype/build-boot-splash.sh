@@ -36,3 +36,18 @@ PY
 mkdir -p "$work/compiled/boot-splash"
 install -m 755 "$stage/boot-splash" "$work/compiled/boot-splash/"
 install -m 644 "$stage/boot-splash.xrgb" "$prototype/boot-splash.sh" "$work/compiled/boot-splash/"
+bubble=$work/refs/Bubble
+revision=ec81d42c0c2c39e7a32973bfe4df9b3027512a5d
+git -C "$bubble" show "$revision:scripts/generate-bubble-fb-marker.py" > "$stage/progress.py"
+git -C "$bubble" show "$revision:package/boot-assets-common/plumos-640x480.bmp" > "$stage/progress.bmp"
+progress() {
+    local frame=$1 percent=$2 message=$3
+    shift 3
+    python3 "$stage/progress.py" --message "$message" --percent "$percent" "$@" \
+        "$stage/progress.bmp" "$stage/$frame.xrgb"
+    install -m 644 "$stage/$frame.xrgb" "$work/compiled/boot-splash/"
+}
+progress provision-start 10 'PREPARING STORAGE'
+progress provision-resize 50 'EXPANDING STORAGE'
+progress provision-complete 100 'STORAGE READY'
+progress provision-error 0 'STORAGE SETUP FAILED' --error
