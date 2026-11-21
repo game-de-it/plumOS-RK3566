@@ -33,3 +33,9 @@ rkbinからは、RK3566用のDDR `rk3566_ddr_1056MHz_v1.16.bin`、SPL `rk356x_sp
 PortAudioの取得先も消失していました。Software HeritageのGitエクスポートからツリーと元のコミット `64d1bf913433d7a2835526b80a93487d5038cb8e` を復元しました。元のアーカイブと同じ接頭辞を指定して `git archive --format=tar` で展開用アーカイブを生成し、`gzip -n -6` で圧縮すると、JELOSのレシピに固定されたSHA-256 `c33e48217a844cca3b66ab88571b90beefb8fcb6967177951d4dc283587bf834` と一致しました。Yaba Sanshiroはフォークに残る同じコミットを取得し、レシピのブランチ名とサブモジュールのコミットを揃えました。[PortAudioの保存コミット](https://archive.softwareheritage.org/swh:1:rev:64d1bf913433d7a2835526b80a93487d5038cb8e/) · [Yaba Sanshiroの保存コミット](https://github.com/sydarn/yabasanshiro/commit/c7618d2ecbf77b1e8188fa8af4fa1cfb34833a72)
 
 配布版 `KERNEL` のバージョン文字列はLinux 4.19.172、GCC 12.3.1（20240103）、GNU Binutils 2.41です。GCCのレシピが取得する12.3.0のアーカイブには、JELOS自身のパッチで12.3.1（20240103）の変更が適用されます。配布版から埋め込みカーネル設定も抽出し、比較項目に加えました。[GCCの公式レシピ](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/packages/lang/gcc/package.mk) · [20240103版へのJELOSのパッチ](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/packages/lang/gcc/patches/gcc-sync-to-12.3.1-01032024.patch)
+
+### 32ビット互換ビルドでの先行照合
+
+最初の実行は `fakeroot` の取得処理が既定ブランチの履歴から固定コミットを見つけられず停止しました。取得済みリポジトリにある `305c8a1b5396554a67794f3fe6e4990a24a810f9` を直接チェックアウトして再開し、`fakeroot:host` のビルドが完了しました。JELOSのソースとバージョン固定は維持しています。[fakerootの固定コミット](https://salsa.debian.org/clint/fakeroot/-/commit/305c8a1b5396554a67794f3fe6e4990a24a810f9)
+
+互換ビルド中に生成したRG353M用DTBと同梱6機種用のDTBを元の配布イメージから読み出したものと照合し、全7件がバイト単位で一致しました。RG353M用DTBのSHA-256は `4e811ea7a0ff4e5d233c58d9da6f4793bac4ebd9dd1411f5c27a9b92645061c5` です。互換ビルドのinitramfs内の `/init` と `/functions` も配布版とバイト単位で一致しました。カーネル設定の差分は、コンパイラのターゲット名とinitramfsのビルド時パスの2行でした。これらは64ビット配布イメージの完成前に得た結果です。
