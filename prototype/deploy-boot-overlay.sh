@@ -32,13 +32,15 @@ cp "$prototype/system/etc/issue" "$local_stage/issue"
 cp "$1" "$local_stage/frontend-bin/plumos-controller-ui"
 cp "$prototype/system/usr/lib/plumos-353m/frontend/bin/plumos-safe-shutdown" \
     "$local_stage/frontend-bin/"
-(cd "$local_stage" && shasum -a 256 issue frontend-bin/* > SHA256SUMS)
+cp -R "$(dirname "$1")/boot-splash" "$local_stage/boot-splash"
+(cd "$local_stage" && shasum -a 256 issue boot-splash/* frontend-bin/* > SHA256SUMS)
 remote_stage=$("$adb" shell 'mktemp -d /storage/.plumos-353m-deploy.XXXXXXXX')
 case "$remote_stage" in
     /storage/.plumos-353m-deploy.*) ;;
     *) remote_stage=; echo 'Unexpected staging directory.' >&2; exit 1 ;;
 esac
-"$adb" push "$local_stage/issue" "$local_stage/frontend-bin" "$local_stage/SHA256SUMS" "$remote_stage/"
+"$adb" push "$local_stage/issue" "$local_stage/boot-splash" "$local_stage/frontend-bin" \
+    "$local_stage/SHA256SUMS" "$remote_stage/"
 "$adb" shell -T "sh -s -- '$remote_stage'" <<'REMOTE'
 set -eu
 cd "$1"
@@ -52,18 +54,19 @@ fi
 mount -o remount,rw /flash
 trap 'sync; mount -o remount,ro /flash' EXIT
 slot=$(mktemp -d /flash/plumos-353m-live.XXXXXXXX)
-cp -R issue frontend-bin SHA256SUMS "$slot/"
+cp -R issue boot-splash frontend-bin SHA256SUMS "$slot/"
 (cd "$slot" && sha256sum -c SHA256SUMS)
 {
     printf '%s\n' "$tag"
-    printf "(\nplumos_assets='%s'\n" "$slot"
+    printf "plumos_assets='%s'\n" "$slot"
     cat <<'HOOK'
-    cd "$plumos_assets" || exit 0
-    /usr/bin/busybox sha256sum -c SHA256SUMS >/dev/null 2>&1 || exit 0
+if (cd "$plumos_assets" && /usr/bin/busybox sha256sum -c SHA256SUMS >/dev/null 2>&1); then
+    plumos_splash_dir="$plumos_assets/boot-splash"
+    . "$plumos_splash_dir/boot-splash.sh"
     /usr/bin/busybox mount -o bind "$plumos_assets/issue" /sysroot/etc/issue || :
     /usr/bin/busybox mount -o bind "$plumos_assets/frontend-bin" \
         /sysroot/usr/lib/plumos-353m/frontend/bin || :
-)
+fi
 HOOK
 } > "$slot/post-sysroot.sh"
 sh -n "$slot/post-sysroot.sh"

@@ -27,3 +27,14 @@ JELOS 20240206の対応表にはRG353VSも載っている。このイメージ�
 現試作はRG353M用のDRMノード、ゲームパッドと電源キーのパス、USBデバイスコントローラーをフロントエンドとADBの起動スクリプトで指定している。別機種のDTBを選んでLinuxまで到達できても、plumOSの表示・入力・ADBは各機種で検証が必要。
 
 複数機種に対応する場合は、JELOSのDTB選択を維持し、ユーザランド起動時に `/proc/device-tree/model` などから検証済みの機種設定を選ぶ。同じフロントエンドを使い、DRMコネクタと回転、入力マッピング、音声、USBデバイスモードの差分を機種ごとに持つ。機種設定を追加するたびに、実機でコールドブート、最初の描画、ボタン、ADBを確認する。
+
+## パーティションとユーザランドの引き渡し
+
+| GPT | 名前 | 実機の用途 |
+| --- | --- | --- |
+| p1 | `uboot` | U-BootとARM Trusted Firmwareを含むFIT |
+| p2 | `resource` | 機種自動判定用のRockchipリソースとDTB |
+| p3 | `boot` | FAT32。`/flash` に読み取り専用でマウント。`KERNEL`、DTB、extlinux、SquashFSの `SYSTEM`、ADB差分更新の起動フックを格納。 |
+| p4 | `storage` | ext4。`/storage` に読み書き可能でマウント。設定やユーザーデータを保存。 |
+
+カーネル内のJELOS initramfsの `/init` が初期PID 1となり、`SYSTEM` をマウントします。この段階で `post-sysroot.sh` がロゴ表示を差し替えます。その後、`switch_root` が `SYSTEM` 内の `/usr/lib/systemd/systemd` を実行します。実機の常駐PID 1はsystemd、既定ターゲットは `jelos.target` です。同ターゲットの既存 `emustation.service` をplumOSフロントエンドに切り替え、USB ADBのサービスを追加しています。PID 1とターゲットの構成はJELOSを引き継いでいます。

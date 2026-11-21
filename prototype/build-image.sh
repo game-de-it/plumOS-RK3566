@@ -31,6 +31,7 @@ cp -RP "$upstream/share/doc/plumos-frontend" "$frontend/share/doc/"
 git -C "$mini" show HEAD:LICENSE > "$frontend/share/doc/plumos-frontend/LICENSE"
 install -m 755 "$work/compiled/plumos-controller-ui" "$work/compiled/plumos-library-scan" "$frontend/bin/"
 install -m 755 "$tools/adbd-36.0.1-linux-aarch64-static" "$payload/adbd"
+cp -RP "$work/compiled/boot-splash" "$payload/boot-splash"
 printf '%s\n' "$source_version" > "$payload/frontend-source"
 
 offset=16777216
@@ -99,8 +100,15 @@ done
 cp -c "$source_img" "$output.part"
 volume="$output.part@@$offset"
 printf '%s  target/SYSTEM\n' "$(md5 -q "$stage_system")" > "$stage/SYSTEM.md5"
+cat > "$stage/post-sysroot.sh" <<'HOOK'
+# plumOS-353M boot overlay
+plumos_splash_dir=/sysroot/usr/lib/plumos-353m/boot-splash
+. "$plumos_splash_dir/boot-splash.sh"
+HOOK
 "$fat/mcopy" -o -i "$volume" "$stage_system" ::/SYSTEM
 "$fat/mcopy" -o -i "$volume" "$stage/SYSTEM.md5" ::/SYSTEM.md5
+"$fat/mcopy" -i "$volume" "$stage/post-sysroot.sh" ::/post-sysroot.sh
+"$fat/mtype" -i "$volume" ::/post-sysroot.sh | cmp - "$stage/post-sysroot.sh"
 "$fat/mcopy" -i "$volume" ::/SYSTEM "$stage/SYSTEM.readback"
 cmp "$stage_system" "$stage/SYSTEM.readback"
 "$squash/unsquashfs" -cat "$stage/SYSTEM.readback" etc/issue | cmp - "$stage/etc/issue"

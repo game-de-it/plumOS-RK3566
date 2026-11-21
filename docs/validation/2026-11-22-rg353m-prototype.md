@@ -48,3 +48,9 @@ r3のSHA-256は `62120d0cf4740dc48162484e1dd57c18d00d0315daef681753e6c0665cbbbc2
 本体のリセット後にUSB ADBが接続できることを確認しました。初版のフロントエンドでは、再起動とシャットダウンのメニューが呼ぶ `plumos-safe-shutdown` が配備されていませんでした。JELOSのsystemdへ再起動と電源断を渡すヘルパーを追加し、USB ADBで既存SDに転送して、フロントエンドから参照できる場所に有効化しました。
 
 実機上のフロントエンドのメニュースクリプトで、確認入力を経た再起動とシャットダウンがそれぞれ `reboot` と `poweroff` に解決されることをドライランで確認しました。修正後の実電源断は未実施です。
+
+### Bubbleのグラフィック起動ロゴ
+
+Bubble `ec81d42c0c2c39e7a32973bfe4df9b3027512a5c8` の `boot-splash.png` と、ビルドに使うmini PLUSの画像は、SHA-256 `f55f1ad088fe842217f4d62153978c5227c470807303d266ecd6badcba7a553d` で一致しました。色と画素寸法を保ったままXRGB8888に変換し、静的リンクしたAArch64の描画プログラムとともにADBで転送しました。[Bubbleの起動画像](https://github.com/game-de-it/plumOS-Bubble/blob/ec81d42c0c2c39e7a32973bfe4df9b3027512a5c8/package/frontend-bubble/plumos/config/frontend/boot-splash.png)
+
+既存の `post-sysroot.sh` から、initramfsの `load_splash` が画像を描画するようにしました。同じ試作SDからの再起動後に描画成功マーカー、フロントエンドの初回描画マーカー、ADB接続を確認し、実機の液晶に画像が表示されたと利用者から確認を得ました。

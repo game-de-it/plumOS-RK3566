@@ -1,4 +1,4 @@
-# plumOS-353M 試作
+# plumOS-RK3566 RG353M試作
 
 RG353Mの内蔵液晶とゲームパッドで、GKD mini PLUS由来のplumOSフロントエンドを確認するためのイメージです。mini PLUSのコミット `baa7143a0bddb1aef5ebc8ee0c8c3358a6aa8d35` を使用しています。ゲーム・エミュレーター・機種固有メニューの移植はこの試作の検証対象外です。
 
@@ -6,7 +6,7 @@ RG353Mの内蔵液晶とゲームパッドで、GKD mini PLUS由来のplumOSフ�
 
 既に起動できる試作SDを開発用に使います。アプリや設定はUSB ADBで転送し、サービス再起動で反映できる変更はその場で確認します。起動時に読まれる変更はADBで配置し、同じカードを差したまま再起動して確認します。イメージの書き直しは、新規カードを作る場合や、現在のSDへADBで安全に適用できない変更がある場合に行います。
 
-初版の試作SDへr3のロゴとA・Bの修正を反映する例です。`build-frontend.sh` で生成済みの修正版バイナリを指定します。
+既存の試作SDにグラフィック起動ロゴとフロントエンドの修正を反映する例です。`build-boot-splash.sh` で起動画面を準備し、`build-frontend.sh` で生成した修正版バイナリを指定します。
 
 ```sh
 ./prototype/deploy-boot-overlay.sh /path/to/compiled/plumos-controller-ui
@@ -61,4 +61,4 @@ ADBはUSB専用で、試作機のrootシェルを認証なしで公開します�
 - Debian bookworm ARM64の `libpng-dev`、`libfreetype-dev`、`libdrm-dev`、`zlib1g-dev` のヘッダ。リンク対象はJELOS由来の共有ライブラリ。
 - Standalone Linux adbd `v36.0.1-linux.2` のARM64静的ビルド。使用した配布tarballのSHA-256は `ba3935056777932addc3de1cdbd25194f0942f796575b5ea5668a9ef32c95117`。[ソースとビルド情報](https://github.com/happyme531/standalone-linux-adbd/tree/v36.0.1-linux.2)
 
-ビルドスクリプトは作業ディレクトリの `tools/`、`refs/mini-PLUS/`、`debian/sysroot/` に上記の入力があることを前提にします。`build-frontend.sh` でバイナリを作り、`build-image.sh` で既知のJELOSイメージから組み立てます。
+ビルドスクリプトは作業ディレクトリの `tools/`、`refs/mini-PLUS/`、`debian/sysroot/` に上記の入力があることを前提にします。`build-frontend.sh` と `build-boot-splash.sh` でフロントエンドと起動画面を準備します。新規カード用のイメージが必要なときは、`build-image.sh` で既知のJELOSイメージから組み立てます。
