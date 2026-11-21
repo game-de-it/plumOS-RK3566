@@ -151,3 +151,11 @@ JELOS組み込みinitramfsのBusyBoxを実行して確認すると `seq`、`ln`�
 診断用の設定では、TF1のブート領域が読めるとJELOSの `/init` に渡します。その前後にTF1の読み出し、JELOSの `/flash` と `SYSTEM` のマウント、`switch_root` 前の到達点をブート領域の `plumos-boot-trace.log` に追記します。TF1を開けない場合は起動を止めてUSB復旧ADBを開始します。USB復旧機能と到達点の記録は診断用ファイルで、配布イメージの既定の起動設定には組み込んでいません。
 
 物理SDに診断用起動設定、JELOSの到達点を記録するフック、修正版の外部initramfsを適用しました。FAT32から各設定と修正版アーカイブを読み戻して照合し、Macから取り出しました。`KERNEL`、DTB、`SYSTEM` およびパーティション配置の変更はありません。
+
+### TF1のカード検出をポーリングに切り替える診断
+
+修正版のUSB復旧診断で撮影された画面では、TF1の `mmc1` ホストが起動し、初期クロックは375 kHzになっていましたが、試作SDの `mmcblk1` は生成されませんでした。カードのブート領域にも `plumos-boot-trace.log` はありませんでした。TF1が認識された前回の試行と異なり、今回はファイルシステムを開く前の段階で止まっています。
+
+JELOSのカーネルソースで `broken-cd` が `MMC_CAP_NEEDS_POLL` を有効にし、DesignWare MMCドライバーがカード検出の入力を待たずに初期化を試みることを確認しました。元のRG353M用DTBの複製を作り、TF1の `/dwmmc@fe2b0000` に `broken-cd` だけを追加しました。逆コンパイルして他のプロパティが一致することを確認しました。[JELOSのMMC設定解析](https://github.com/JustEnoughLinuxOS/rk356x-kernel/blob/c741d56477939654bb4056be240f93d1ad1ae91e/drivers/mmc/core/host.c#L201-L225) · [JELOSのDesignWare MMCカード検出](https://github.com/JustEnoughLinuxOS/rk356x-kernel/blob/c741d56477939654bb4056be240f93d1ad1ae91e/drivers/mmc/host/dw_mmc.c#L940-L971)
+
+同じ物理SDのFAT32に診断用DTBを追加し、既存の診断起動でそのファイルを選択するよう `extlinux.conf` のFDT指定を変更しました。元のDTBが配布元と一致することを確認し、変更した2ファイルも読み戻して照合しました。カーネル、診断用initramfs、`SYSTEM`、既存のパーティションを維持しています。この変更は診断カードにだけ適用しました。
