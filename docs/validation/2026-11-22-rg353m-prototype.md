@@ -85,3 +85,11 @@ Dockerの別テストでは、元イメージの複製を拡大した後にGPT�
 - SDの先頭16 MiBは3セクタに差分があり、いずれもRockchipのVendorStorage領域です。先頭のGPT、U-Bootの `p1`、機種識別データの `p2` は配布イメージと一致しました。[Rockchip U-BootのVendorStorage定義](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/arch/arm/mach-rockchip/vendor.c#L12-L28)
 - macOSはバックアップGPTの位置について警告しました。配布イメージの複製を実カードと同じ62,914,560,000バイトに広げたDocker上の試験では、Linuxが4パーティションすべてを認識し、JELOS initramfsのBusyBoxで `boot=` と `disk=` のUUIDに従って両方を読み取り専用マウントできました。`SYSTEM` のSquashFSマウントとplumOS initの構文確認も通りました。この検証環境のLinuxはRG353M上のカーネルと異なります。[Linux 4.19のGPT検証](https://github.com/torvalds/linux/blob/v4.19/block/partitions/efi.c#L600-L621)
 - 実機のJELOS initramfsは `/flash`、`SYSTEM`、`/storage` いずれかのマウントを繰り返し試みて失敗すると電源を切ります。今回の停止箇所の確定には、電源断直前の画面メッセージが必要です。[JELOS initramfsのマウント処理](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/packages/sysutils/busybox/scripts/init#L113-L130)
+
+### 電源断メッセージとRG353M用の診断設定
+
+利用者の写真で `Unable to find UUID=0602-1646` を確認しました。これは `boot=` で指定したFAT32の `/flash` をJELOS initramfsがマウントできなかったときの表示です。この表示はUUIDの検索失敗と、デバイス発見後のマウント失敗を区別しません。
+
+`prepare-rg353m-boot-diagnostics.sh` は既存の `extlinux.conf` からRG353M用の診断設定を生成します。以前の実機で確認したTF1の `/dev/mmcblk1p3` を `boot=` に指定し、`debugging` でマウントコマンドのエラーを画面に出します。`disk=` のext4 UUIDと `FDTDIR` は元の設定を使います。配布イメージの複製上でFAT32に書き込み、読み戻した設定の一致を確認しました。
+
+物理SDの `extlinux/extlinux.conf` をMacに退避し、同じSDの該当ファイルに診断設定を適用しました。読み戻しで一致を確認して取り出しました。この設定は特定機種の切り分け用として物理SDにのみ適用しています。
