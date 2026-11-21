@@ -167,3 +167,9 @@ JELOSのカーネルソースで `broken-cd` が `MMC_CAP_NEEDS_POLL` を有効�
 この試作の `extlinux.conf` は、JELOS 20240206の `boot=UUID=0602-1646` と `disk=UUID=b839c001-95ff-4847-9189-45670cde3fb8` を再利用しています。どちらもファイルシステムの識別子であり、GPTの `PARTUUID` とは別です。TF2で調べた実物SDのFAT32（p3）とext4（p4）の値はいずれも一致しました。JELOSのビルドはイメージ生成時に値を作って `extlinux.conf` に埋め込みます。同じ元イメージから作ったSD同士はその値を共有します。[JELOSのUUID生成](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/scripts/image#L279-L282) · [JELOSの起動設定生成](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/projects/Rockchip/bootloader/mkimage#L84-L89)
 
 比較したROCKNIX 20250517のRK3566 Genericと `next` の標準のU-Boot用テンプレートは、`boot=LABEL=` と `disk=LABEL=` でファイルシステムを指定します。[ROCKNIX 20250517のRK3566設定](https://github.com/ROCKNIX/distribution/blob/20250517/projects/Rockchip/bootloader/dtb.xml#L24-L38) · [当時のextlinuxテンプレート](https://github.com/ROCKNIX/distribution/blob/20250517/projects/Rockchip/bootloader/mkimage#L32-L42) · [ROCKNIX nextの標準extlinuxテンプレート](https://github.com/ROCKNIX/distribution/blob/next/projects/ROCKNIX/bootloader/mkimage#L24-L41)
+
+### ビルド時にplumOSのストレージ構成を作る12 GiBイメージ
+
+JELOS 20240206のrawイメージを複製し、従来のBubble ARM64 Docker環境でGPTとファイルシステムを準備しました。既存の `p1`〜`p3` のGPTエントリと `p4` の開始位置・識別子を保持し、`p4` のext4を8 GiBへ拡張しました。残りにFAT32 `PLUMOS`（`p5`）を作成し、`Roms`、`BIOS`、`Images` を用意しました。ビルド前後のIDBから `p3` 末尾までを照合し、レイアウト作成の前後で一致しました。
+
+完成した `plumOS-RK3566-rg353m-12GiB.img` をDockerで読み取り専用マウントし、GPT、元のカーネル・DTB、両ファイルシステムと利用者領域のPARTUUID、plumOS initへのリンクを確認しました。別の書き込み可能な複製では、TF1のデバイス名とSD種別、PARTUUID参照を試験用に再現し、実際のFAT32で初回マーカーの記録と次回の再マウントを確認しました。内蔵画面とゲームパッド、USB ADBを含むRG353Mの実機起動は未確認です。既存の物理SDと内蔵eMMCには書き込んでいません。

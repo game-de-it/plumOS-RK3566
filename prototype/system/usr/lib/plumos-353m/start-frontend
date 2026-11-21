@@ -3,6 +3,9 @@ set -eu
 payload=${PLUMOS_PAYLOAD:-/usr/lib/plumos-353m}
 export PLUMOS_ROOT=${PLUMOS_ROOT:-/storage/plumos-353m/frontend}
 export PLUMOS_SDCARD_ROOT=/storage
+if grep -qs ' /storage/user ' /proc/mounts; then
+    export PLUMOS_SDCARD_ROOT=/storage/user
+fi
 export PLUMOS_RUNTIME_ROOT=${PLUMOS_RUNTIME_ROOT:-/run/plumos-353m}
 export PLUMOS_BUSYBOX=/usr/bin/busybox
 export PLUMOS_DEVICE_ID=rg353m

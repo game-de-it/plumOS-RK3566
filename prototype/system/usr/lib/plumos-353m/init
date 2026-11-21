@@ -25,8 +25,17 @@ power_action() {
         wait "$frontend" 2>/dev/null || :
     fi
     sync
+    user_mounted=no
+    if grep -qs ' /storage/user ' /proc/mounts; then
+        if ! mount -o remount,ro /storage/user; then
+            echo 'plumOS-RK3566: user storage is still writable; power action cancelled'
+            return
+        fi
+        user_mounted=yes
+    fi
     if ! mount -o remount,ro /storage; then
         echo 'plumOS-RK3566: storage is still writable; power action cancelled'
+        if [ "$user_mounted" = yes ]; then mount -o remount,rw /storage/user; fi
         return
     fi
     kill "$adb_pid" 2>/dev/null || :
@@ -41,13 +50,14 @@ adb_pid=$!
 trap power_action USR1
 export PLUMOS_FAST_BOOT=1
 attempt=0
-if [ -f /storage/.please_resize_me ]; then
-    if "$payload/first-boot"; then
-        echo 'plumOS-RK3566: first boot storage ready'
-    else
-        echo 'plumOS-RK3566: first boot storage failed; ADB recovery available'
+if [ -f /storage/.plumos-user-layout ]; then
+    if ! "$payload/mount-user-storage"; then
+        echo 'plumOS-RK3566: user storage setup failed; ADB recovery available'
         attempt=5
     fi
+elif [ -f /storage/.please_resize_me ]; then
+    echo 'plumOS-RK3566: storage requires a prepared SD image; ADB recovery available'
+    attempt=5
 fi
 while [ "$attempt" -lt 5 ]; do
     "$payload/start-frontend" &

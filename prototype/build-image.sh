@@ -1,14 +1,20 @@
 #!/bin/bash
 # Input is a decompressed copy of JELOS-RK3566.aarch64-20240206.img.
 set -euo pipefail
-if [ "$#" -ne 3 ]; then
-    printf 'Usage: %s JELOS.img BUILD_WORK OUTPUT.img\n' "$0" >&2
+if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
+    printf 'Usage: %s JELOS.img BUILD_WORK OUTPUT.img [IMAGE_GIB]\n' "$0" >&2
     exit 2
 fi
 prototype=$(cd "$(dirname "$0")" && pwd)
 source_img=$1
 work=$2
 output=$3
+image_gib=${4:-12}
+if ! [[ "$image_gib" =~ ^[1-9][0-9]*$ ]] || (( image_gib < 12 )); then
+    printf 'IMAGE_GIB must be an integer of at least 12.\n' >&2
+    exit 2
+fi
+[ -f "$source_img" ]
 [ ! -e "$output" ] && [ ! -e "$output.part" ]
 tools=$work/tools
 squash=$tools/squashfs-tools/squashfs-tools
@@ -94,7 +100,7 @@ PY
 "$squash/mksquashfs" - "$stage_system" -no-progress -processors 8 -comp lzo -b 524288 \
     -no-xattrs -pf "$stage/JELOS.pseudo" -pf "$stage/353m.pseudo"
 "$squash/unsquashfs" -lln "$stage_system" \
-    usr/lib/plumos-353m/init usr/lib/plumos-353m/first-boot usr/lib/systemd/systemd \
+    usr/lib/plumos-353m/init usr/lib/plumos-353m/mount-user-storage usr/lib/systemd/systemd \
     usr/lib/plumos-353m/adbd usr/lib/plumos-353m/frontend/bin/plumos-controller-ui \
     usr/lib/systemd/system/emustation.service.d/plumos-353m.conf \
     usr/lib/systemd/system/jelos.target.wants/plumos-usb-adb.service \
@@ -121,7 +127,7 @@ cmp "$stage_system" "$stage/SYSTEM.readback"
 "$squash/unsquashfs" -cat "$stage/SYSTEM.readback" etc/issue | cmp - "$stage/etc/issue"
 "$squash/unsquashfs" -lln "$stage/SYSTEM.readback" usr/lib/systemd/systemd |
     grep -F 'usr/lib/systemd/systemd -> ../plumos-353m/init'
-for file in init first-boot; do
+for file in init mount-user-storage; do
     "$squash/unsquashfs" -cat "$stage/SYSTEM.readback" "usr/lib/plumos-353m/$file" |
         cmp - "$payload/$file"
 done
@@ -140,6 +146,33 @@ with open(sys.argv[1], "rb") as original, open(sys.argv[2], "rb") as candidate:
         f.seek(4227072 * 512)
     assert original.read() == candidate.read()
 PY
+
+# Check the complete boot region across the offline repartitioning step.
+boot_region_hash() {
+    python3 - "$output.part" <<'PY'
+import hashlib
+import sys
+
+# Skip GPT metadata and read from the Rockchip IDB through the end of p3.
+digest = hashlib.sha256()
+with open(sys.argv[1], 'rb') as image:
+    image.seek(64 * 512)
+    remaining = (4227072 - 64) * 512
+    while remaining:
+        data = image.read(min(8 * 1024 * 1024, remaining))
+        assert data
+        digest.update(data)
+        remaining -= len(data)
+print(digest.hexdigest())
+PY
+}
+expected_boot=$(boot_region_hash)
+output_dir=$(cd "$(dirname "$output")" && pwd)
+docker run --rm --privileged --platform linux/arm64 \
+    -v "$prototype/build-storage-layout.sh:/build-storage-layout.sh:ro" \
+    -v "$output_dir:/output" plumos-rk3566-bubble-tools:ec81d42 \
+    sh /build-storage-layout.sh "/output/$(basename "$output").part" "$image_gib"
+test "$(boot_region_hash)" = "$expected_boot"
 mv "$output.part" "$output"
 (cd "$(dirname "$output")" && shasum -a 256 "$(basename "$output")" > "$(basename "$output").sha256")
 printf 'Verified image: %s\nWorking evidence: %s\n' "$output" "$stage"

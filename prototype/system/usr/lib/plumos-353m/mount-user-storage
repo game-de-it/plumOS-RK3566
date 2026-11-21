@@ -1,0 +1,33 @@
+#!/bin/sh
+set -eu
+
+splash=/usr/lib/plumos-353m/boot-splash
+show() {
+    "$splash/boot-splash" "$splash/$1.xrgb" || :
+}
+
+layout=/storage/.plumos-user-layout
+ready=/storage/.plumos-user-ready
+trap 'result=$?; if [ "$result" -ne 0 ]; then show provision-error; fi' EXIT
+if [ ! -f "$ready" ]; then show provision-start; fi
+
+flash=$(awk '$2=="/flash" {print $1}' /proc/mounts)
+storage=$(awk '$2=="/storage" && $3=="ext4" {print $1}' /proc/mounts)
+case "$flash" in /dev/mmcblk*p3) ;; *) exit 1 ;; esac
+disk=${flash%p3}
+test "$storage" = "${disk}p4"
+test "$(cat "/sys/class/block/${disk##*/}/device/type")" = SD
+user=${disk}p5
+test -b "$user"
+expected=$(cat "$layout")
+test -n "$expected"
+test "$(blkid -s PARTUUID -o value "$user")" = "$expected"
+test "$(blkid -s LABEL -o value "$user")" = PLUMOS
+
+mount -t vfat -o rw,noatime "$user" /storage/user
+mkdir -p /storage/user/Roms /storage/user/BIOS /storage/user/Images
+if [ ! -f "$ready" ]; then
+    touch "$ready"
+    sync
+    show provision-complete
+fi
