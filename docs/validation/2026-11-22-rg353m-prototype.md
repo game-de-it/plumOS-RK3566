@@ -105,3 +105,11 @@ Dockerの別テストでは、元イメージの複製を拡大した後にGPT�
 診断用の外部initramfsが実機で動作しました。起動SDから診断ファイルを読めたため、U-Bootからの読み出しは成功しています。Linux側の画面には内蔵eMMCの `mmcblk0` とTF2の別カード（`mmcblk2`、14.5 GiB）が表示され、TF1のカード `mmcblk1` とブート領域のUUIDは確認できませんでした。画面に残ったカーネルログは末尾9件のみで、TF1の初期化メッセージは採取できていません。
 
 元のJELOSと配布用試作イメージから `KERNEL`、RG353M用DTB、`extlinux.conf` を再抽出し、ファイルごとのSHA-256がすべて一致することを確認しました。JELOSのRG353M用DTBでは `mmc1` が `/dwmmc@fe2b0000` に対応し、ノードは有効です。物理カードには一時的な診断用 `INITRD` と `rdinit=` の設定を適用中です。この検証でカーネルとDTBの書き換えは行っていません。
+
+### JELOSのSD起動と内蔵Androidの共存
+
+ROCKNIXのRG353向け説明では、旧ブートローダーを持つeMMCモデルの制約が記載され、P/M/Vの導入手順は内蔵eMMC全体を消去する内容です。[ROCKNIXのRG353向け説明](https://rocknix.org/devices/anbernic/rg353pmvvs/#installation)
+
+JELOS 20240206のRockchip用イメージ生成処理は、SDのLBA 64に `idbloader`、LBA 16384にU-Boot FIT、LBA 24576に機種識別用データを書き込みます。JELOSが採用するRockchip U-Bootは、SDのIDBを検証する分岐と、SDをeMMCより先に検索する既定の起動順を持ちます。`rkimgtest` はLBA 64の先頭を読み、実イメージにある `RKNS` を有効なIDBヘッダーとして受理します。[JELOSのイメージ生成](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/projects/Rockchip/bootloader/mkimage#L6-L30) · [Rockchip U-Bootの起動順](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/include/configs/rockchip-common.h) · [IDBの検査](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/cmd/rkimgtest.c#L26-L54)
+
+元のJELOS、起動実績のあるr3試作、現PID 1試作、物理SDの既存ダンプで、LBA 64からVendorStorageの手前まで、U-Boot FITを含む `p1`、機種識別用の `p2` をそれぞれSHA-256で照合し、すべて一致しました。3つのイメージに含まれるカーネル、RG353M用DTBと既定の `extlinux.conf` も一致しました。どの媒体の最初のローダーが実行されたかはシリアル起動ログ未採取のため確定していません。診断用initramfsの実行からSD上の起動ファイルが読み込まれたことは確認できます。観測された停止はLinuxに切り替わった後のTF1認識段階です。
