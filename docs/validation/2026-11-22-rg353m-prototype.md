@@ -93,3 +93,9 @@ Dockerの別テストでは、元イメージの複製を拡大した後にGPT�
 `prepare-rg353m-boot-diagnostics.sh` は既存の `extlinux.conf` からRG353M用の診断設定を生成します。以前の実機で確認したTF1の `/dev/mmcblk1p3` を `boot=` に指定し、`debugging` でマウントコマンドのエラーを画面に出します。`disk=` のext4 UUIDと `FDTDIR` は元の設定を使います。配布イメージの複製上でFAT32に書き込み、読み戻した設定の一致を確認しました。
 
 物理SDの `extlinux/extlinux.conf` をMacに退避し、同じSDの該当ファイルに診断設定を適用しました。読み戻しで一致を確認して取り出しました。この設定は特定機種の切り分け用として物理SDにのみ適用しています。
+
+### MMCの認識状況を出す診断起動
+
+次の写真では `/dev/mmcblk1p3` を `/flash` にマウントする処理が `No such file or directory` で失敗しました。JELOSは先に `/flash` を作るため、Linux側でのデバイス認識を調べます。このエラーだけでは、SD本体とパーティションのどちらが見えていないかは確定できません。
+
+`build-sd-probe.sh` で小さい外部initramfsを生成し、同じカードのFAT32に配置しました。カーネル内の設定で初期RAMディスクとgzip対応を確認し、JELOSのBusyBoxに必要なコマンドが揃うこと、FAT32から読み戻した診断ファイルと設定が一致することを確認しました。元のUUID指定に戻し、診断が読み取り専用でブート領域を開ける場合はJELOSの `/init` に引き渡します。失敗時はMMCパーティション、ファイルシステムとカーネルメッセージを画面に残します。実機での診断出力は採取待ちです。[Rockchip U-BootのINITRD読み込み](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/cmd/pxe.c#L608-L618)

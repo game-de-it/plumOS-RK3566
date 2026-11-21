@@ -1,0 +1,34 @@
+#!/usr/bin/busybox sh
+# Runs from an optional external initramfs, before JELOS touches the SD.
+bb=/usr/bin/busybox
+export PATH=/usr/bin:/usr/sbin:/bin:/sbin
+"$bb" mkdir -p /dev /proc /sys /flash
+"$bb" mount -t devtmpfs devtmpfs /dev
+"$bb" mount -t proc proc /proc
+"$bb" mount -t sysfs sysfs /sys
+exec >/dev/console 2>&1
+printf 'plumOS: checking boot SD (read-only)...\n'
+
+for second in $("$bb" seq 1 15); do
+    if "$bb" mount -t vfat -o ro UUID=0602-1646 /flash 2>/dev/null; then
+        if [ -r /flash/SYSTEM ] && "$bb" umount /flash; then
+            printf 'Boot SD found; continuing JELOS startup.\n'
+            "$bb" umount /sys /proc /dev
+            exec /init
+        fi
+        "$bb" umount /flash
+        break
+    fi
+    "$bb" sleep 1
+done
+
+printf '\033[2J\033[HplumOS SD probe\nMMC partitions:\n'
+"$bb" awk '$4 ~ /^mmcblk[0-9]+(p[0-9]+)?$/ {print $3 " KiB  " $4}' /proc/partitions
+printf 'Detected filesystems:\n'
+"$bb" blkid | "$bb" grep 'mmcblk' | "$bb" tail -n 4
+printf 'Kernel MMC/GPT messages:\n'
+"$bb" dmesg | "$bb" grep -Ei 'mmc[0-9]|mmcblk|dwmmc|sdhci|GPT' | "$bb" tail -n 9
+printf 'Boot mount error:\n'
+"$bb" mount -t vfat -o ro UUID=0602-1646 /flash && "$bb" umount /flash
+printf 'Photograph this screen, then hold Power to turn off.\n'
+while :; do "$bb" sleep 60; done
