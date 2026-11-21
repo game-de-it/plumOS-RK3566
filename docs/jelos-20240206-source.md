@@ -41,3 +41,19 @@ PortAudioの取得先も消失していました。Software HeritageのGitエク
 互換ビルド中に生成したRG353M用DTBと同梱6機種用のDTBを元の配布イメージから読み出したものと照合し、全7件がバイト単位で一致しました。RG353M用DTBのSHA-256は `4e811ea7a0ff4e5d233c58d9da6f4793bac4ebd9dd1411f5c27a9b92645061c5` です。互換ビルドのinitramfs内の `/init` と `/functions` も配布版とバイト単位で一致しました。カーネル設定の差分は、コンパイラのターゲット名とinitramfsのビルド時パスの2行でした。これらは64ビット配布イメージの完成前に得た結果です。
 
 互換ビルドで生成された `resource.img` を配布元の `p2` と比較すると、差分は8個のインデックスエントリのハッシュ欄にある未使用領域の計64バイトでした。各エントリの `hash_size` は20で、格納されたSHA-1と読み出した内容が双方で一致しました。比較時にハッシュ長より後ろをゼロ化すると、パーティション全体が一致しました。カーネルの生成ツールが32バイト欄の先頭20バイトだけを書き、U-Bootが `hash_size` の長さだけを読み込むことを確認しました。[resource.img生成ツール](https://github.com/JustEnoughLinuxOS/rk356x-kernel/blob/c741d56477939654bb4056be240f93d1ad1ae91e/scripts/resource_tool.c#L1470-L1497) · [U-Bootの読み込み処理](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/arch/arm/mach-rockchip/resource_img.c#L152-L162)
+
+### 64ビット版で生成したブート部品の照合
+
+32ビット互換ビルドの全198工程が完了しました。64ビット版の工程で生成した部品を、配布イメージから読み出した同じ領域・ファイルと比較しました。
+
+| 部品 | 比較結果 |
+| --- | --- |
+| LBA 64のIDBローダー | VendorStorage直前までの領域がバイト単位で一致 |
+| `p1` のU-Boot FIT | BL31の6セグメントとU-Boot用DTBは一致。FITの日時とU-Boot本体は差分あり。両方で全ペイロードの格納SHA-256を検証 |
+| `p2` の機種選択データ | 8エントリの内容とSHA-1が一致。ハッシュの未使用バイトを正規化すると領域全体が一致 |
+| `p3` に収録するLinux | Linux 4.19.172、GCC 12.3.1（20240103）、GNU Binutils 2.41。埋め込みカーネル設定の差はinitramfsのビルド時絶対パスのみ。カーネルバイナリにはビルド日時・ホスト名などの差あり |
+| 機種別DTBと初期化スクリプト | 全7件のDTBと、再ビルド版カーネルに埋め込まれた `/init`・`/functions` がバイト単位で一致 |
+
+通常ビルドから分けた比較用コピーで、タグのソースおよび公式レシピが適用した状態を保ち、U-Bootに埋め込まれるユーザー名と日時だけを配布版と揃えました。生成した `u-boot-nodtb.bin` は配布イメージのFITに含まれるU-Boot本体とSHA-256 `af37d3549426270c2193ffc808b47d3167b4d6058b05ba539f6252be5739e562` が一致しました。通常ビルドにはこの比較用の環境変数を渡していません。[U-Bootのユーザー名を付加する処理](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/scripts/setlocalversion) · [U-Bootのビルド日時設定](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/Makefile#L1387-L1414)
+
+64ビット版のBoost取得は、旧URLがアーカイブの代わりにHTMLを返したため停止しました。公式アーカイブから1.83.0を取得し、公開SHA-256 `6478edfe2f3305127cffe8caf73ea0176c53769f4bf1585be237eb30798c3b8e` と一致した入力で再開しました。SDイメージ全体の整合性と実機起動の検証は64ビット版のパッケージ生成後に行います。[Boostの公開チェックサム](https://archives.boost.io/release/1.83.0/source/boost_1_83_0.tar.bz2.json)
