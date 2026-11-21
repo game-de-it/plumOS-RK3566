@@ -51,7 +51,7 @@ r3のSHA-256は `62120d0cf4740dc48162484e1dd57c18d00d0315daef681753e6c0665cbbbc2
 
 ### Bubbleのグラフィック起動ロゴ
 
-Bubble `ec81d42c0c2c39e7a32973bfe4df9b3027512a5c8` の `boot-splash.png` と、ビルドに使うmini PLUSの画像は、SHA-256 `f55f1ad088fe842217f4d62153978c5227c470807303d266ecd6badcba7a553d` で一致しました。色と画素寸法を保ったままXRGB8888に変換し、静的リンクしたAArch64の描画プログラムとともにADBで転送しました。[Bubbleの起動画像](https://github.com/game-de-it/plumOS-Bubble/blob/ec81d42c0c2c39e7a32973bfe4df9b3027512a5c8/package/frontend-bubble/plumos/config/frontend/boot-splash.png)
+Bubble `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` の `boot-splash.png` と、ビルドに使うmini PLUSの画像は、SHA-256 `f55f1ad088fe842217f4d62153978c5227c470807303d266ecd6badcba7a553d` で一致しました。色と画素寸法を保ったままXRGB8888に変換し、静的リンクしたAArch64の描画プログラムとともにADBで転送しました。[Bubbleの起動画像](https://github.com/game-de-it/plumOS-Bubble/blob/ec81d42c0c2c39e7a32973bfe4df9b3027512a5d/package/frontend-bubble/plumos/config/frontend/boot-splash.png)
 
 既存の `post-sysroot.sh` から、initramfsの `load_splash` が画像を描画するようにしました。同じ試作SDからの再起動後に描画成功マーカー、フロントエンドの初回描画マーカー、ADB接続を確認し、実機の液晶に画像が表示されたと利用者から確認を得ました。
 
@@ -62,3 +62,9 @@ Bubble `ec81d42c0c2c39e7a32973bfe4df9b3027512a5c8` の `boot-splash.png` と、�
 新しいディレクトリからフロントエンドと起動画像の描画プログラムをビルドし、USB ADBで既存のSDへデプロイしました。同じSDから再起動した後に、今回の配備先からフロントエンドがマウントされ、実行中のバイナリのSHA-256が新しいビルドと一致することを確認しました。起動画像の描画マーカーがあり、フロントエンドとADBの両サービスがactiveでした。
 
 移動した作業ツリーのJELOSイメージを展開し、新しいパスから `build-image.sh` を実行しました。完成イメージのSHA-256、FAT32上の起動フック、`SYSTEM` の読み戻しを照合し、収録されたフロントエンドと起動画像の描画プログラムもビルド出力とバイト単位で一致しました。このイメージはMac上で検証し、実機では既存SDへのADB差分デプロイを検証しました。
+
+### BubbleのDockerビルド環境
+
+MacにDocker Desktop 4.99.0をインストールしました。Docker Engine 29.9.3でBubble `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` のDockerfileを使い、`linux/arm64` の `plumos-rk3566-bubble-tools:ec81d42` を構築しました。
+
+`prototype/build-frontend-docker.sh` でJELOSの共有ライブラリを使ってフロントエンドとライブラリスキャナーをビルドしました。生成物はAArch64 ELFで、Dockerコンテナ内で両方の `--help` の実行を確認しました。RG353Mでは既存SDのジャーナル待ちが継続しており、PID 1試作の実機配備は未検証です。

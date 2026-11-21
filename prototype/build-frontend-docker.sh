@@ -6,6 +6,13 @@ if [ "$#" -ne 2 ]; then
     printf 'Usage: %s BUILD_WORK JELOS_SYSTEM\n' "$0" >&2
     exit 2
 fi
+if ! command -v docker >/dev/null; then
+    for cli_dir in "$HOME/.docker/bin" /Applications/Docker.app/Contents/Resources/bin; do
+        [ -x "$cli_dir/docker" ] || continue
+        export PATH="$cli_dir:$PATH"
+        break
+    done
+fi
 if ! command -v docker >/dev/null || ! docker info >/dev/null 2>&1; then
     echo 'The Bubble toolchain build requires a running Docker engine.' >&2
     exit 1
@@ -15,13 +22,14 @@ work=$(cd "$1" && pwd)
 system=$(cd "$(dirname "$2")" && pwd)/$(basename "$2")
 bubble=$work/refs/Bubble
 source=$work/refs/mini-PLUS/src/frontend
-revision=ec81d42c0c2c39e7a32973bfe4df9b3027512a5c8
+revision=ec81d42c0c2c39e7a32973bfe4df9b3027512a5d
 image=plumos-rk3566-bubble-tools:ec81d42
 test -f "$system"
 test -f "$source/plumos_controller_ui.c"
 mkdir -p "$work/compiled"
 if ! docker image inspect "$image" >/dev/null 2>&1; then
-    git -C "$bubble" show "$revision:docker/bubble-tools/Dockerfile" |
+    dockerfile=$(git -C "$bubble" show "$revision:docker/bubble-tools/Dockerfile")
+    printf '%s\n' "$dockerfile" |
         docker build --platform linux/arm64 -t "$image" -
 fi
 

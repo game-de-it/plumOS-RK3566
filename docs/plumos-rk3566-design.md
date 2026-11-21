@@ -40,7 +40,7 @@ Bubble／mini PLUSではplumOSの `/init` がFEを監視します。Pixel2 v2で
 4. **初回セットアップ完了**。両領域のマウントと必要なディレクトリ作成を確認してから表示します。その後FEへ引き渡します。
 5. **エラー**。失敗した工程、再試行または診断に必要な手がかりを表示します。表示の成否とストレージ処理の成否は別々にログに残します。
 
-初回は進捗を読み取れる全画面表示を使います。通常起動の経路は共通ロゴからFEへ直接進みます。mini PLUSでは部分描画が初期userspaceで見えない事例があり、全画面化して初回セットアップ画面を実機で確認しています。[Bubbleの進捗フレーム生成](https://github.com/game-de-it/plumOS-Bubble/blob/ec81d42c0c2c39e7a32973bfe4df9b3027512a5c8/scripts/build-bubble-external-initramfs.sh) · [mini PLUSの初回表示検証](https://github.com/game-de-it/plumOS-mini-PLUS/blob/baa7143a0bddb1aef5ebc8ee0c8c3358a6aa8d35/docs/validation/2026-10-31-mini-plus-firstboot-progress.md)
+初回は進捗を読み取れる全画面表示を使います。通常起動の経路は共通ロゴからFEへ直接進みます。mini PLUSでは部分描画が初期userspaceで見えない事例があり、全画面化して初回セットアップ画面を実機で確認しています。[Bubbleの進捗フレーム生成](https://github.com/game-de-it/plumOS-Bubble/blob/ec81d42c0c2c39e7a32973bfe4df9b3027512a5d/scripts/build-bubble-external-initramfs.sh) · [mini PLUSの初回表示検証](https://github.com/game-de-it/plumOS-mini-PLUS/blob/baa7143a0bddb1aef5ebc8ee0c8c3358a6aa8d35/docs/validation/2026-10-31-mini-plus-firstboot-progress.md)
 
 ## 実機で確認した基準
 
