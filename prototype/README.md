@@ -15,7 +15,7 @@ RG353Mの内蔵液晶とゲームパッドで、GKD mini PLUS由来のplumOSフ�
 ./output/adb shell 'cat /etc/issue; cat /tmp/plumos-fe-ready'
 ```
 
-デプロイは転送内容をSHA-256で確認し、JELOSの `post-sysroot.sh` に、ロゴとフロントエンドの2ファイルを読み込む設定を置きます。起動時の照合に失敗した場合は内蔵の `SYSTEM` のファイルで起動します。独自の `post-sysroot.sh` を先に置いている場合は、その内容を調べてから組み合わせます。
+デプロイは転送内容をSHA-256で確認し、JELOSの `post-sysroot.sh` に、ロゴとフロントエンドの `bin` ディレクトリを読み込む設定を置きます。起動時の照合に失敗した場合は内蔵の `SYSTEM` のファイルで起動します。独自の `post-sysroot.sh` を先に置いている場合は、その内容を調べてから組み合わせます。
 
 ## 新規SDカードと実機確認
 

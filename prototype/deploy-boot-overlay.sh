@@ -1,5 +1,5 @@
 #!/bin/bash
-# Install the r3 branding and tested controller UI on an existing prototype SD.
+# Update the boot branding and frontend binaries on an existing prototype SD.
 set -euo pipefail
 
 if [ "$#" -ne 1 ] || [ ! -f "$1" ]; then
@@ -28,14 +28,17 @@ cleanup() {
 trap cleanup EXIT
 
 cp "$prototype/system/etc/issue" "$local_stage/issue"
-cp "$1" "$local_stage/plumos-controller-ui"
-(cd "$local_stage" && shasum -a 256 issue plumos-controller-ui > SHA256SUMS)
+"$adb" pull /usr/lib/plumos-353m/frontend/bin "$local_stage/frontend-bin"
+cp "$1" "$local_stage/frontend-bin/plumos-controller-ui"
+cp "$prototype/system/usr/lib/plumos-353m/frontend/bin/plumos-safe-shutdown" \
+    "$local_stage/frontend-bin/"
+(cd "$local_stage" && shasum -a 256 issue frontend-bin/* > SHA256SUMS)
 remote_stage=$("$adb" shell 'mktemp -d /storage/.plumos-353m-deploy.XXXXXXXX')
 case "$remote_stage" in
     /storage/.plumos-353m-deploy.*) ;;
     *) remote_stage=; echo 'Unexpected staging directory.' >&2; exit 1 ;;
 esac
-"$adb" push "$local_stage/issue" "$local_stage/plumos-controller-ui" "$local_stage/SHA256SUMS" "$remote_stage/"
+"$adb" push "$local_stage/issue" "$local_stage/frontend-bin" "$local_stage/SHA256SUMS" "$remote_stage/"
 "$adb" shell -T "sh -s -- '$remote_stage'" <<'REMOTE'
 set -eu
 cd "$1"
@@ -49,7 +52,7 @@ fi
 mount -o remount,rw /flash
 trap 'sync; mount -o remount,ro /flash' EXIT
 slot=$(mktemp -d /flash/plumos-353m-live.XXXXXXXX)
-cp issue plumos-controller-ui SHA256SUMS "$slot/"
+cp -R issue frontend-bin SHA256SUMS "$slot/"
 (cd "$slot" && sha256sum -c SHA256SUMS)
 {
     printf '%s\n' "$tag"
@@ -58,8 +61,8 @@ cp issue plumos-controller-ui SHA256SUMS "$slot/"
     cd "$plumos_assets" || exit 0
     /usr/bin/busybox sha256sum -c SHA256SUMS >/dev/null 2>&1 || exit 0
     /usr/bin/busybox mount -o bind "$plumos_assets/issue" /sysroot/etc/issue || :
-    /usr/bin/busybox mount -o bind "$plumos_assets/plumos-controller-ui" \
-        /sysroot/usr/lib/plumos-353m/frontend/bin/plumos-controller-ui || :
+    /usr/bin/busybox mount -o bind "$plumos_assets/frontend-bin" \
+        /sysroot/usr/lib/plumos-353m/frontend/bin || :
 )
 HOOK
 } > "$slot/post-sysroot.sh"

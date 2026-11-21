@@ -1,0 +1,43 @@
+#!/bin/sh
+# Accept the mini PLUS frontend's terminal power-action arguments on JELOS.
+set -eu
+
+usage() {
+    echo 'Usage: plumos-safe-shutdown --reboot | --shutdown --poweroff [--dry-run]' >&2
+    exit 2
+}
+
+action=
+poweroff=no
+dry_run=no
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --reboot|--shutdown)
+            [ -z "$action" ] || usage
+            action=${1#--}
+            ;;
+        --poweroff) poweroff=yes ;;
+        --no-hold-resume) ;;
+        --power-backend)
+            [ "$#" -ge 2 ] && [ "$2" = auto ] || usage
+            shift
+            ;;
+        --dry-run) dry_run=yes ;;
+        *) usage ;;
+    esac
+    shift
+done
+
+case "$action:$poweroff" in
+    reboot:no) target=reboot ;;
+    shutdown:yes) target=poweroff ;;
+    *) usage ;;
+esac
+
+if [ "$dry_run" = yes ]; then
+    printf 'result=dry-run service=systemd action=%s\n' "$target"
+    exit 0
+fi
+
+printf 'service=systemd action=%s\n' "$target"
+exec /usr/bin/systemctl --no-block "$target"
