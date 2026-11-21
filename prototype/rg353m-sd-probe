@@ -13,6 +13,7 @@ for second in $("$bb" seq 1 15); do
     if "$bb" mount -t vfat -o ro UUID=0602-1646 /flash 2>/dev/null; then
         if [ -r /flash/SYSTEM ] && "$bb" umount /flash; then
             printf 'Boot SD found; continuing JELOS startup.\n'
+            printf 'plumOS SD probe: boot partition readable after %s retries\n' "$((second - 1))" >/dev/kmsg
             "$bb" umount /sys /proc /dev
             exec /init
         fi
@@ -22,13 +23,30 @@ for second in $("$bb" seq 1 15); do
     "$bb" sleep 1
 done
 
-printf '\033[2J\033[HplumOS SD probe\nMMC partitions:\n'
-"$bb" awk '$4 ~ /^mmcblk[0-9]+(p[0-9]+)?$/ {print $3 " KiB  " $4}' /proc/partitions
-printf 'Detected filesystems:\n'
-"$bb" blkid | "$bb" grep 'mmcblk' | "$bb" tail -n 4
-printf 'Kernel MMC/GPT messages:\n'
-"$bb" dmesg | "$bb" grep -Ei 'mmc[0-9]|mmcblk|dwmmc|sdhci|GPT' | "$bb" tail -n 9
-printf 'Boot mount error:\n'
+printf '\033[2J\033[HplumOS TF1 probe (RG353M)\n'
+if [ -d /sys/class/mmc_host/mmc1 ]; then
+    printf 'mmc1 host present'
+else
+    printf 'mmc1 host absent'
+fi
+if [ -b /dev/mmcblk1 ]; then
+    printf '; mmcblk1 detected\n'
+    "$bb" awk '$4 ~ /^mmcblk1(p[0-9]+)?$/ {print $3 " KiB  " $4}' /proc/partitions
+else
+    printf '; mmcblk1 absent\n'
+fi
+
+printf '\nTF1 kernel log (mmc1 / fe2b0000):\n'
+"$bb" dmesg | "$bb" awk '
+    /mmc1:|mmc_host mmc1 |mmcblk1[ :]|fe2b0000/ {
+        sub(/^<[0-9]+>/, "")
+        gsub(/dwmmc_rockchip fe2b0000\.dwmmc:/, "TF1 controller:")
+        print
+        found = 1
+    }
+    END { if (!found) print "No TF1 messages in kernel log" }
+' | "$bb" tail -n 11
+printf '\nBoot mount error:\n'
 "$bb" mount -t vfat -o ro UUID=0602-1646 /flash && "$bb" umount /flash
 printf 'Photograph this screen, then hold Power to turn off.\n'
 while :; do "$bb" sleep 60; done
