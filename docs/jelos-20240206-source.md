@@ -57,3 +57,7 @@ PortAudioの取得先も消失していました。Software HeritageのGitエク
 通常ビルドから分けた比較用コピーで、タグのソースおよび公式レシピが適用した状態を保ち、U-Bootに埋め込まれるユーザー名と日時だけを配布版と揃えました。生成した `u-boot-nodtb.bin` は配布イメージのFITに含まれるU-Boot本体とSHA-256 `af37d3549426270c2193ffc808b47d3167b4d6058b05ba539f6252be5739e562` が一致しました。通常ビルドにはこの比較用の環境変数を渡していません。[U-Bootのユーザー名を付加する処理](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/scripts/setlocalversion) · [U-Bootのビルド日時設定](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/Makefile#L1387-L1414)
 
 64ビット版のBoost取得は、旧URLがアーカイブの代わりにHTMLを返したため停止しました。公式アーカイブから1.83.0を取得し、公開SHA-256 `6478edfe2f3305127cffe8caf73ea0176c53769f4bf1585be237eb30798c3b8e` と一致した入力で再開しました。SDイメージ全体の整合性と実機起動の検証は64ビット版のパッケージ生成後に行います。[Boostの公開チェックサム](https://archives.boost.io/release/1.83.0/source/boost_1_83_0.tar.bz2.json)
+
+`rtmpdump` の旧URLもHTMLを返しました。フォークから指定Gitコミットを取得し、同じツリーのアーカイブを生成して `rtmpdump` の工程を通過しました。同じ配布元の `edid-decode` にも、指定コミットを保存しているミラーを使用しました。[rtmpdumpの固定コミット](https://github.com/mirror/rtmpdump/commit/c5f04a58fc2aeea6296ca7c44ee4734c18401aa3) · [edid-decodeの固定コミット](https://github.com/oe-mirrors/edid-decode/commit/5f723267e04deb3aa9610483514a02bcee10d9c2)
+
+LLVMではDockerのメモリ不足でコンパイラが強制終了しました。JELOSのビルド並列数を `CONCURRENCY_MAKE_LEVEL=3` に抑え、LLVMが内部で起動するCMakeビルドにも `CMAKE_BUILD_PARALLEL_LEVEL=2` を設定して、保存済みの中間生成物から再開しました。
