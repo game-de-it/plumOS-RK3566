@@ -2,7 +2,22 @@
 
 RG353Mの内蔵液晶とゲームパッドで、GKD mini PLUS由来のplumOSフロントエンドを確認するためのイメージです。mini PLUSのコミット `baa7143a0bddb1aef5ebc8ee0c8c3358a6aa8d35` を使用しています。ゲーム・エミュレーター・機種固有メニューの移植はこの試作の検証対象外です。
 
-## SDカードと実機確認
+## ADBでの実機更新
+
+既に起動できる試作SDを開発用に使います。アプリや設定はUSB ADBで転送し、サービス再起動で反映できる変更はその場で確認します。起動時に読まれる変更はADBで配置し、同じカードを差したまま再起動して確認します。イメージの書き直しは、新規カードを作る場合や、現在のSDへADBで安全に適用できない変更がある場合に行います。
+
+初版の試作SDへr3のロゴとA・Bの修正を反映する例です。`build-frontend.sh` で生成済みの修正版バイナリを指定します。
+
+```sh
+./prototype/deploy-boot-overlay.sh /path/to/compiled/plumos-controller-ui
+./output/adb shell 'systemctl --no-block reboot'
+./output/adb wait-for-device
+./output/adb shell 'cat /etc/issue; cat /tmp/plumos-fe-ready'
+```
+
+デプロイは転送内容をSHA-256で確認し、JELOSの `post-sysroot.sh` に、ロゴとフロントエンドの2ファイルを読み込む設定を置きます。起動時の照合に失敗した場合は内蔵の `SYSTEM` のファイルで起動します。独自の `post-sysroot.sh` を先に置いている場合は、その内容を調べてから組み合わせます。
+
+## 新規SDカードと実機確認
 
 1. `output/plumOS-353M-prototype-r3.img` を予備のmicroSDに書き込み、RG353MのTF1へ挿します。r3には起動時のplumOSロゴと、r2の物理A・Bの割り当て修正を含みます。評価時はTF2を空にして起動経路を単純にします。
 2. フロントエンドが表示されたら、十字キーでカーソルを移動し、STARTでメニューを開き、Aで項目を開いてBで戻れるか確認します。表示の向きも確認します。
