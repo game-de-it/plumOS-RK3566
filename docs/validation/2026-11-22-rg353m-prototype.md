@@ -76,3 +76,12 @@ MacにDocker Desktop 4.99.0をインストールしました。Docker Engine 29.
 Dockerの別テストでは、元イメージの複製を拡大した後にGPTの既存 `p4` を拡張し、取り出したext4を新しい容量へ拡張しました。UUIDの維持と、GPTが4区画のままであることを確認しました。この段階の初回セットアップは既存のext4拡張までです。利用者用FAT32の作成と、完成SDからのRG353M実機起動は未検証です。
 
 イメージのSHA-256は `7c23a956f6c49cdc92b05ba974f2254f928c266c18c1cf60cfc7ae065bbe5bc2` です。
+
+### RG353Mで電源断が起きたSDの読み戻し
+
+利用者の報告では画面は起動直後から暗く、電源断の直前に短いメッセージが表示されました。文面は未採取です。
+
+- Macから物理SDを読み取り専用で調べました。`p3` 全体のSHA-256は配布イメージの同じ範囲と一致し、`fsck_msdos -n` は正常終了しました。`p4` も配布イメージとバイト一致し、ext4の検査は正常でした。マウント回数は0で、`.please_resize_me` が残り、`init.log` はありませんでした。SD上に `/storage` のマウントや初回拡張に到達した痕跡がありません。
+- SDの先頭16 MiBは3セクタに差分があり、いずれもRockchipのVendorStorage領域です。先頭のGPT、U-Bootの `p1`、機種識別データの `p2` は配布イメージと一致しました。[Rockchip U-BootのVendorStorage定義](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/arch/arm/mach-rockchip/vendor.c#L12-L28)
+- macOSはバックアップGPTの位置について警告しました。配布イメージの複製を実カードと同じ62,914,560,000バイトに広げたDocker上の試験では、Linuxが4パーティションすべてを認識し、JELOS initramfsのBusyBoxで `boot=` と `disk=` のUUIDに従って両方を読み取り専用マウントできました。`SYSTEM` のSquashFSマウントとplumOS initの構文確認も通りました。この検証環境のLinuxはRG353M上のカーネルと異なります。[Linux 4.19のGPT検証](https://github.com/torvalds/linux/blob/v4.19/block/partitions/efi.c#L600-L621)
+- 実機のJELOS initramfsは `/flash`、`SYSTEM`、`/storage` いずれかのマウントを繰り返し試みて失敗すると電源を切ります。今回の停止箇所の確定には、電源断直前の画面メッセージが必要です。[JELOS initramfsのマウント処理](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/packages/sysutils/busybox/scripts/init#L113-L130)
