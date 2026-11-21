@@ -1,0 +1,52 @@
+#!/bin/sh
+set -eu
+payload=${PLUMOS_PAYLOAD:-/usr/lib/plumos-353m}
+export PLUMOS_ROOT=${PLUMOS_ROOT:-/storage/plumos-353m/frontend}
+export PLUMOS_SDCARD_ROOT=/storage
+export PLUMOS_RUNTIME_ROOT=${PLUMOS_RUNTIME_ROOT:-/run/plumos-353m}
+export PLUMOS_BUSYBOX=/usr/bin/busybox
+export PLUMOS_DEVICE_ID=rg353m
+export PLUMOS_DEVICE_NAME='Anbernic RG353M'
+export PLUMOS_FRONTEND_MODE=manual
+export PLUMOS_CONTROLLER_CPU_DEFAULT=0
+
+state=$(dirname "$PLUMOS_ROOT")
+mkdir -p "$PLUMOS_ROOT/config/frontend" "$PLUMOS_ROOT/config/system" \
+    "$PLUMOS_ROOT/state/frontend" "$state/apps" "$PLUMOS_RUNTIME_ROOT"
+export PLUMOS_INPUT_TRACE_PATH="$PLUMOS_RUNTIME_ROOT/input-events.log"
+export PLUMOS_ACTION_TRACE_PATH="$PLUMOS_RUNTIME_ROOT/frontend-actions.log"
+
+for asset in bin fonts themes share factory-defaults; do
+    ln -sfn "$payload/frontend/$asset" "$PLUMOS_ROOT/$asset"
+done
+for config in "$payload"/frontend/config/frontend/*.json; do
+    [ "${config##*/}" = settings.json ] && continue
+    ln -sfn "$config" "$PLUMOS_ROOT/config/frontend/${config##*/}"
+done
+for name in frontend system; do
+    settings="$PLUMOS_ROOT/config/$name/settings.json"
+    if [ ! -e "$settings" ]; then
+        cp "$payload/frontend/factory-defaults/$name/settings.json" "$settings.new"
+        mv "$settings.new" "$settings"
+    fi
+done
+
+pad=/dev/input/by-path/platform-singleadc-joypad-event-joystick
+drm=/dev/dri/card0
+for second in 1 2 3 4 5 6 7 8 9 10; do
+    if [ -c "$pad" ] && [ -c "$drm" ]; then break; fi
+    sleep 1
+done
+test -c "$pad"
+test -c "$drm"
+export PLUMOS_DRM_DEVICE="$drm"
+export PLUMOS_INPUT_EVENT="$pad"
+power=/dev/input/by-path/platform-fdd40000.i2c-platform-rk805-pwrkey-event
+if [ -c "$power" ]; then export PLUMOS_POWER_INPUT_EVENT="$power"; fi
+
+echo "plumOS-353M frontend: DRM=$drm evdev=$pad"
+rm -f /tmp/plumos-fe-ready
+if ! timeout 12 "$PLUMOS_ROOT/bin/plumos-library-scan" --defer-thumbnails; then
+    echo 'plumOS-353M: initial library scan failed or timed out' >&2
+fi
+exec "$PLUMOS_ROOT/bin/plumos-controller-ui" --renderer fbdev --event "$pad"

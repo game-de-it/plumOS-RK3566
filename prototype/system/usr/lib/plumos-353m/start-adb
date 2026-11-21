@@ -1,0 +1,80 @@
+#!/bin/sh
+set -eu
+payload=${PLUMOS_PAYLOAD:-/usr/lib/plumos-353m}
+configfs=/sys/kernel/config
+controller=fcc00000.dwc3
+gadget="$configfs/usb_gadget/plumos353m"
+functionfs=/dev/usb-ffs/adb
+daemon=
+owns_mount=no
+bound=no
+
+cleanup() {
+    if [ "$bound" = yes ] && [ -n "$(cat "$gadget/UDC")" ]; then
+        printf '\n' > "$gadget/UDC" || :
+    fi
+    if [ -n "$daemon" ]; then
+        kill "$daemon" 2>/dev/null || :
+        wait "$daemon" 2>/dev/null || :
+    fi
+    if [ "$owns_mount" = yes ]; then umount "$functionfs" || :; fi
+    rm -f "$gadget/configs/c.1/ffs.adb"
+    rmdir "$gadget/configs/c.1/strings/0x409" "$gadget/configs/c.1" \
+        "$gadget/functions/ffs.adb" "$gadget/strings/0x409" "$gadget" 2>/dev/null || :
+}
+trap cleanup EXIT
+trap 'exit 0' TERM INT
+
+[ -d "$configfs/usb_gadget" ] || mount -t configfs configfs "$configfs"
+if [ -e "$gadget" ]; then
+    echo 'plumOS ADB gadget already exists' >&2
+    trap - EXIT
+    exit 1
+fi
+mkdir "$gadget"
+mkdir "$gadget/strings/0x409" "$gadget/configs/c.1"
+mkdir "$gadget/configs/c.1/strings/0x409"
+# Rockchip's USB vendor ID and its development ADB product ID.
+printf '0x2207\n' > "$gadget/idVendor"
+printf '0x0006\n' > "$gadget/idProduct"
+printf '0x0200\n' > "$gadget/bcdUSB"
+serial=$(tr -d '\000' 2>/dev/null </proc/device-tree/serial-number || :)
+printf '%s\n' "${serial:-plumOS-353M}" > "$gadget/strings/0x409/serialnumber"
+printf 'plumOS\n' > "$gadget/strings/0x409/manufacturer"
+printf 'RG353M ADB\n' > "$gadget/strings/0x409/product"
+printf 'ADB\n' > "$gadget/configs/c.1/strings/0x409/configuration"
+mkdir "$gadget/functions/ffs.adb"
+ln -s "$gadget/functions/ffs.adb" "$gadget/configs/c.1/ffs.adb"
+mkdir -p "$functionfs"
+mount -t functionfs adb "$functionfs"
+owns_mount=yes
+
+# Set both port variables for the Linux adbd and leave only FunctionFS active.
+export ADBD_PORT=0 ADB_TCP_PORT=0 ADBD_SHELL=/bin/sh
+"$payload/adbd" &
+daemon=$!
+attempt=0
+while [ "$attempt" -lt 200 ]; do
+    if [ -e "$functionfs/ep2" ] && [ -e "/sys/class/udc/$controller" ] &&
+        printf '%s\n' "$controller" > "$gadget/UDC"; then
+        bound=yes
+        break
+    fi
+    kill -0 "$daemon" 2>/dev/null
+    attempt=$((attempt + 1))
+    sleep 0.05
+done
+[ "$bound" = yes ]
+echo "plumOS ADB: FunctionFS bound to $controller"
+
+# Re-establish the binding if FunctionFS closes it during a USB disconnect.
+while kill -0 "$daemon" 2>/dev/null; do
+    if [ -z "$(cat "$gadget/UDC")" ] && [ -e "$functionfs/ep2" ]; then
+        if printf '%s\n' "$controller" > "$gadget/UDC"; then
+            echo "plumOS ADB: FunctionFS rebound to $controller"
+        fi
+    fi
+    sleep 0.2
+done
+wait "$daemon" || exit $?
+exit 1

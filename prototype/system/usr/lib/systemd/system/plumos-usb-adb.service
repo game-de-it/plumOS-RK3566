@@ -1,0 +1,14 @@
+[Unit]
+Description=plumOS USB ADB for RG353M
+After=systemd-udev-trigger.service
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=/usr/lib/plumos-353m/start-adb
+KillMode=mixed
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=4
+
+[Install]
+WantedBy=jelos.target

@@ -1,0 +1,7 @@
+/output/
+/build/
+/artifacts/
+*.img
+*.img.gz
+.DS_Store
+__pycache__/
