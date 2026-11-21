@@ -4,14 +4,14 @@ RG353Mの内蔵液晶とゲームパッドで、GKD mini PLUS由来のplumOSフ�
 
 ## SDカードと実機確認
 
-1. `output/plumOS-353M-prototype-r2.img` を予備のmicroSDに書き込み、RG353MのTF1へ挿します。r2には物理A・Bの割り当て修正を含みます。評価時はTF2を空にして起動経路を単純にします。
+1. `output/plumOS-353M-prototype-r3.img` を予備のmicroSDに書き込み、RG353MのTF1へ挿します。r3には起動時のplumOSロゴと、r2の物理A・Bの割り当て修正を含みます。評価時はTF2を空にして起動経路を単純にします。
 2. フロントエンドが表示されたら、十字キーでカーソルを移動し、STARTでメニューを開き、Aで項目を開いてBで戻れるか確認します。表示の向きも確認します。
 3. Macをロック解除して、データ通信対応のUSBケーブルでRG353MのOTG端子と接続します。macOSにアクセサリの接続許可が表示されたら許可します。
 
 Macでの確認とアプリの転送例です。コマンドはプロジェクトのディレクトリから実行します。
 
 ```sh
-(cd output && shasum -a 256 -c plumOS-353M-prototype-r2.img.sha256)
+(cd output && shasum -a 256 -c plumOS-353M-prototype-r3.img.sha256)
 ./output/adb devices -l
 ./output/adb shell 'cat /tmp/plumos-fe-ready; cat /proc/cmdline'
 ./output/adb shell 'journalctl -b -u emustation.service -u plumos-usb-adb.service --no-pager'

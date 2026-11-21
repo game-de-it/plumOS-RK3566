@@ -43,10 +43,32 @@ python3 - "$stage" > "$stage/353m.pseudo" <<'PY'
 import os
 from pathlib import Path
 import shlex
+import shutil
 import stat
 import sys
 
 stage = Path(sys.argv[1])
+base = stage / "JELOS.pseudo"
+rewritten = stage / "JELOS.pseudo.new"
+issue = shlex.quote(str(stage / "etc/issue"))
+# Keep the pseudo data offsets relative to the original data section.
+# Replace the existing inode definition before merging the additions.
+replaced = 0
+with base.open("rb") as source, rewritten.open("wb") as target:
+    for entry in source:
+        if entry.startswith(b"etc/issue R "):
+            entry = f"etc/issue f 644 0 0 cat {issue}\n".encode()
+            replaced += 1
+        target.write(entry)
+        if entry == b"# START OF DATA - DO NOT MODIFY\n":
+            shutil.copyfileobj(source, target, length=8 * 1024 * 1024)
+            break
+    else:
+        raise SystemExit("JELOS SquashFS pseudo data marker missing")
+if replaced != 1:
+    raise SystemExit("Expected exactly one /etc/issue in JELOS SYSTEM")
+rewritten.replace(base)
+
 # These paths already exist in JELOS and retain their original inode metadata.
 existing = {"usr", "usr/lib", "usr/lib/systemd", "usr/lib/systemd/system",
             "usr/lib/systemd/system/jelos.target.wants"}
@@ -81,6 +103,7 @@ printf '%s  target/SYSTEM\n' "$(md5 -q "$stage_system")" > "$stage/SYSTEM.md5"
 "$fat/mcopy" -o -i "$volume" "$stage/SYSTEM.md5" ::/SYSTEM.md5
 "$fat/mcopy" -i "$volume" ::/SYSTEM "$stage/SYSTEM.readback"
 cmp "$stage_system" "$stage/SYSTEM.readback"
+"$squash/unsquashfs" -cat "$stage/SYSTEM.readback" etc/issue | cmp - "$stage/etc/issue"
 for file in KERNEL rk3566-rg353m-linux.dtb extlinux/extlinux.conf; do
     "$fat/mtype" -i "$source_img@@$offset" "::/$file" > "$stage/before"
     "$fat/mtype" -i "$volume" "::/$file" > "$stage/after"
