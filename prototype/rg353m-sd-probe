@@ -16,6 +16,8 @@ check_boot_partition() {
         "$bb" umount /flash
         return 1
     fi
+    . /rg353m-boot-trace
+    plumos_trace tf1-system-readable
     "$bb" umount /flash
 }
 
@@ -27,8 +29,10 @@ start_jelos() {
     exec /init
 }
 
-for second in $("$bb" seq 1 15); do
+attempt=0
+while [ "$attempt" -lt 15 ]; do
     if check_boot_partition >/dev/null 2>&1; then start_jelos; fi
+    attempt=$((attempt + 1))
     "$bb" sleep 1
 done
 
@@ -57,5 +61,10 @@ printf '\nTF1 kernel log (mmc1 / fe2b0000):\n'
 ' | "$bb" tail -n 11
 printf '\nFinal boot partition check:\n'
 if check_boot_partition; then start_jelos; fi
+if [ -x /plumos-recovery/adbd ]; then
+    printf 'Starting USB ADB for early boot diagnostics.\n'
+    PATH="/plumos-recovery/bin:$PATH" PLUMOS_PAYLOAD=/plumos-recovery \
+        /plumos-recovery/start-adb >/dev/plumos-recovery.log 2>&1 &
+fi
 printf 'Photograph this screen, then hold Power to turn off.\n'
 while :; do "$bb" sleep 60; done

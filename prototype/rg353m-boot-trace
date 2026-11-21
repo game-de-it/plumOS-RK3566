@@ -1,0 +1,13 @@
+# Sourced only in the diagnostic initramfs and from the JELOS boot hooks.
+plumos_trace() {
+    /usr/bin/busybox awk '$1=="/dev/mmcblk1p3" && $2=="/flash" && $3=="vfat" {found=1}
+        END {exit !found}' /proc/mounts || return 0
+    /usr/bin/busybox mount -o remount,rw /flash || return 0
+    (
+        read -r timestamp rest </proc/uptime
+        printf '[%s] %s\n' "$timestamp" "$1"
+        /usr/bin/busybox awk '$2=="/flash" || $2=="/sysroot" || $2=="/storage" {print $1, $2, $3}' /proc/mounts
+    ) >>/flash/plumos-boot-trace.log
+    /usr/bin/busybox sync
+    /usr/bin/busybox mount -o remount,ro /flash || :
+}
