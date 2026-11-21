@@ -99,3 +99,9 @@ Dockerの別テストでは、元イメージの複製を拡大した後にGPT�
 次の写真では `/dev/mmcblk1p3` を `/flash` にマウントする処理が `No such file or directory` で失敗しました。JELOSは先に `/flash` を作るため、Linux側でのデバイス認識を調べます。このエラーだけでは、SD本体とパーティションのどちらが見えていないかは確定できません。
 
 `build-sd-probe.sh` で小さい外部initramfsを生成し、同じカードのFAT32に配置しました。カーネル内の設定で初期RAMディスクとgzip対応を確認し、JELOSのBusyBoxに必要なコマンドが揃うこと、FAT32から読み戻した診断ファイルと設定が一致することを確認しました。元のUUID指定に戻し、診断が読み取り専用でブート領域を開ける場合はJELOSの `/init` に引き渡します。失敗時はMMCパーティション、ファイルシステムとカーネルメッセージを画面に残します。実機での診断出力は採取待ちです。[Rockchip U-BootのINITRD読み込み](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/cmd/pxe.c#L608-L618)
+
+### 診断画面で確認したTF1の状態
+
+診断用の外部initramfsが実機で動作しました。起動SDから診断ファイルを読めたため、U-Bootからの読み出しは成功しています。Linux側の画面には内蔵eMMCの `mmcblk0` とTF2の別カード（`mmcblk2`、14.5 GiB）が表示され、TF1のカード `mmcblk1` とブート領域のUUIDは確認できませんでした。画面に残ったカーネルログは末尾9件のみで、TF1の初期化メッセージは採取できていません。
+
+元のJELOSと配布用試作イメージから `KERNEL`、RG353M用DTB、`extlinux.conf` を再抽出し、ファイルごとのSHA-256がすべて一致することを確認しました。JELOSのRG353M用DTBでは `mmc1` が `/dwmmc@fe2b0000` に対応し、ノードは有効です。物理カードには一時的な診断用 `INITRD` と `rdinit=` の設定を適用中です。この検証でカーネルとDTBの書き換えは行っていません。
