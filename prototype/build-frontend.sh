@@ -17,9 +17,11 @@ build=$(mktemp -d "$work/frontend.XXXXXXXX")
     'usr/lib/libpng*' 'usr/lib/libfreetype*' 'usr/lib/libdrm.so*'
 lib=$build/runtime/usr/lib
 flags=(-target aarch64-linux-gnu.2.38 -std=gnu99 -O2 -D_GNU_SOURCE)
+# RG353M reports physical A as BTN_EAST and B as BTN_SOUTH, matching mini PLUS.
 "$zig" cc "${flags[@]}" \
     -DPLUMOS_ENABLE_FBDEV_RENDERER=1 -DPLUMOS_FBDEV_ENABLE_PNG=1 \
     -DPLUMOS_FBDEV_ENABLE_FREETYPE=1 -DPLUMOS_FBDEV_ENABLE_DRM=1 \
+    -DPLUMOS_MINI_PLUS_INPUT=1 \
     -I"$inc" -I"$inc/freetype2" -I"$inc/libdrm" -Wl,--allow-shlib-undefined \
     "$src/plumos_controller_ui.c" "$lib/libpng16.so.16" \
     "$lib/libfreetype.so.6" "$lib/libdrm.so.2" -lm -o "$build/plumos-controller-ui"
