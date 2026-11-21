@@ -159,3 +159,11 @@ JELOS組み込みinitramfsのBusyBoxを実行して確認すると `seq`、`ln`�
 JELOSのカーネルソースで `broken-cd` が `MMC_CAP_NEEDS_POLL` を有効にし、DesignWare MMCドライバーがカード検出の入力を待たずに初期化を試みることを確認しました。元のRG353M用DTBの複製を作り、TF1の `/dwmmc@fe2b0000` に `broken-cd` だけを追加しました。逆コンパイルして他のプロパティが一致することを確認しました。[JELOSのMMC設定解析](https://github.com/JustEnoughLinuxOS/rk356x-kernel/blob/c741d56477939654bb4056be240f93d1ad1ae91e/drivers/mmc/core/host.c#L201-L225) · [JELOSのDesignWare MMCカード検出](https://github.com/JustEnoughLinuxOS/rk356x-kernel/blob/c741d56477939654bb4056be240f93d1ad1ae91e/drivers/mmc/host/dw_mmc.c#L940-L971)
 
 同じ物理SDのFAT32に診断用DTBを追加し、既存の診断起動でそのファイルを選択するよう `extlinux.conf` のFDT指定を変更しました。元のDTBが配布元と一致することを確認し、変更した2ファイルも読み戻して照合しました。カーネル、診断用initramfs、`SYSTEM`、既存のパーティションを維持しています。この変更は診断カードにだけ適用しました。
+
+### ポーリング結果と起動時のUUID指定
+
+ポーリング用DTBで撮影された画面に `mmc1: card is polling` が出ましたが、`mmcblk1` は生成されず、ログは375 kHzの初期クロック設定まででした。MacのUSBデバイス一覧とADBにRG353Mは現れず、USB復旧ログは未取得です。ポーリング設定が実機で有効になったことと、今回の起動ではカードを認識できなかったことを確認しました。
+
+この試作の `extlinux.conf` は、JELOS 20240206の `boot=UUID=0602-1646` と `disk=UUID=b839c001-95ff-4847-9189-45670cde3fb8` を再利用しています。どちらもファイルシステムの識別子であり、GPTの `PARTUUID` とは別です。TF2で調べた実物SDのFAT32（p3）とext4（p4）の値はいずれも一致しました。JELOSのビルドはイメージ生成時に値を作って `extlinux.conf` に埋め込みます。同じ元イメージから作ったSD同士はその値を共有します。[JELOSのUUID生成](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/scripts/image#L279-L282) · [JELOSの起動設定生成](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/projects/Rockchip/bootloader/mkimage#L84-L89)
+
+比較したROCKNIX 20250517のRK3566 Genericと `next` の標準のU-Boot用テンプレートは、`boot=LABEL=` と `disk=LABEL=` でファイルシステムを指定します。[ROCKNIX 20250517のRK3566設定](https://github.com/ROCKNIX/distribution/blob/20250517/projects/Rockchip/bootloader/dtb.xml#L24-L38) · [当時のextlinuxテンプレート](https://github.com/ROCKNIX/distribution/blob/20250517/projects/Rockchip/bootloader/mkimage#L32-L42) · [ROCKNIX nextの標準extlinuxテンプレート](https://github.com/ROCKNIX/distribution/blob/next/projects/ROCKNIX/bootloader/mkimage#L24-L41)
