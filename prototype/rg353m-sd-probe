@@ -9,17 +9,26 @@ export PATH=/usr/bin:/usr/sbin:/bin:/sbin
 exec >/dev/console 2>&1
 printf 'plumOS: checking boot SD (read-only)...\n'
 
-for second in $("$bb" seq 1 15); do
-    if "$bb" mount -t vfat -o ro UUID=0602-1646 /flash 2>/dev/null; then
-        if [ -r /flash/SYSTEM ] && "$bb" umount /flash; then
-            printf 'Boot SD found; continuing JELOS startup.\n'
-            printf 'plumOS SD probe: boot partition readable after %s retries\n' "$((second - 1))" >/dev/kmsg
-            "$bb" umount /sys /proc /dev
-            exec /init
-        fi
+check_boot_partition() {
+    "$bb" mount -t vfat -o ro UUID=0602-1646 /flash || return 1
+    if [ ! -r /flash/SYSTEM ]; then
+        printf 'Boot partition mounted, but /flash/SYSTEM is unreadable.\n'
         "$bb" umount /flash
-        break
+        return 1
     fi
+    "$bb" umount /flash
+}
+
+start_jelos() {
+    printf 'Boot SD found; continuing JELOS startup.\n'
+    printf 'plumOS SD probe: boot partition readable\n' >/dev/kmsg
+    # The console is still open on /dev until JELOS redirects it again.
+    "$bb" umount -l /sys /proc /dev
+    exec /init
+}
+
+for second in $("$bb" seq 1 15); do
+    if check_boot_partition >/dev/null 2>&1; then start_jelos; fi
     "$bb" sleep 1
 done
 
@@ -46,7 +55,7 @@ printf '\nTF1 kernel log (mmc1 / fe2b0000):\n'
     }
     END { if (!found) print "No TF1 messages in kernel log" }
 ' | "$bb" tail -n 11
-printf '\nBoot mount error:\n'
-"$bb" mount -t vfat -o ro UUID=0602-1646 /flash && "$bb" umount /flash
+printf '\nFinal boot partition check:\n'
+if check_boot_partition; then start_jelos; fi
 printf 'Photograph this screen, then hold Power to turn off.\n'
 while :; do "$bb" sleep 60; done
