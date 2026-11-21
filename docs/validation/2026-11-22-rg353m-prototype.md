@@ -113,3 +113,9 @@ ROCKNIXのRG353向け説明では、旧ブートローダーを持つeMMCモデ�
 JELOS 20240206のRockchip用イメージ生成処理は、SDのLBA 64に `idbloader`、LBA 16384にU-Boot FIT、LBA 24576に機種識別用データを書き込みます。JELOSが採用するRockchip U-Bootは、SDのIDBを検証する分岐と、SDをeMMCより先に検索する既定の起動順を持ちます。`rkimgtest` はLBA 64の先頭を読み、実イメージにある `RKNS` を有効なIDBヘッダーとして受理します。[JELOSのイメージ生成](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/projects/Rockchip/bootloader/mkimage#L6-L30) · [Rockchip U-Bootの起動順](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/include/configs/rockchip-common.h) · [IDBの検査](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/cmd/rkimgtest.c#L26-L54)
 
 元のJELOS、起動実績のあるr3試作、現PID 1試作、物理SDの既存ダンプで、LBA 64からVendorStorageの手前まで、U-Boot FITを含む `p1`、機種識別用の `p2` をそれぞれSHA-256で照合し、すべて一致しました。3つのイメージに含まれるカーネル、RG353M用DTBと既定の `extlinux.conf` も一致しました。どの媒体の最初のローダーが実行されたかはシリアル起動ログ未採取のため確定していません。診断用initramfsの実行からSD上の起動ファイルが読み込まれたことは確認できます。観測された停止はLinuxに切り替わった後のTF1認識段階です。
+
+### 同じRG353MでのJELOS再起動対照試験
+
+以前起動していたJELOSのSDで再起動し、SSHでLinux 4.19.172のログを読み取りました。TF1は `mmc1` がSDXCをSDR104で初期化し、起動後約1.17秒で115 GiBの `mmcblk1` を認識しました。`p1`〜`p4` が見え、`p3` は `/flash`、`p4` は `/storage` にマウントされました。内蔵eMMCは `mmcblk0`、TF2の14.5 GiBカードは `mmcblk2` として見えています。
+
+稼働中の `/flash/KERNEL` とRG353M用DTBのSHA-256は、JELOS元イメージとPID 1試作イメージの値に一致し、`boot=` と `disk=` のUUIDも一致しました。現在起動できたJELOSの115 GiBカードと、認識されなかった試作の約58.6 GiBカードは別媒体です。この比較で、同じ本体と同じカーネル・DTBでTF1が動作することを確認できました。試作カードの初期化が失敗する理由は未特定です。
