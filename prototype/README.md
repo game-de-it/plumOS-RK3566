@@ -62,3 +62,11 @@ ADBはUSB専用で、試作機のrootシェルを認証なしで公開します�
 - Standalone Linux adbd `v36.0.1-linux.2` のARM64静的ビルド。使用した配布tarballのSHA-256は `ba3935056777932addc3de1cdbd25194f0942f796575b5ea5668a9ef32c95117`。[ソースとビルド情報](https://github.com/happyme531/standalone-linux-adbd/tree/v36.0.1-linux.2)
 
 ビルドスクリプトは作業ディレクトリの `tools/`、`refs/mini-PLUS/`、`debian/sysroot/` に上記の入力があることを前提にします。`build-frontend.sh` と `build-boot-splash.sh` でフロントエンドと起動画面を準備します。新規カード用のイメージが必要なときは、`build-image.sh` で既知のJELOSイメージから組み立てます。
+
+## Bubble由来のPID 1を試す
+
+`PLUMOS_TRY_PID1=1` を付けて `deploy-boot-overlay.sh` を実行すると、次の1回だけJELOSが呼び出すinitの箇所にplumOSの `init` をバインドします。起動時に試行フラグを消費するため、その次の再起動は既存の起動経路に戻ります。現段階ではパーティション配置と初回セットアップは既存試作のままです。
+
+FEの再試行と電源要求の処理は、Bubble `ec81d42c0c2c39e7a32973bfe4df9b3027512a5c8` のSystem側 `/init` を参照しています。USB ADBを並列に起動し、入力デバイスはsysfsからも検出できます。既存のライブラリキャッシュがある場合はFE表示前の全走査を省きます。[BubbleのSystem側init](https://github.com/game-de-it/plumOS-Bubble/blob/ec81d42c0c2c39e7a32973bfe4df9b3027512a5c8/rootfs/bubble-frontend/init)
+
+Docker環境では `./prototype/build-frontend-docker.sh BUILD_WORK JELOS_SYSTEM` を使います。固定したBubbleコミットの `docker/bubble-tools/Dockerfile` からARM64ビルド環境を作り、JELOSの共有ライブラリにリンクしてFEをビルドします。出力は既存と同じ `BUILD_WORK/compiled` に生成されます。

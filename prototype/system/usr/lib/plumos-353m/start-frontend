@@ -31,9 +31,21 @@ for name in frontend system; do
     fi
 done
 
-pad=/dev/input/by-path/platform-singleadc-joypad-event-joystick
+input_node() {
+    if [ -c "$1" ]; then
+        printf '%s\n' "$1"
+        return
+    fi
+    for event in /sys/class/input/event*; do
+        [ "$(cat "$event/device/name" 2>/dev/null)" = "$2" ] || continue
+        printf '/dev/input/%s\n' "${event##*/}"
+        return
+    done
+}
+
 drm=/dev/dri/card0
 for second in 1 2 3 4 5 6 7 8 9 10; do
+    pad=$(input_node /dev/input/by-path/platform-singleadc-joypad-event-joystick retrogame_joypad)
     if [ -c "$pad" ] && [ -c "$drm" ]; then break; fi
     sleep 1
 done
@@ -41,12 +53,14 @@ test -c "$pad"
 test -c "$drm"
 export PLUMOS_DRM_DEVICE="$drm"
 export PLUMOS_INPUT_EVENT="$pad"
-power=/dev/input/by-path/platform-fdd40000.i2c-platform-rk805-pwrkey-event
+power=$(input_node /dev/input/by-path/platform-fdd40000.i2c-platform-rk805-pwrkey-event 'rk805 pwrkey')
 if [ -c "$power" ]; then export PLUMOS_POWER_INPUT_EVENT="$power"; fi
 
 echo "plumOS-353M frontend: DRM=$drm evdev=$pad"
 rm -f /tmp/plumos-fe-ready
-if ! timeout 12 "$PLUMOS_ROOT/bin/plumos-library-scan" --defer-thumbnails; then
-    echo 'plumOS-353M: initial library scan failed or timed out' >&2
+if [ "${PLUMOS_FAST_BOOT:-0}" != 1 ] || [ ! -s "$PLUMOS_ROOT/state/frontend/library-index.json" ]; then
+    if ! timeout 12 "$PLUMOS_ROOT/bin/plumos-library-scan" --defer-thumbnails; then
+        echo 'plumOS-353M: initial library scan failed or timed out' >&2
+    fi
 fi
 exec "$PLUMOS_ROOT/bin/plumos-controller-ui" --renderer fbdev --event "$pad"

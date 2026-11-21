@@ -33,14 +33,21 @@ cp "$1" "$local_stage/frontend-bin/plumos-controller-ui"
 cp "$prototype/system/usr/lib/plumos-353m/frontend/bin/plumos-safe-shutdown" \
     "$local_stage/frontend-bin/"
 cp -R "$(dirname "$1")/boot-splash" "$local_stage/boot-splash"
-(cd "$local_stage" && shasum -a 256 issue boot-splash/* frontend-bin/* > SHA256SUMS)
-remote_stage=$("$adb" shell 'mktemp -d /storage/.plumos-353m-deploy.XXXXXXXX')
+if [ "${PLUMOS_TRY_PID1:-0}" = 1 ]; then
+    cp "$prototype/system/usr/lib/plumos-353m/"{init,start-frontend} "$local_stage/"
+fi
+(cd "$local_stage" && shasum -a 256 issue boot-splash/* frontend-bin/* > SHA256SUMS
+ if [ -f init ]; then shasum -a 256 init start-frontend >> SHA256SUMS; fi)
+remote_stage=$("$adb" shell 'mktemp -d /tmp/plumos-353m-deploy.XXXXXXXX')
 case "$remote_stage" in
-    /storage/.plumos-353m-deploy.*) ;;
+    /tmp/plumos-353m-deploy.*) ;;
     *) remote_stage=; echo 'Unexpected staging directory.' >&2; exit 1 ;;
 esac
 "$adb" push "$local_stage/issue" "$local_stage/boot-splash" "$local_stage/frontend-bin" \
     "$local_stage/SHA256SUMS" "$remote_stage/"
+if [ -f "$local_stage/init" ]; then
+    "$adb" push "$local_stage/init" "$local_stage/start-frontend" "$remote_stage/"
+fi
 "$adb" shell -T "sh -s -- '$remote_stage'" <<'REMOTE'
 set -eu
 cd "$1"
@@ -55,6 +62,10 @@ mount -o remount,rw /flash
 trap 'sync; mount -o remount,ro /flash' EXIT
 slot=$(mktemp -d /flash/plumos-353m-live.XXXXXXXX)
 cp -R issue boot-splash frontend-bin SHA256SUMS "$slot/"
+if [ -f init ]; then
+    cp init start-frontend "$slot/"
+    touch "$slot/try-init"
+fi
 (cd "$slot" && sha256sum -c SHA256SUMS)
 {
     printf '%s\n' "$tag"
@@ -66,6 +77,17 @@ if (cd "$plumos_assets" && /usr/bin/busybox sha256sum -c SHA256SUMS >/dev/null 2
     /usr/bin/busybox mount -o bind "$plumos_assets/issue" /sysroot/etc/issue || :
     /usr/bin/busybox mount -o bind "$plumos_assets/frontend-bin" \
         /sysroot/usr/lib/plumos-353m/frontend/bin || :
+    if [ -f "$plumos_assets/try-init" ] && mount -o remount,rw /flash; then
+        if rm "$plumos_assets/try-init"; then
+            sync
+            if mount -o remount,ro /flash &&
+                mount -o bind "$plumos_assets/start-frontend" /sysroot/usr/lib/plumos-353m/start-frontend; then
+                mount -o bind "$plumos_assets/init" /sysroot/usr/lib/systemd/systemd || :
+            fi
+        else
+            mount -o remount,ro /flash || :
+        fi
+    fi
 fi
 HOOK
 } > "$slot/post-sysroot.sh"

@@ -34,6 +34,18 @@ case "$action:$poweroff" in
     *) usage ;;
 esac
 
+runtime=/run/plumos-353m
+if [ -f "$runtime/pid1" ]; then
+    if [ "$dry_run" = yes ]; then
+        printf 'result=dry-run service=plumos-init action=%s\n' "$target"
+        exit 0
+    fi
+    printf '%s\n' "$target" >"$runtime/power-request.next"
+    mv "$runtime/power-request.next" "$runtime/power-request"
+    kill -USR1 1
+    exit $?
+fi
+
 if [ "$dry_run" = yes ]; then
     printf 'result=dry-run service=systemd action=%s\n' "$target"
     exit 0

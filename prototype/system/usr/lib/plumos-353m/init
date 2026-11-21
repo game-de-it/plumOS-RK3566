@@ -1,0 +1,60 @@
+#!/bin/sh
+# Supervisor and power-request flow adapted from plumOS-Bubble's System /init.
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+payload=/usr/lib/plumos-353m
+runtime=/run/plumos-353m
+bb=/usr/bin/busybox
+
+for directory in /run /tmp; do
+    grep -qs " $directory " /proc/mounts || mount -t tmpfs tmpfs "$directory"
+done
+mkdir -p "$runtime" /dev/pts
+grep -qs ' /dev/pts ' /proc/mounts || mount -t devpts devpts /dev/pts
+exec >>"$runtime/init.log" 2>&1
+printf '%s\n' "$$" >"$runtime/pid1"
+echo 'plumOS-RK3566: System init started'
+
+power_action() {
+    action=$(cat "$runtime/power-request" 2>/dev/null) || return
+    case "$action" in reboot|poweroff) ;; *) return ;; esac
+    rm -f "$runtime/power-request"
+    echo "plumOS-RK3566: requested $action"
+    if [ -n "$frontend" ]; then
+        kill "$frontend" 2>/dev/null || :
+        wait "$frontend" 2>/dev/null || :
+    fi
+    sync
+    if ! mount -o remount,ro /storage; then
+        echo 'plumOS-RK3566: storage is still writable; power action cancelled'
+        return
+    fi
+    kill "$adb_pid" 2>/dev/null || :
+    wait "$adb_pid" 2>/dev/null || :
+    sync
+    exec "$bb" "$action" -f
+}
+
+frontend=
+"$payload/start-adb" &
+adb_pid=$!
+trap power_action USR1
+export PLUMOS_FAST_BOOT=1
+attempt=0
+while [ "$attempt" -lt 5 ]; do
+    "$payload/start-frontend" &
+    frontend=$!
+    wait "$frontend"
+    result=$?
+    frontend=
+    power_action
+    echo "plumOS-RK3566: frontend exited status=$result"
+    attempt=$((attempt + 1))
+    sleep 1
+done
+
+echo 'plumOS-RK3566: frontend restart limit; ADB recovery remains active'
+while :; do
+    sleep 2
+    power_action
+done
