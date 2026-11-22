@@ -1,0 +1,52 @@
+#!/bin/sh
+# Publish the RG353M TF2 card through the normal Bubble content paths.
+set -eu
+
+payload=/usr/lib/plumos-353m
+storage=/storage/plumos-rk3566
+helper=$payload/frontend/bin/plumos-bubble-mount-sd2
+[ -x "$helper" ] || helper=$storage/init/plumos-bubble-mount-sd2
+[ -x "$helper" ] || exit 0
+[ "$(tr -d '\000' </proc/device-tree/model)" = 'Anbernic RG353M' ] || exit 0
+
+export PLUMOS_ROOT=$storage/frontend
+export PLUMOS_RUNTIME_ROOT=/run/plumos-353m
+export PLUMOS_BUSYBOX=/usr/bin/busybox
+export PLUMOS_USERDATA_ROOT=/storage/user
+export PLUMOS_SD2_DEVICE=/dev/mmcblk2p1
+export PLUMOS_SD2_IDENTITY_FILE=$storage/init/sd2-identity.conf
+
+case "$1" in
+    stop)
+        grep -qs ' /run/media/sd2 ' /proc/mounts || exit 0
+        exec "$helper" stop
+        ;;
+    start)
+        grep -qs ' /storage/user ' /proc/mounts || exit 0
+        ;;
+    *) exit 2 ;;
+esac
+
+media=sd1
+if [ -b "$PLUMOS_SD2_DEVICE" ]; then
+    if ! "$helper" start; then
+        "$helper" stop
+    fi
+    if grep -qs "^$PLUMOS_SD2_DEVICE /storage/user/Roms " /proc/mounts; then
+        uuid=$(sed -n 's/^uuid=//p' "$PLUMOS_SD2_IDENTITY_FILE")
+        test -n "$uuid"
+        media=sd2-$uuid
+    fi
+fi
+
+state=$PLUMOS_ROOT/state/frontend
+index=$state/library-index.json
+owner=$state/library-index-owner
+if [ -s "$index" ] && [ "$(cat "$owner" 2>/dev/null || :)" = "$media" ]; then
+    exit 0
+fi
+mkdir -p "$state"
+PLUMOS_SDCARD_ROOT=/storage/user timeout 12 "$payload/frontend/bin/plumos-library-scan" \
+    --systems "$payload/frontend/config/frontend/systems.json" --defer-thumbnails
+printf '%s\n' "$media" >"$owner.new"
+mv "$owner.new" "$owner"

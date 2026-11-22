@@ -26,6 +26,8 @@ for file in entry init power; do
     mv "$target.new" "$target"
 done
 install -m 644 select-init.sh "$base/init/"
+install -m 755 manage-sd2 "$base/init/manage-sd2.new"
+mv "$base/init/manage-sd2.new" "$base/init/manage-sd2"
 install -m 755 boot-system "$base/system/boot-system.new"
 mv "$base/system/boot-system.new" "$base/system/boot-system"
 install -m 755 start-storage "$base/provision/start-storage.new"

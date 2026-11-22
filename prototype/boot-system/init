@@ -6,6 +6,8 @@ runtime=/run/plumos-353m
 storage=/storage/plumos-rk3566
 init_state=$storage/init
 system_state=$storage/system
+sd2_service=$payload/manage-sd2
+[ -x "$sd2_service" ] || sd2_service=$init_state/manage-sd2
 export PLUMOS_ROOT=$storage/frontend PLUMOS_FAST_BOOT=1
 export XDG_RUNTIME_DIR=$runtime
 
@@ -43,6 +45,10 @@ power_action() {
         kill -KILL "$frontend" 2>/dev/null || :
         wait "$frontend" 2>/dev/null || :
         frontend=
+    fi
+    if [ -x "$sd2_service" ] && ! "$sd2_service" stop; then
+        echo 'plumOS init: could not unmount SD2; power action cancelled'
+        return 0
     fi
     sync
     if grep -qs ' /storage/user ' /proc/mounts; then
@@ -110,6 +116,8 @@ elif [ ! -f /storage/.please_resize_me ]; then
 fi
 if [ "$provisioned" = no ]; then
     echo 'plumOS init: storage is unavailable; ADB recovery remains active'
+elif [ -x "$sd2_service" ]; then
+    "$sd2_service" start || echo 'plumOS init: SD2 setup or library scan failed'
 fi
 
 while :; do

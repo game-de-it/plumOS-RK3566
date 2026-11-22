@@ -37,6 +37,10 @@ frontend=$stage/source/package/frontend-bubble/plumos
 cp -R "$frontend"/{config,factory-defaults,fonts,share,themes} "$payload/frontend/"
 install -m 755 "$stage/compiled/"{plumos-controller-ui,plumos-library-scan,plumos-text-ui,plumos-frontend} "$payload/frontend/bin/"
 install -m 755 "$prototype/system/usr/lib/plumos-353m/"{start-frontend,start-adb} "$payload/"
+install -m 755 "$prototype/boot-system/manage-sd2" "$payload/"
+git -C "$bubble" show "$revision:package/frontend-bubble/plumos/bin/plumos-bubble-mount-sd2" \
+    > "$payload/frontend/bin/plumos-bubble-mount-sd2"
+chmod 755 "$payload/frontend/bin/plumos-bubble-mount-sd2"
 install -m 755 "$prototype/system/usr/lib/plumos-353m/frontend/bin/plumos-safe-shutdown" "$payload/frontend/bin/"
 install -m 755 "$adbd" "$payload/adbd"
 if [ "$#" -eq 5 ]; then

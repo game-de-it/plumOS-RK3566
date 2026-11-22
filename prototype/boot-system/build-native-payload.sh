@@ -13,7 +13,7 @@ test ! -e "$destination"
 stage=$(mktemp -d "$parent/.native-init.XXXXXX")
 trap 'rm -rf "$stage"' EXIT
 
-cp "$source"/{boot-system,entry,init,install-native,mount-storage.sh,select-init.sh} "$stage/"
+cp "$source"/{boot-system,entry,init,install-native,manage-sd2,mount-storage.sh,select-init.sh} "$stage/"
 cp "$source/../seed/start-storage" "$stage/"
 for script in "$stage"/*; do sh -n "$script"; done
 
@@ -22,7 +22,7 @@ docker run --rm --platform linux/arm64 \
     plumos-rk3566-bubble-tools:ec81d42 cc -static -O2 -Wall -Wextra -o /out/power /src/power.c
 (
     cd "$stage"
-    shasum -a 256 boot-system entry init install-native mount-storage.sh power select-init.sh start-storage > SHA256SUMS
+    shasum -a 256 boot-system entry init install-native manage-sd2 mount-storage.sh power select-init.sh start-storage > SHA256SUMS
 )
 mkdir "$destination"
 mv "$stage"/* "$destination/"
