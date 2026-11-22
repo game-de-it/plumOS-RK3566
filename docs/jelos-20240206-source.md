@@ -61,3 +61,7 @@ PortAudioの取得先も消失していました。Software HeritageのGitエク
 `rtmpdump` の旧URLもHTMLを返しました。フォークから指定Gitコミットを取得し、同じツリーのアーカイブを生成して `rtmpdump` の工程を通過しました。同じ配布元の `edid-decode` にも、指定コミットを保存しているミラーを使用しました。[rtmpdumpの固定コミット](https://github.com/mirror/rtmpdump/commit/c5f04a58fc2aeea6296ca7c44ee4734c18401aa3) · [edid-decodeの固定コミット](https://github.com/oe-mirrors/edid-decode/commit/5f723267e04deb3aa9610483514a02bcee10d9c2)
 
 LLVMではDockerのメモリ不足でコンパイラが強制終了しました。JELOSのビルド並列数を `CONCURRENCY_MAKE_LEVEL=3` に抑え、LLVMが内部で起動するCMakeビルドにも `CMAKE_BUILD_PARALLEL_LEVEL=2` を設定して、保存済みの中間生成物から再開しました。
+
+LLVMはホスト用の残りを1ジョブで、RG3566向けライブラリを2ジョブでビルドして完了しました。通常のイメージ生成を再開し、両方の完了済みビルドを利用しました。
+
+PortMasterのレシピが直接取得する旧 `compat.zip` にもダウンロード失敗がありました。当時のフォークに残るアーカイブ（SHA-256 `e0c493f24ec1d94a79c3554811f5b9c9c863d6ab0988649bd64d7f6a4e44626f`）を取得し、収録される47件すべてが配布版の `/usr/lib/compat` とバイト単位で一致することを確認しました。Docker側で該当する1件の取得を検証済みのアーカイブに振り替え、レシピに変更を加えずPortMasterの組み込みが完了しました。[互換アーカイブの保存コミット](https://github.com/RetroGFX/UnofficialOSAddons/commit/351c27e6bb0b07a7f920cf303f72b8ba78fed17d)
