@@ -1,5 +1,7 @@
+#include <errno.h>
 #include <fcntl.h>
 #include <linux/fb.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -10,19 +12,38 @@
 enum { width = 640, height = 480, pixel_bytes = 4, row_bytes = width * pixel_bytes };
 static unsigned char image[height][row_bytes];
 
+static int clear_framebuffer(int fb, uint64_t bytes)
+{
+    uint64_t offset = 0;
+    while (offset < bytes) {
+        uint64_t remaining = bytes - offset;
+        size_t chunk = remaining < sizeof(image) ? (size_t)remaining : sizeof(image);
+        ssize_t written = pwrite(fb, image, chunk, (off_t)offset);
+        if (written < 0 && errno == EINTR)
+            continue;
+        if (written <= 0)
+            return 1;
+        offset += (uint64_t)written;
+    }
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     if (argc != 2)
         return 1;
 
-    FILE *source = fopen(argv[1], "rb");
-    if (!source)
-        return 1;
-    int complete = fread(image, 1, sizeof(image), source) == sizeof(image) &&
-                   fgetc(source) == EOF && !ferror(source);
-    fclose(source);
-    if (!complete)
-        return 1;
+    bool clear = strcmp(argv[1], "--clear") == 0;
+    if (!clear) {
+        FILE *source = fopen(argv[1], "rb");
+        if (!source)
+            return 1;
+        bool complete = fread(image, 1, sizeof(image), source) == sizeof(image) &&
+                        fgetc(source) == EOF && !ferror(source);
+        fclose(source);
+        if (!complete)
+            return 1;
+    }
 
     int fb = open("/dev/fb0", O_RDWR | O_CLOEXEC);
     if (fb < 0)
@@ -43,9 +64,18 @@ int main(int argc, char **argv)
     uint64_t x = (uint64_t)var.xoffset * pixel_bytes;
     uint64_t start = (uint64_t)var.yoffset * fix.line_length + x;
     uint64_t end = start + (uint64_t)(height - 1) * fix.line_length + row_bytes;
-    if (x + row_bytes > fix.line_length || end > fix.smem_len) {
+    uint64_t virtual_bytes = (uint64_t)var.yres_virtual * fix.line_length;
+    if (x + row_bytes > fix.line_length || end > fix.smem_len ||
+        (clear && (virtual_bytes < end || virtual_bytes > fix.smem_len))) {
         close(fb);
         return 1;
+    }
+
+    if (clear) {
+        /* fbcon can become visible when a DRM client drops master. */
+        int result = clear_framebuffer(fb, virtual_bytes);
+        close(fb);
+        return result;
     }
 
     unsigned char *screen = mmap(NULL, fix.smem_len, PROT_WRITE, MAP_SHARED, fb, 0);

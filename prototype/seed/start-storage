@@ -12,7 +12,14 @@ fi
 result=0
 "$tools/provision-storage" "$disk" || result=$?
 case "$result" in
-    0) ;;
+    0)
+        # Remove the boot or setup frame before Bubble takes over DRM.
+        if "$tools/boot-splash" --clear; then
+            echo 'plumOS: cleared the boot framebuffer'
+        else
+            echo 'plumOS: could not clear the boot framebuffer' >&2
+        fi
+        ;;
     75) exit 75 ;;
     *)
         "$tools/boot-splash" "$tools/provision-error.xrgb" || :

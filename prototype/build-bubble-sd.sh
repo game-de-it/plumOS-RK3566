@@ -17,7 +17,6 @@ name=$(basename "$output")
 image=plumos-rk3566-bubble-tools:ec81d42
 test "$(shasum -a 256 "$source" | cut -d ' ' -f 1)" = 281bf1c1faf7f4c9d044f59677075fbb9af99d2a8d01f873c23c13587668c73f
 test -f "$system"
-test -x "$splash/boot-splash"
 for frame in boot-splash provision-start provision-error; do
     if [ ! -s "$splash/$frame.xrgb" ]; then
         echo "Missing boot or storage setup frame: $splash/$frame.xrgb" >&2
@@ -42,6 +41,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
+cc -static -Os -s -Wall -Wextra -Werror /prototype/boot-splash.c -o "$work/boot-splash"
 unsquashfs -cat /system usr/lib/plumos-353m/native-system
 unsquashfs -cat /system usr/lib/plumos-353m/frontend-source
 unsquashfs -cat /system usr/lib/plumos-353m/start-frontend >/dev/null
@@ -67,9 +67,9 @@ mount "$work/p4" "$work/storage"
     printf '%s  target/SYSTEM\n' "$(md5sum SYSTEM | cut -d ' ' -f 1)" > SYSTEM.md5
     cp /prototype/boot-system/mount-storage.sh .
     mkdir plumos-splash
-    cp /splash/boot-splash /splash/boot-splash.xrgb /prototype/boot-splash.sh plumos-splash/
+    cp "$work/boot-splash" /splash/boot-splash.xrgb /prototype/boot-splash.sh plumos-splash/
     cp /prototype/seed/post-sysroot.sh .
-    cmp /splash/boot-splash plumos-splash/boot-splash
+    cmp "$work/boot-splash" plumos-splash/boot-splash
     cmp /splash/boot-splash.xrgb plumos-splash/boot-splash.xrgb
     sha256sum -c "$work/boot.sha256"
     cmp /system SYSTEM
@@ -82,7 +82,7 @@ mount "$work/p4" "$work/storage"
 base="$work/storage/plumos-rk3566"
 mkdir -p "$base/system" "$base/provision"
 install -m 755 /prototype/boot-system/boot-system "$base/system/"
-install -m 755 /prototype/seed/{provision-storage,start-storage} /splash/boot-splash /usr/sbin/sfdisk "$base/provision/"
+install -m 755 /prototype/seed/{provision-storage,start-storage} "$work/boot-splash" /usr/sbin/sfdisk "$base/provision/"
 mkdir "$base/provision/lib"
 for library in libfdisk.so.1 libsmartcols.so.1 libtinfo.so.6 libreadline.so.8 libuuid.so.1 libblkid.so.1; do
     cp -L "/lib/aarch64-linux-gnu/$library" "$base/provision/lib/$library"
