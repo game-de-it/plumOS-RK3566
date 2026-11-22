@@ -1,5 +1,6 @@
 #!/bin/sh
 set -eu
+while [ -e /run/plumos/validation/frontend-hold ]; do sleep 1; done
 payload=${PLUMOS_PAYLOAD:-/usr/lib/plumos-353m}
 export PLUMOS_ROOT=${PLUMOS_ROOT:-/storage/plumos-353m/frontend}
 export PLUMOS_SDCARD_ROOT=/storage
@@ -24,7 +25,7 @@ mkdir -p "$PLUMOS_ROOT/config/frontend" "$PLUMOS_ROOT/config/system" \
 export PLUMOS_INPUT_TRACE_PATH="$PLUMOS_RUNTIME_ROOT/input-events.log"
 export PLUMOS_ACTION_TRACE_PATH="$PLUMOS_RUNTIME_ROOT/frontend-actions.log"
 
-for asset in bin fonts themes share factory-defaults cores info picoarch emulator retroarch; do
+for asset in bin fonts themes share factory-defaults cores info picoarch emulator retroarch apps; do
     [ -d "$payload/frontend/$asset" ] || continue
     ln -sfn "$payload/frontend/$asset" "$PLUMOS_ROOT/$asset"
 done
@@ -67,9 +68,14 @@ if [ -c "$power" ]; then export PLUMOS_POWER_INPUT_EVENT="$power"; fi
 
 echo "plumOS-353M frontend: DRM=$drm evdev=$pad"
 rm -f /tmp/plumos-fe-ready
-if [ "${PLUMOS_FAST_BOOT:-0}" != 1 ] || [ ! -s "$PLUMOS_ROOT/state/frontend/library-index.json" ]; then
+scan_state=$PLUMOS_ROOT/state/frontend
+catalog_hash=$("$PLUMOS_BUSYBOX" sha256sum "$PLUMOS_ROOT/config/frontend/systems.json")
+if [ "${PLUMOS_FAST_BOOT:-0}" != 1 ] || [ ! -s "$scan_state/library-index.json" ] ||
+    [ "$catalog_hash" != "$(cat "$scan_state/catalog.sha256" 2>/dev/null || :)" ]; then
     if ! timeout 12 "$PLUMOS_ROOT/bin/plumos-library-scan" --defer-thumbnails; then
         echo 'plumOS-353M: initial library scan failed or timed out' >&2
+    else
+        printf '%s\n' "$catalog_hash" > "$scan_state/catalog.sha256"
     fi
 fi
 exec "$PLUMOS_ROOT/bin/plumos-controller-ui" --renderer fbdev --event "$pad"

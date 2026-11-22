@@ -109,22 +109,32 @@ def command(record, env):
         return "plumos-standalone-launch", [name, rom], root / "logs" / (logs[name] + "-standalone.log")
     if kind == "pyxel":
         return "plumos-pyxel-bubble-launch", ["-m", "pyxel", "play", rom], root / "logs/pyxel/runtime.log"
+    if kind == "external" and name == "port":
+        return "plumos-portmaster-port-launch", [rom], root / "logs/apps/portmaster-ports.log"
     raise ValueError(kind)
 
 record = json.loads(sys.argv[1])
-if record["profile"].startswith("pyxel:") and (run / "pyxel-overlay/bin/plumos-pyxel-bubble-launch").is_file():
-    root = run / "pyxel-overlay"
+if record.get("user_media"):
+    rom_root = Path("/storage/user/Roms")
+    sdcard_root = rom_root.parent
+else:
+    sdcard_root = rom_root if record.get("frontend_launch") else Path("/storage/user")
 bios_root = run / "matrix-packaged-bios" if record.get("use_packaged_bios") else rom_root / "bios"
+if record.get("user_media"):
+    bios_root = sdcard_root / "BIOS"
 env = dict(os.environ, PLUMOS_ROOT=str(root), PLUMOS_ROM_ROOT=str(rom_root),
            PLUMOS_BIOS_ROOT=str(bios_root), PLUMOS_RUNTIME_ROOT=str(run),
-           PLUMOS_SDCARD_ROOT="/storage/user", PLUMOS_BUSYBOX=str(root / "bin/busybox"),
+           PLUMOS_SDCARD_ROOT=str(sdcard_root), PLUMOS_BUSYBOX=str(root / "bin/busybox"),
            ALSA_CONFIG_PATH=str(run / "audio/asound.conf"),
            PLUMOS_RG353M_DRM="1", HOME="/storage")
 launcher, argv, log = command(record, env)
 if not (root / "bin" / launcher).exists():
     print(json.dumps({"outcome": "unavailable", "reason": "launcher_missing"}))
     sys.exit(0)
-if record["rom"] and not (rom_root / record["rom"]).is_file():
+sample = rom_root / record["rom"] if record["rom"] else None
+if record.get("builtin"):
+    sample = root / "share/frontend-builtins" / Path(record["rom"]).name
+if sample is not None and not sample.is_file():
     print(json.dumps({"outcome": "unavailable", "reason": "sample_not_staged"}))
     sys.exit(0)
 
@@ -147,7 +157,12 @@ proc = None
 out = {}
 try:
     with wrapper.open("wb") as stream:
-        proc = subprocess.Popen([env["PLUMOS_BUSYBOX"], "sh", str(root / "bin" / launcher), *argv],
+        if record.get("frontend_launch") and record["rom"]:
+            launch_command = [str(root / "bin/plumos-text-ui"), "launch", record["system"],
+                              record["rom"], "--profile", record["profile"], "--execute"]
+        else:
+            launch_command = [env["PLUMOS_BUSYBOX"], "sh", str(root / "bin" / launcher), *argv]
+        proc = subprocess.Popen(launch_command,
                                 env=env, start_new_session=True, stdout=stream, stderr=stream)
     deadline = time.monotonic() + (16 if record["profile"].startswith("standalone:") else 9)
     while proc.poll() is None and time.monotonic() < deadline and not process_owns_drm(proc.pid):
@@ -174,6 +189,12 @@ try:
     out["exit_before_cleanup"] = proc.poll()
 finally:
     if proc is not None:
+        if record["profile"] == "external:port":
+            try:
+                subprocess.run([str(root / "bin/plumos-portmaster-port-stop"), "stop"],
+                               env=env, capture_output=True, timeout=10)
+            except subprocess.TimeoutExpired:
+                out["port_stop_timed_out"] = True
         stop(proc)
     write(trace / "tracing_on", 0)
     write(trace / "events/drm/drm_vblank_event_delivered/enable", 0)

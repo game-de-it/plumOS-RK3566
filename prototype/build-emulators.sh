@@ -30,9 +30,9 @@ fi
 ./scripts/build-bubble-retroarch.sh
 ./scripts/build-libretro-core-catalog-bubble.sh --filter "${PLUMOS_BUBBLE_CATALOG_FILTER:-all}"
 ./scripts/build-picoarch-bubble.sh
-docker run --rm --platform linux/arm64 -e SOURCE_DATE_EPOCH \
-    -v "$work/bubble:/work" -w /work "$PLUMOS_BUBBLE_TOOLS_IMAGE" \
-    ./scripts/build-pyxel-bubble.sh --inside --sdl-only
+./scripts/build-pyxel-bubble.sh
+./scripts/build-portmaster-bubble.sh
+"$prototype/emulators/build-freej2me.sh" "$work/bubble"
 "$prototype/emulators/stage-jelos-gpu.sh" "$stock" "$work/bubble/build/rg353m-jelos-gpu"
 PLUMOS_BUBBLE_INCLUDE_CAPTURED_VENDOR_GPU=1 ./scripts/build-standalone-bubble.sh
 "$prototype/emulators/assemble-runtime.sh" "$work/bubble" "$work/runtime"

@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+"""Verify the packaged runtime behind every FE emulator profile."""
+
+import hashlib
+import json
+import os
+from pathlib import Path
+import sys
+
+
+root = Path(sys.argv[1])
+frontend = root / "config/frontend"
+catalog = json.loads((frontend / "systems.json").read_text())
+coverage = json.loads((frontend / "runtime-coverage.json").read_text())
+routes = {
+    (system["system_id"], route["profile"]): route
+    for system in coverage["systems"]
+    for route in system["routes"]
+}
+expected = {
+    (system["id"], profile)
+    for system in catalog["systems"]
+    for profile in system["launch_profiles"]
+}
+if routes.keys() != expected:
+    raise SystemExit("FE catalog and generated runtime coverage disagree")
+
+
+def require(relative, executable=False):
+    path = root / relative
+    if not path.is_file() or (executable and not os.access(path, os.X_OK)):
+        raise SystemExit(f"Missing release runtime file: {relative}")
+    return path
+
+
+for system in catalog["systems"]:
+    if not system.get("enabled", True):
+        raise SystemExit(f"Release system is hidden from the FE: {system['id']}")
+    if system.get("builtin_entry"):
+        require(Path("share/frontend-builtins") / system["builtin_entry"])
+
+for route in routes.values():
+    require(route["binary"], executable=route["runtime"] not in {"retroarch", "picoarch"})
+    if route["license"]["status"] in {"packaged", "project-approved-inclusion"}:
+        require(route["license"]["path"])
+    require(coverage["ownership_policies"][route["runtime"]]["loader"], executable=True)
+
+for executable in (
+    "bin/retroarch",
+    "bin/plumos-retroarch-menu-launch",
+    "picoarch/bin/picoarch",
+    "bin/plumos-python-bubble",
+    "bin/plumos-pyxel-setup",
+    "apps/python/lib/ld-linux-aarch64.so.1",
+    "bin/plumos-portmaster-launch",
+    "bin/plumos-portmaster-port-stop",
+    "bin/plumos-portmaster-runtime",
+    "apps/portmaster/adapter/bin/aarch64/bash",
+    "share/libretro-system/freej2me-plus/freej2me_plus_runtime/linux-arm64/bin/java",
+):
+    require(executable, executable=True)
+for dependency in (
+    "apps/pyxel/lib/libSDL2-2.0.so.0",
+    "apps/pyxel/lib/plumos-pyxel-fit.so",
+    "apps/portmaster/upstream/PortMaster/pylibs.zip",
+    "share/libretro-system/freej2me-plus/freej2me_plus_runtime/linux-arm64/bin/freej2me_plus-lr.jar",
+):
+    require(dependency)
+
+for component in ("retroarch", "libretro-cores", "picoarch", "standalone", "pyxel",
+                  "portmaster", "freej2me-plus"):
+    checksums = require(f"components/{component}/checksums.sha256").read_text().splitlines()
+    if not checksums:
+        raise SystemExit(f"Empty release checksums for {component}")
+    for line in checksums:
+        expected_hash, relative = line.split("  ", 1)
+        digest = hashlib.sha256()
+        with require(relative).open("rb") as stream:
+            for block in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(block)
+        if digest.hexdigest() != expected_hash:
+            raise SystemExit(f"Release runtime checksum mismatch: {relative}")
+
+print(f"Verified {len(routes)} FE profiles and seven packaged components")

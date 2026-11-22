@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-if [ "$#" -lt 4 ] || [ "$#" -gt 5 ]; then
-    echo "Usage: $0 STOCK_SYSTEM BUBBLE_GIT STATIC_ADBD OUTPUT_DIRECTORY [EMULATOR_RUNTIME]" >&2
+if [ "$#" -ne 5 ]; then
+    echo "Usage: $0 STOCK_SYSTEM BUBBLE_GIT STATIC_ADBD OUTPUT_DIRECTORY EMULATOR_RUNTIME" >&2
     exit 2
 fi
 
@@ -10,6 +10,7 @@ prototype=$(cd "$(dirname "$0")" && pwd)
 stock=$(cd "$(dirname "$1")" && pwd)/$(basename "$1")
 bubble=$2
 adbd=$3
+runtime=$(cd "$5" && pwd)
 mkdir -p "$4"
 out=$(cd "$4" && pwd)
 revision=ec81d42c0c2c39e7a32973bfe4df9b3027512a5d
@@ -22,12 +23,14 @@ test ! -e "$out/bubble-userland.squashfs"
 
 stage=$(mktemp -d "$out/build.XXXXXXXX")
 mkdir "$stage/source"
-git -C "$bubble" archive "$revision" src/frontend package/frontend-bubble/plumos LICENSE |
+git -C "$bubble" archive "$revision" src/frontend package/frontend-bubble/plumos \
+    scripts/generate-bubble-runtime-coverage.py LICENSE |
     tar -xf - -C "$stage/source"
 if ! docker image inspect "$image" >/dev/null 2>&1; then
     git -C "$bubble" show "$revision:docker/bubble-tools/Dockerfile" |
         docker build --platform linux/arm64 -t "$image" -
 fi
+python3 "$prototype/emulators/enable-frontend-builtins.py" "$stage/source/src/frontend"
 "$prototype/build-frontend-docker.sh" "$stage" "$stock" "$stage/source/src/frontend"
 
 layer=$stage/layer
@@ -43,31 +46,44 @@ git -C "$bubble" show "$revision:package/frontend-bubble/plumos/bin/plumos-bubbl
 chmod 755 "$payload/frontend/bin/plumos-bubble-mount-sd2"
 install -m 755 "$prototype/system/usr/lib/plumos-353m/frontend/bin/plumos-safe-shutdown" "$payload/frontend/bin/"
 install -m 755 "$adbd" "$payload/adbd"
-if [ "$#" -eq 5 ]; then
-    runtime=$(cd "$5" && pwd)
-    test -x "$runtime/bin/retroarch"
-    test -x "$runtime/picoarch/bin/picoarch"
-    test -x "$runtime/emulator/standalone/pcsx_rearmed/bin/pcsx" ||
-        test -x "$runtime/emulator/standalone/pcsx_rearmed/pcsx"
-    cp -R "$runtime/." "$payload/frontend/"
-    docker run --rm --platform linux/arm64 -v "$payload/frontend:/runtime" "$image" sh -ec '
-        install -m 755 /bin/busybox /runtime/bin/busybox
-        /runtime/bin/busybox --list | grep -qx grep
-        /runtime/bin/busybox --list | grep -qx taskset
-        install -m 644 /usr/share/doc/busybox-static/copyright /runtime/licenses/busybox-static-copyright
-    '
-    python3 - "$payload/frontend/config/frontend/systems.json" <<'PY'
+cp -R "$runtime/." "$payload/frontend/"
+docker run --rm --platform linux/arm64 -v "$payload/frontend:/runtime" "$image" sh -ec '
+    install -m 755 /bin/busybox /runtime/bin/busybox
+    /runtime/bin/busybox --list | grep -qx grep
+    /runtime/bin/busybox --list | grep -qx taskset
+    install -m 644 /usr/share/doc/busybox-static/copyright /runtime/licenses/busybox-static-copyright
+'
+catalog="$payload/frontend/config/frontend"
+python3 - "$catalog/systems.json" <<'PY'
 import json
 from pathlib import Path
 import sys
 
 path = Path(sys.argv[1])
 catalog = json.loads(path.read_text())
-nes = next(system for system in catalog["systems"] if system["id"] == "nes")
-nes["default_cpu_policy"] = "performance"
+systems = {system["id"]: system for system in catalog["systems"]}
+systems["nes"]["default_cpu_policy"] = "performance"
+systems["pyxel"]["default_cpu_policy"] = "performance"
+j2me = systems["j2me"]
+assert j2me["launch_profiles"] == ["retroarch:squirreljme"]
+j2me["launch_profiles"] = ["retroarch:freej2me_plus"]
+j2me["default_launch_profile"] = "retroarch:freej2me_plus"
+j2me.pop("support")
+for system in systems.values():
+    system["enabled"] = True
+for system_id in ("2048", "mrboom"):
+    system = systems[system_id]
+    name = system["display_name"] + ".desktop"
+    system["builtin_entry"] = name
+    directory = path.parents[2] / "share" / "frontend-builtins"
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / name).write_text("[Desktop Entry]\nName=" + system["display_name"] + "\n")
 path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + "\n")
 PY
-fi
+python3 "$stage/source/scripts/generate-bubble-runtime-coverage.py" \
+    --systems "$catalog/systems.json" --app-root "$payload/frontend" \
+    --output "$catalog/runtime-coverage.json"
+python3 "$prototype/emulators/verify-release-runtime.py" "$payload/frontend"
 install -m 644 "$stage/source/LICENSE" "$payload/frontend/LICENSE"
 printf 'plumOS-Bubble %s\n' "$revision" > "$payload/frontend-source"
 cp -R "$prototype/system/usr/lib/systemd/system/"{emustation.service.d,plumos-usb-adb.service} "$layer/usr/lib/systemd/system/"

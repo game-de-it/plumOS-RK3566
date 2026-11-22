@@ -18,6 +18,12 @@ image=plumos-rk3566-bubble-tools:ec81d42
 test "$(shasum -a 256 "$source" | cut -d ' ' -f 1)" = 281bf1c1faf7f4c9d044f59677075fbb9af99d2a8d01f873c23c13587668c73f
 test -f "$system"
 test -x "$splash/boot-splash"
+for frame in boot-splash provision-start provision-error; do
+    if [ ! -s "$splash/$frame.xrgb" ]; then
+        echo "Missing boot or storage setup frame: $splash/$frame.xrgb" >&2
+        exit 1
+    fi
+done
 for file in "$output" "$output.partial" "$output.gz" "$output.gz.partial"; do test ! -e "$file"; done
 
 docker run --rm -i --privileged --user 0 --platform linux/arm64 \
@@ -39,6 +45,9 @@ trap cleanup EXIT
 unsquashfs -cat /system usr/lib/plumos-353m/frontend-source
 unsquashfs -cat /system usr/lib/plumos-353m/start-frontend >/dev/null
 unsquashfs -cat /system usr/lib/plumos-353m/adbd >/dev/null
+for component in retroarch libretro-cores picoarch standalone pyxel portmaster freej2me-plus; do
+    unsquashfs -cat /system "usr/lib/plumos-353m/frontend/components/$component/manifest.json" >/dev/null
+done
 cp --sparse=always /stock "$partial"
 loop=$(losetup --find --show --partscan "$partial")
 for number in 3 4; do

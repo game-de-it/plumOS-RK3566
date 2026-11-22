@@ -51,8 +51,9 @@ replace("scripts/build-picoarch-bubble.sh",
         'git -C "$SRC" apply "$PLUMOS_BUBBLE_PICOARCH_FRAME_PROBE_PATCH"',
         'git -C "$SRC" apply "$PLUMOS_BUBBLE_PICOARCH_FRAME_PROBE_PATCH"\n'
         'git -C "$SRC" apply /work/package/picoarch-bubble/patches/rg353m-audio.patch', 1)
-replace("scripts/build-pyxel-bubble.sh", "fetch_sdl\nbuild_sdl\n",
-        'fetch_sdl\nbuild_sdl\nif [ "${2:-}" = --sdl-only ]; then exit 0; fi\n', 1)
+replace("scripts/build-pyxel-bubble.sh", "guide:b17", "guide:b10", 1)
+replace("scripts/build-portmaster-bubble.sh",
+        'ZIP_VERSION="3.0-13"', 'ZIP_VERSION="3.0-13+deb12u1"', 1)
 replace("scripts/build-drastic-bubble.sh",
         'git -C "$SOURCE_DIR" apply --ignore-space-change --ignore-whitespace "$PATCH"',
         'git -C "$SOURCE_DIR" apply --ignore-space-change --ignore-whitespace "$PATCH"\n'

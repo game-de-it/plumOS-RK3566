@@ -35,6 +35,8 @@ def save_report():
 root = "/storage/plumos-rk3566/frontend"
 run = "/run/plumos-353m"
 paths = "config/retroarch config/standalone state/retroarch state/picoarch state/standalone state/pyxel-home saves states"
+if any(record.get("frontend_launch") for record in data):
+    paths += " state/frontend"
 setup = f'''
 set -eu
 R={root}

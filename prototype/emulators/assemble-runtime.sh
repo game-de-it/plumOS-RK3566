@@ -8,11 +8,15 @@ fi
 scripts=$(cd "$(dirname "$0")" && pwd)
 bubble=$(cd "$1" && pwd)
 runtime=$2
-for component in retroarch/bubble libretro-cores/bubble-all picoarch/bubble standalone/bubble; do
+components=(
+    retroarch/bubble libretro-cores/bubble-all picoarch/bubble standalone/bubble
+    pyxel/bubble portmaster/bubble freej2me-plus/bubble
+)
+for component in "${components[@]}"; do
     test -d "$bubble/output/$component/plumos"
 done
 mkdir "$runtime"
-for component in retroarch/bubble libretro-cores/bubble-all picoarch/bubble standalone/bubble; do
+for component in "${components[@]}"; do
     cp -R "$bubble/output/$component/plumos/." "$runtime/"
 done
 # PCSX's SDL 1.2 shim loads the JELOS KMSDRM SDL2 used to validate this panel.
@@ -21,12 +25,13 @@ test -f "$pcsx_sdl2"
 rm "$pcsx_sdl2"
 ln -s /usr/lib/libSDL2-2.0.so.0 "$pcsx_sdl2"
 frontend=$bubble/package/frontend-bubble/plumos/bin
-install -m 755 "$frontend"/{plumos-retroarch-launch,plumos-retroarch-config-merge,plumos-volume-control,plumos-cpu-control} "$runtime/bin/"
+install -m 755 "$frontend"/{plumos-retroarch-launch,plumos-retroarch-menu-launch,plumos-retroarch-config-merge,plumos-volume-control,plumos-cpu-control} "$runtime/bin/"
 install -m 755 "$frontend/plumos-audio-output" "$runtime/bin/"
 install -m 755 "$scripts/plumos-rk3566-audio-route" "$runtime/bin/"
 ln -s /usr/bin/aplay "$runtime/bin/plumos-aplay"
 python3 - "$runtime" <<'PY'
 import hashlib
+import json
 from pathlib import Path
 import sys
 
@@ -64,7 +69,57 @@ gl_routes = [
     "km_puae_xtreme_amped",
 ]
 gl_patterns = "".join(f"    *:{core}:*|\\\n" for core in gl_routes)
-launcher.write_text(s.replace(needle, gl_patterns + needle))
+s = s.replace(needle, gl_patterns + needle)
+needle = '''case "$core_id" in
+    bluemsx)'''
+assert s.count(needle) == 1
+s = s.replace(needle, '''case "$core_id" in
+    freej2me_plus)
+        system_directory="$HOME/freej2me-plus"
+        "$BB" mkdir -p "$system_directory/freej2me_system"
+        "$BB" ln -sfnT "$PLUMOS_ROOT/share/libretro-system/freej2me-plus/freej2me_plus_runtime" \\
+            "$system_directory/freej2me_plus_runtime"
+        # Java Sound uses the managed ALSA device directly.
+        printf '%s\\n' 'audio_enable = "false"' >>"$append_config"
+        ;;
+    bluemsx)''')
+launcher.write_text(s)
+
+for name in ("plumos-portmaster-launch", "plumos-portmaster-port-launch"):
+    port_launcher = root / "bin" / name
+    s = port_launcher.read_text()
+    s = s.replace(
+        '*plumos-controller-ui-bubble*|*plumos-controller-ui-fbdev*)',
+        '*plumos-controller-ui-bubble*|*plumos-controller-ui-fbdev*|*plumos-controller-ui\\ --renderer*)',
+    )
+    s = s.replace('</run/plumos/audio/output.status',
+                  '<"${PLUMOS_RUNTIME_ROOT:-/run/plumos}/audio/output.status"')
+    s = s.replace('ALSA_CONFIG_PATH="/run/plumos/audio/asound.conf"',
+                  'ALSA_CONFIG_PATH="${PLUMOS_RUNTIME_ROOT:-/run/plumos}/audio/asound.conf"')
+    s = s.replace('export PLUMOS_ROOT PLUMOS_RUNTIME_ROOT="/run/plumos"',
+                  'export PLUMOS_ROOT PLUMOS_RUNTIME_ROOT="${PLUMOS_RUNTIME_ROOT:-/run/plumos}"')
+    # Native executables use JELOS's loader. Only the Python launcher may
+    # load the private Pyxel/Python libc.
+    libraries = "${PLUMOS_ROOT}/apps/pyxel/lib:${PLUMOS_ROOT}/apps/python/lib:"
+    assert s.count(libraries) == 1
+    s = s.replace(libraries, "")
+    if name == "plumos-portmaster-port-launch":
+        needle = 'LOG_FILE="${PLUMOS_ROOT}/logs/apps/portmaster-ports.log"'
+        assert s.count(needle) == 1
+        s = s.replace(needle, needle + '\nmkdir -p "${LOG_FILE%/*}"')
+    port_launcher.write_text(s)
+control = root / "bin/plumos-portmaster-frontend-control"
+s = control.read_text()
+needle = '    case "$cmdline" in\n'
+assert s.count(needle) == 1
+control.write_text(s.replace(needle, needle +
+    '      "${PLUMOS_ROOT}/bin/plumos-controller-ui "*) printf \'%s\\n\' "$pid" ;;\n'))
+
+libretro_manifest = root / "components/libretro-cores/manifest.json"
+catalog = json.loads(libretro_manifest.read_text())
+freej2me = json.loads((root / "components/freej2me-plus/manifest.json").read_text())
+catalog["cores"].append(freej2me)
+libretro_manifest.write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\n")
 
 for manifest in (root / "components").glob("*/checksums.sha256"):
     lines = []
