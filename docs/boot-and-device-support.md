@@ -1,5 +1,15 @@
 # JELOS 20240206の機種自動判定
 
+## RG353Mで確認したTF1からの起動経路
+
+Dockerで再ビルドしたJELOS 20240206を、黒画面で電源が落ちたplumOS試作と同じ物理SDに書き込み、RG353MでEmulationStationまで起動したことをユーザーが確認しました。
+
+1. JELOSのRK3566用イメージ生成は、SDのLBA 64にRockchipのIDB、LBA 16384にU-Boot FIT、LBA 24576に `resource.img` を配置します。U-Bootはプリローダーから起動デバイスを取得し、取得できない場合は `rkimg_bootdev` が先に `mmc1` を調べます。`rkimgtest` はSDのLBA 64のIDBマジックを検査します。配布版・再ビルド版・12 GiB試作版のマジックは `0x534e4b52` でした。[イメージ生成](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/projects/Rockchip/bootloader/mkimage#L7-L34) · [起動デバイスの選択](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/arch/arm/mach-rockchip/boot_rkimg.c#L64-L106) · [IDBの検査](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/cmd/rkimgtest.c#L26-L55)
+2. JELOSのU-Bootでは `__ANBERNIC_BOOT__` が有効です。ビルドされた `bootcmd` は `boot_fit`、選択したデバイスの `boot_android` に続けて `setenv distro_bootpart 3&&run distro_bootcmd` を実行します。3イメージとも `boot_targets` は `mmc1 mmc0 usb0 pxe dhcp` でした。通常の探索では、そのデバイスの起動可能なGPT領域を調べます。実イメージの `p3` はEFIシステムパーティション型で、U-Bootの `is_bootable()` が起動可能と判定し、ここから `extlinux.conf` を読み込みます。[Anbernic向け定義](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/include/configs/rockchip-common.h#L7-L10) · [RK3568系の起動コマンド](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/include/configs/rk3568_common.h#L83-L109) · [パーティション探索](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/include/config_distro_bootcmd.h#L370-L379) · [起動可能フラグの判定](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/disk/part_efi.c#L66-L72)
+3. `resource.img` の `rk3566-rg353m-linux#_saradc_ch1=512.dtb` で機種を判定し、`fdtfile` と `FDTDIR /` で `p3` の `rk3566-rg353m-linux.dtb` を選びます。LinuxがTF1を列挙し、JELOSのinitramfsが `boot=UUID=` で指定されたFATを `/flash` にマウントします。この起動では、再ビルド時に生成したFAT ID `2211-3302` を使いました。[DTBの選択](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/arch/arm/mach-rockchip/resource_img.c#L854-L909) · [FDTDIRの処理](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/cmd/pxe.c#L723-L766) · [JELOSのマウント処理](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/packages/sysutils/busybox/scripts/init#L593-L602)
+
+12 GiB試作版にもこれらのU-Boot設定があり、元の配布版の `p3` のGPTエントリ、`extlinux.conf`、カーネル、RG353M用DTBを保持していました。その試作で変更した主な箇所は `SYSTEM` とPID 1の引き渡し、`post-sysroot.sh`、`p4` の拡張・`p5` の追加です。以前の診断で `mmcblk1` が出なかった試行は、Linuxのカード認識段階で止まっていました。診断ログが残っていない黒画面の試行は停止位置が未確定です。次の差分検証では、起動が確認できた再ビルド版のSDレイアウトを基準にユーザランドの差分から確認します。
+
 ## 元イメージと試作で確認した内容
 
 1. Rockchip U-Bootは `resource` パーティションのDTB候補を読み、ハードウェアIDに合う候補を選ぶ。このJELOSイメージの候補名には `#_saradc_ch1=...` が付いている。例えば、RG353Mの候補は `rk3566-rg353m-linux#_saradc_ch1=512.dtb`。

@@ -76,9 +76,17 @@ PortMasterのレシピが直接取得する旧 `compat.zip` にもダウンロ�
 
 64ビット版の全550工程とDockerでのイメージ生成が完了しました。試作SDの起動確認用に `output/jelos-20240206-rebuild/JELOS-RK3566.aarch64-20240206.img.gz` を用意しました。圧縮ファイルのSHA-256は `abc97f89dd26c7a975f3f2ba2127f258b86e8f75891603f5c42525694dec59e9` です。
 
+ユーザーは、plumOS試作で起動できなかったときと同じ物理SDを使い、この再ビルド版がRG353MのTF1からEmulationStationまで起動したことを確認しました。[TF1の起動経路と試作版との差分](boot-and-device-support.md#rg353mで確認したtf1からの起動経路)
+
 - 主・副GPTのCRCを検証し、4パーティションの位置、サイズ、型、名前、属性が一致しました。生成されたディスクGUIDとPARTUUIDには差があります。
 - IDBと未起動のVendorStorage領域はバイト単位で一致しました。U-Boot FITでは配布版と同じ構成が選ばれ、BL31の6セグメントとU-Boot用DTBが一致しました。FIT内全ペイロードの格納ハッシュを照合しました。
 - `resource.img` は未使用のハッシュ欄に差がありました。ブートパーティションの全7機種分のDTBと、`KERNEL` に埋め込まれたinitramfsの `/init`・`/functions` は、配布版とバイト単位で一致しました。カーネル設定では `CONFIG_INITRAMFS_SOURCE` の絶対パスに差がありました。
 - FATの `2211-3302` とext4の `886d8592-40ad-4e4c-b9c4-fad8076d367a` は、最終イメージ内の `extlinux.conf` の参照と一致しました。UUIDを置換して比較すると `extlinux.conf` 全体が一致しました。`KERNEL` と `SYSTEM` の格納MD5および圧縮・展開後イメージのSHA-256も検証しました。
 
 `SYSTEM` のファイル一覧には差がありました。両版ともLibretroコアは110本あります。最初の再ビルドではDraSticの補助ライブラリ2本と格納ディレクトリ、およびVLCの `libvpx_plugin.so` が不足していました。DraSticは別の保存コミットに補助ライブラリを含む配布ファイルがあり、JELOSの処理どおりストリップすると実行ファイルと補助ライブラリのSHA-256が配布版と一致しました。VLCの構成ログでは、`libvpx` のビルドより先にVLCが構成され、VPXが検出されていませんでした。同じレシピで `libvpx` の完了後にVLCを再構成できることを利用して、上記の起動確認用イメージとは別に再生成することにしました。[DraSticの保存コミット](https://github.com/RetroGFX/UnofficialOSAddons/commit/3fbcb1d03271c38270fd3a4dbd3d0b189582363f)
+
+### 配布版と収録ファイルを揃えたイメージ
+
+同じJELOSのソースとビルドレシピで、DraSticの配布ファイルを差し替え、`libvpx` の完了後にVLCを再ビルドしました。`output/jelos-20240206-rebuild/verified-payloads/JELOS-RK3566.aarch64-20240206.img.gz` のSHA-256は `38329c3edc29c42c758b08547f46b67dea0282e1ae14c26830dbe242feff3adc` です。
+
+配布版の `SYSTEM` とファイル一覧全52,137パスが一致しました。DraStic本体と補助ライブラリ2本のSHA-256は配布版と一致しました。`libvpx_plugin.so` のファイルサイズは一致し、SHA-256には差がありました。GPT・IDB・DTB・initramfsの照合を再実行し、このイメージで生成されたFAT ID `2211-4442` とext4 UUIDが `extlinux.conf` と一致しました。実機で起動確認したのは、先に完成したイメージです。
