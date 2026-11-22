@@ -15,6 +15,8 @@ adb shell /storage/plumos-rk3566/system/boot-system stock
 adb shell systemctl --no-block reboot
 ```
 
+ADBもSSHも使えない場合は、本体の電源を切り、MacでSDの `JELOS` ボリュームにある `mount-storage.sh` を `mount-storage.sh.disabled` に改名します。このファイルが呼ばれなくなり、既存の `/flash/SYSTEM` が選ばれます。設定を戻す場合は改名を戻す前に `boot-system stock` で起動予約と既定を解除できます。
+
 初回の候補起動で、ルートが候補に切り替わりADBが立ち上がりました。Bubbleのサービスは `jelos.target` から起動するリンクが必要でした。実機の永続サービス設定とインストーラーにリンクを追加し、状態監視サービスを起動順序に依存しない構成に変更しました。最初の候補起動中にBubbleの描画とADBで35バイトの往復転送を確認しました。
 
 続けて起動予約を作らずに再起動し、元の `/flash/SYSTEM` が `/` になり、復旧用ADBと元のEmulationStationが起動することを確認しました。Mac側のADBサーバーはUSB再列挙後に一覧が空の場合 `ADB_LIBUSB=1` で再起動しました。
