@@ -1,0 +1,52 @@
+#!/bin/sh
+set -eu
+
+export PLUMOS_ROOT=${PLUMOS_ROOT:-/storage/plumos-rk3566/frontend}
+export PLUMOS_RUNTIME_ROOT=${PLUMOS_RUNTIME_ROOT:-/run/plumos-353m}
+export PLUMOS_BUSYBOX="$PLUMOS_ROOT/bin/busybox"
+export PLUMOS_WIFI_INTERFACE=${PLUMOS_WIFI_INTERFACE:-wlan0}
+export PLUMOS_WPA_STATUS="$PLUMOS_RUNTIME_ROOT/network-control/wpa_status.txt"
+export PLUMOS_WPA_SUPPLICANT=/usr/bin/wpa_supplicant
+export PLUMOS_WPA_CLI="$PLUMOS_ROOT/bin/wpa_cli"
+export PLUMOS_DHCP_SCRIPT="$PLUMOS_ROOT/bin/plumos-wifi-dhcp"
+
+load_driver() {
+    [ -d "/sys/class/net/$PLUMOS_WIFI_INTERFACE" ] && return 0
+    if [ ! -s "/lib/modules/$(uname -r)/modules.alias" ]; then
+        if ! grep -qs ' /var ' /proc/mounts; then
+            mount -t tmpfs -o nosuid,nodev,mode=0755 tmpfs /var || return 1
+        fi
+        /usr/sbin/kernel-overlays-setup || return 1
+    fi
+    for attempt in 1 2 3 4 5; do
+        for entry in /sys/bus/sdio/devices/*/modalias; do
+            [ -r "$entry" ] || continue
+            modprobe "$(cat "$entry")" 2>/dev/null || continue
+            [ -d "/sys/class/net/$PLUMOS_WIFI_INTERFACE" ] && return 0
+        done
+        sleep 1
+    done
+    return 1
+}
+
+if [ "${1:-}" = --boot ]; then
+    if grep -Eq '"wifi_enabled"[[:space:]]*:[[:space:]]*(false|0)' \
+        "$PLUMOS_ROOT/config/system/settings.json"; then
+        exit 0
+    fi
+    set -- --wifi on
+fi
+
+# Hold the lock in the wrapper so wpa_supplicant and udhcpc never inherit it.
+mkdir -p "$PLUMOS_RUNTIME_ROOT" /run/libreelec
+exec 9>"$PLUMOS_RUNTIME_ROOT/wifi.lock"
+flock -x 9
+case "${1:-}:${2:-}" in
+    --wifi:on|--scan:*|--connect-file:*)
+        if ! load_driver; then
+            printf 'result=failed\nstage=driver\n'
+            exit 1
+        fi
+        ;;
+esac
+"$PLUMOS_ROOT/bin/plumos-network-control-bubble" "$@" 9>&-

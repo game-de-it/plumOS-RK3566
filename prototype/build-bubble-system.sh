@@ -24,7 +24,8 @@ test ! -e "$out/bubble-userland.squashfs"
 stage=$(mktemp -d "$out/build.XXXXXXXX")
 mkdir "$stage/source"
 git -C "$bubble" archive "$revision" src/frontend package/frontend-bubble/plumos \
-    scripts/generate-bubble-runtime-coverage.py LICENSE |
+    scripts/generate-bubble-runtime-coverage.py \
+    rootfs/bubble-minimal/usr/share/udhcpc/default.script LICENSE |
     tar -xf - -C "$stage/source"
 if ! docker image inspect "$image" >/dev/null 2>&1; then
     git -C "$bubble" show "$revision:docker/bubble-tools/Dockerfile" |
@@ -47,12 +48,32 @@ chmod 755 "$payload/frontend/bin/plumos-bubble-mount-sd2"
 install -m 755 "$prototype/system/usr/lib/plumos-353m/frontend/bin/plumos-safe-shutdown" "$payload/frontend/bin/"
 install -m 755 "$adbd" "$payload/adbd"
 cp -R "$runtime/." "$payload/frontend/"
-docker run --rm --platform linux/arm64 -v "$payload/frontend:/runtime" "$image" sh -ec '
+install -m 755 "$prototype/system/usr/lib/plumos-353m/frontend/bin/plumos-network-control" \
+    "$payload/frontend/bin/"
+sed 's/udhcpc -q -n/udhcpc -n -R/' "$frontend/bin/plumos-network-control" \
+    > "$payload/frontend/bin/plumos-network-control-bubble"
+sed 's@/run/resolv.conf@/run/libreelec/resolv.conf@g' \
+    "$stage/source/rootfs/bubble-minimal/usr/share/udhcpc/default.script" \
+    > "$payload/frontend/bin/plumos-wifi-dhcp"
+chmod 755 "$payload/frontend/bin/"{plumos-network-control-bubble,plumos-wifi-dhcp}
+docker run --rm -i --platform linux/arm64 -v "$payload/frontend:/runtime" "$image" sh -se <<'BUILD'
     install -m 755 /bin/busybox /runtime/bin/busybox
     /runtime/bin/busybox --list | grep -qx grep
     /runtime/bin/busybox --list | grep -qx taskset
+    /runtime/bin/busybox --list | grep -qx udhcpc
     install -m 644 /usr/share/doc/busybox-static/copyright /runtime/licenses/busybox-static-copyright
-'
+    cd "$(mktemp -d)"
+    curl -fsSLo wpa_supplicant-2.10.tar.gz https://w1.fi/releases/wpa_supplicant-2.10.tar.gz
+    printf '%s  %s\n' 20df7ae5154b3830355f8ab4269123a87affdea59fe74fe9292a91d0d7e17b2f \
+        wpa_supplicant-2.10.tar.gz | sha256sum -c -
+    tar -xf wpa_supplicant-2.10.tar.gz
+    cd wpa_supplicant-2.10
+    printf '%s\n' CONFIG_CTRL_IFACE=y > wpa_supplicant/.config
+    make -C wpa_supplicant -j4 wpa_cli
+    install -m 755 wpa_supplicant/wpa_cli /runtime/bin/wpa_cli
+    install -m 644 COPYING /runtime/licenses/wpa_cli-COPYING
+    /runtime/bin/wpa_cli -v
+BUILD
 catalog="$payload/frontend/config/frontend"
 python3 - "$catalog/systems.json" <<'PY'
 import json

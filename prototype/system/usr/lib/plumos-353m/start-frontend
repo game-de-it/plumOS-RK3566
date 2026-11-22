@@ -41,6 +41,11 @@ for name in frontend system; do
     fi
 done
 
+export PLUMOS_WPA_STATUS="$PLUMOS_RUNTIME_ROOT/network-control/wpa_status.txt"
+if [ -e /dev/plumos-native-init ] && [ -x "$PLUMOS_ROOT/bin/plumos-network-control" ]; then
+    "$PLUMOS_ROOT/bin/plumos-network-control" --boot >>"$PLUMOS_RUNTIME_ROOT/wifi-boot.log" 2>&1 &
+fi
+
 input_node() {
     if [ -c "$1" ]; then
         printf '%s\n' "$1"
