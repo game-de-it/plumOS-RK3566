@@ -16,7 +16,15 @@ case "$(sha256sum /flash/mount-storage.sh | cut -d ' ' -f 1)" in
 esac
 
 mkdir -p "$base/init"
-install -m 755 entry init power "$base/init/"
+for file in entry init power; do
+    target="$base/init/$file"
+    if [ -e /dev/plumos-native-init ] && [ -f "$target" ] && [ ! -e "$target.running" ]; then
+        # ext4 refuses a read-only remount while an unlinked init file is open.
+        ln "$target" "$target.running"
+    fi
+    install -m 755 "$file" "$target.new"
+    mv "$target.new" "$target"
+done
 install -m 644 select-init.sh "$base/init/"
 install -m 755 boot-system "$base/system/boot-system.new"
 mv "$base/system/boot-system.new" "$base/system/boot-system"

@@ -1,0 +1,41 @@
+#!/bin/sh
+# RK817 speaker/headset routing. All emulator launchers use Bubble's softvol PCM.
+set -eu
+
+runtime=${PLUMOS_RUNTIME_ROOT:-/run/plumos-353m}
+state=$runtime/audio/codec-route
+
+route() {
+    local headset card previous
+    card=rockchiprk817co
+    [ -e /proc/asound/"$card" ] || return 1
+    headset=SPK
+    for connector in /sys/class/extcon/extcon*; do
+        [ "$(cat "$connector/name" 2>/dev/null)" = rk-headset ] || continue
+        if grep -qx HEADPHONE=1 "$connector/state"; then
+            headset=HP_NO_MIC
+            if grep -qx MICROPHONE=1 "$connector/state"; then headset=HP; fi
+        fi
+        break
+    done
+    previous=$(cat "$state" 2>/dev/null || :)
+    [ "$headset" != "$previous" ] || return 0
+
+    # The emulator's ALSA_CONFIG_PATH is a minimal PCM graph. Use JELOS's
+    # ALSA configuration and the named card to program the physical mixer.
+    (unset ALSA_CONFIG_PATH; /usr/bin/amixer -q -c "$card" cset name='Playback Path' "$headset")
+    mkdir -p "${state%/*}"
+    printf '%s\n' "$headset" > "$state.$$"
+    mv -f "$state.$$" "$state"
+}
+
+case "${1:-apply}" in
+    apply) route ;;
+    watch)
+        while :; do
+            route || :
+            sleep 1
+        done
+        ;;
+    *) exit 2 ;;
+esac

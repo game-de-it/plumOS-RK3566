@@ -6,9 +6,14 @@ export PLUMOS_SDCARD_ROOT=/storage
 if grep -qs ' /storage/user ' /proc/mounts; then
     export PLUMOS_SDCARD_ROOT=/storage/user
 fi
+export PLUMOS_ROM_ROOT=$PLUMOS_SDCARD_ROOT/Roms
+export PLUMOS_BIOS_ROOT=$PLUMOS_SDCARD_ROOT/BIOS
 export PLUMOS_RUNTIME_ROOT=${PLUMOS_RUNTIME_ROOT:-/run/plumos-353m}
 export PLUMOS_BUSYBOX=/usr/bin/busybox
-export PLUMOS_DEVICE_ID=rg353m
+if [ -x "$payload/frontend/bin/plumos-busybox" ]; then
+    export PLUMOS_BUSYBOX="$payload/frontend/bin/plumos-busybox"
+fi
+export PLUMOS_DEVICE_ID=rg353m PLUMOS_RG353M_DRM=1
 export PLUMOS_DEVICE_NAME='Anbernic RG353M'
 export PLUMOS_FRONTEND_MODE=manual
 export PLUMOS_CONTROLLER_CPU_DEFAULT=0
@@ -19,7 +24,8 @@ mkdir -p "$PLUMOS_ROOT/config/frontend" "$PLUMOS_ROOT/config/system" \
 export PLUMOS_INPUT_TRACE_PATH="$PLUMOS_RUNTIME_ROOT/input-events.log"
 export PLUMOS_ACTION_TRACE_PATH="$PLUMOS_RUNTIME_ROOT/frontend-actions.log"
 
-for asset in bin fonts themes share factory-defaults; do
+for asset in bin fonts themes share factory-defaults cores info picoarch emulator retroarch; do
+    [ -d "$payload/frontend/$asset" ] || continue
     ln -sfn "$payload/frontend/$asset" "$PLUMOS_ROOT/$asset"
 done
 for config in "$payload"/frontend/config/frontend/*.json; do

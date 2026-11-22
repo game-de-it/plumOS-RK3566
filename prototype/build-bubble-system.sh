@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-if [ "$#" -ne 4 ]; then
-    echo "Usage: $0 STOCK_SYSTEM BUBBLE_GIT STATIC_ADBD OUTPUT_DIRECTORY" >&2
+if [ "$#" -lt 4 ] || [ "$#" -gt 5 ]; then
+    echo "Usage: $0 STOCK_SYSTEM BUBBLE_GIT STATIC_ADBD OUTPUT_DIRECTORY [EMULATOR_RUNTIME]" >&2
     exit 2
 fi
 
@@ -35,10 +35,33 @@ payload=$layer/usr/lib/plumos-353m
 mkdir -p "$payload/frontend/bin" "$layer/usr/lib/systemd/system/jelos.target.wants"
 frontend=$stage/source/package/frontend-bubble/plumos
 cp -R "$frontend"/{config,factory-defaults,fonts,share,themes} "$payload/frontend/"
-install -m 755 "$stage/compiled/"{plumos-controller-ui,plumos-library-scan} "$payload/frontend/bin/"
+install -m 755 "$stage/compiled/"{plumos-controller-ui,plumos-library-scan,plumos-text-ui,plumos-frontend} "$payload/frontend/bin/"
 install -m 755 "$prototype/system/usr/lib/plumos-353m/"{start-frontend,start-adb} "$payload/"
 install -m 755 "$prototype/system/usr/lib/plumos-353m/frontend/bin/plumos-safe-shutdown" "$payload/frontend/bin/"
 install -m 755 "$adbd" "$payload/adbd"
+if [ "$#" -eq 5 ]; then
+    runtime=$(cd "$5" && pwd)
+    test -x "$runtime/bin/retroarch"
+    test -x "$runtime/picoarch/bin/picoarch"
+    test -x "$runtime/emulator/standalone/pcsx_rearmed/bin/pcsx" ||
+        test -x "$runtime/emulator/standalone/pcsx_rearmed/pcsx"
+    cp -R "$runtime/." "$payload/frontend/"
+    docker run --rm --platform linux/arm64 -v "$payload/frontend:/runtime" "$image" sh -ec '
+        install -m 755 /bin/busybox /runtime/bin/plumos-busybox
+        install -m 644 /usr/share/doc/busybox-static/copyright /runtime/licenses/busybox-static-copyright
+    '
+    python3 - "$payload/frontend/config/frontend/systems.json" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+catalog = json.loads(path.read_text())
+nes = next(system for system in catalog["systems"] if system["id"] == "nes")
+nes["default_cpu_policy"] = "performance"
+path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + "\n")
+PY
+fi
 install -m 644 "$stage/source/LICENSE" "$payload/frontend/LICENSE"
 printf 'plumOS-Bubble %s\n' "$revision" > "$payload/frontend-source"
 cp -R "$prototype/system/usr/lib/systemd/system/"{emustation.service.d,plumos-usb-adb.service} "$layer/usr/lib/systemd/system/"

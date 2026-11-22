@@ -54,4 +54,10 @@ cc "${flags[@]}" "-D$INPUT_DEFINE=1" -DPLUMOS_ENABLE_FBDEV_RENDERER=1 \
     -o "$build/plumos-controller-ui"
 cc "${flags[@]}" /src/plumos_library_scan.c -o "$build/plumos-library-scan"
 install -m 755 "$build/plumos-controller-ui" "$build/plumos-library-scan" /out/
+if [ "$INPUT_DEFINE" = PLUMOS_BUBBLE_INPUT ]; then
+    for name in plumos_text_ui plumos_frontend; do
+        cc "${flags[@]}" "/src/$name.c" -o "$build/${name//_/-}"
+        install -m 755 "$build/${name//_/-}" /out/
+    done
+fi
 BUILD

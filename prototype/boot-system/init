@@ -16,12 +16,14 @@ mkdir -p "$runtime" /dev/pts
 chmod 700 "$runtime"
 grep -qs ' /dev/pts ' /proc/mounts || mount -t devpts -o mode=620,ptmxmode=0666 devpts /dev/pts
 exec >>"$runtime/init.log" 2>&1
+rm -f "$init_state/entry.running" "$init_state/init.running" "$init_state/power.running"
 printf '%s\n' "$$" > "$runtime/pid1"
 cut -d ' ' -f 1 /proc/uptime > "$runtime/pid1-uptime"
 printf 'plumOS init: PID %s; inherited boot arguments: %s\n' "$$" "$*"
 
 frontend=
 adb_pid=
+audio_pid=
 attempt=0
 provisioned=no
 
@@ -123,6 +125,10 @@ while :; do
         frontend=
         if [ "$attempt" -eq 5 ]; then echo 'plumOS init: frontend restart limit; ADB remains active'; fi
         sleep 1
+    fi
+    if [ -z "$audio_pid" ] && [ -x "$payload/frontend/bin/plumos-rk3566-audio-route" ]; then
+        "$payload/frontend/bin/plumos-rk3566-audio-route" watch &
+        audio_pid=$!
     fi
     if [ "$provisioned" = yes ] && [ -z "$frontend" ] && [ "$attempt" -lt 5 ]; then
         "$payload/start-frontend" &

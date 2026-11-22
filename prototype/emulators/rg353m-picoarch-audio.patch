@@ -1,0 +1,82 @@
+--- a/plat_sdl.c
++++ b/plat_sdl.c
+@@ -27,6 +27,7 @@
+ 	unsigned max_buf_w;
+ 	unsigned buf_r;
+ 	size_t buf_len;
++	unsigned underrun_frames;
+ 	struct audio_frame *buf;
+ 	int in_sample_rate;
+ 	int out_sample_rate;
+@@ -61,7 +62,7 @@
+ 	basic_text_out16_nf(dst, pitch, 2, h - 10, msg);
+ }
+ 
+-static int audio_resample_nearest(struct audio_frame data) {
++static int audio_resample_nearest(struct audio_frame data, int input_rate) {
+ 	static int diff = 0;
+ 	int consumed = 0;
+ 
+@@ -69,7 +70,7 @@
+ 		audio.buf[audio.buf_w++] = data;
+ 		if (audio.buf_w >= audio.buf_len) audio.buf_w = 0;
+ 
+-		diff += audio.in_sample_rate;
++		diff += input_rate;
+ 	}
+ 
+ 	if (diff >= audio.out_sample_rate) {
+@@ -369,6 +370,7 @@
+ 		if (audio.buf_r >= audio.buf_len) audio.buf_r = 0;
+ 	}
+ 
++	audio.underrun_frames += len;
+ 	while(len > 0) {
+ 		*p++ = 0;
+ 		--len;
+@@ -379,6 +381,8 @@
+ {
+ 	SDL_PauseAudio(1);
+ 	SDL_CloseAudio();
++	if (getenv("PLUMOS_PICOARCH_AUDIO_REPORT"))
++		PA_INFO("Audio underrun frames: %u\n", audio.underrun_frames);
+ 	if (audio.buf) {
+ 		free(audio.buf);
+ 		audio.buf = NULL;
+@@ -461,6 +465,14 @@
+ 
+ 	SDL_LockAudio();
+ 
++	/* Gently compensate for the independent RK817 and emulation clocks.
++	 * A low ring needs more output samples for each input sample. */
++	int buffered = (audio.buf_w + audio.buf_len - audio.buf_r) % audio.buf_len;
++	int target = audio.buf_len / 2;
++	int correction = (long)audio.in_sample_rate * (buffered - target)
++	               / (100L * (long)audio.buf_len);
++	int input_rate = audio.in_sample_rate + correction;
++
+ 	while (frames > 0) {
+ 		int tries = 0;
+ 		int amount = MIN(BATCH_SIZE, frames);
+@@ -477,7 +489,7 @@
+ 		}
+ 
+ 		while (amount && audio.buf_w != audio.max_buf_w) {
+-			consumed = audio_resample_nearest(*data);
++			consumed = audio_resample_nearest(*data, input_rate);
+ 			data += consumed;
+ 			amount -= consumed;
+ 			frames -= consumed;
+@@ -510,8 +522,11 @@
+ 	}
+ 
+ 	memset(audio.buf, 0, buf_size);
+-	audio.buf_w = 0;
++	/* Prime two core frames of silence so callback and emulation scheduling
++	 * can drift within the ring without producing a gap on every frame. */
++	audio.buf_w = audio.buf_len / 2;
+ 	audio.buf_r = 0;
++	audio.underrun_frames = 0;
+ 	audio.max_buf_w = audio.buf_len - 1;
+ 	SDL_UnlockAudio();
+ }

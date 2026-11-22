@@ -1,0 +1,19 @@
+--- a/gfx/drivers/drm_gfx.c
++++ b/gfx/drivers/drm_gfx.c
+@@ -1039,6 +1039,16 @@
+       scanout_page = &surface->pages[surface->flip_page];
+       surface->current_page = scanout_page;
+       surface->flip_page = (surface->flip_page + 1) % surface->numpages;
++   }
++
++   /* The RG353M JELOS DTB assigns the DSI background plane zpos 6
++    * and the RGB565 overlay zpos 4. Present above that background. */
++   if (getenv("PLUMOS_RG353M_DRM"))
++   {
++      uint32_t zpos = get_plane_prop_id(drm.plane_id, "zpos");
++      if (!zpos || drmModeObjectSetProperty(drm.fd, drm.plane_id,
++               DRM_MODE_OBJECT_PLANE, zpos, 7) != 0)
++         RARCH_ERR("[DRM] Could not raise the RG353M game plane.\n");
+    }
+ 
+    /* We have to set a buffer for the plane, whatever buffer we want,
