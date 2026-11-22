@@ -27,7 +27,7 @@ def count_frames():
 def wait_sample(seconds):
     start = time.monotonic()
     count = count_frames()
-    pointers, states = [], set()
+    pointers, states, starts = [], set(), set()
     while time.monotonic() - start < seconds:
         try:
             data = pcm.read_text(errors="replace")
@@ -38,20 +38,24 @@ def wait_sample(seconds):
         match = re.search(r"^hw_ptr\s*:\s*(\d+)", data, re.M)
         if match:
             pointers.append(int(match[1]))
+        trigger = re.search(r"^trigger_time\s*:\s*(\S+)", data, re.M)
+        if trigger:
+            starts.add(trigger[1])
         time.sleep(0.24)
     return {
         "fps": round((count_frames() - count) / (time.monotonic() - start), 2),
         "pcm_states": sorted(states),
         "pcm_progress": len(set(pointers)) > 1,
+        "pcm_triggers": len(starts),
     }
 
-def function_key():
+def press_joypad_key(code):
     device = next(p for p in Path("/sys/class/input").glob("event*")
                   if (p / "device/name").read_text().strip() == "retrogame_joypad")
     event = struct.Struct("@llHHi")
     with open("/dev/input/" + device.name, "wb", buffering=0) as stream:
         for value in (1, 0):
-            stream.write(event.pack(0, 0, 1, 316, value))
+            stream.write(event.pack(0, 0, 1, code, value))
             stream.write(event.pack(0, 0, 0, 0, 0))
             time.sleep(0.12)
 
@@ -158,9 +162,9 @@ try:
     out["softvol"] = match[1] if match else None
     if (record.get("check_fn", True) and proc.poll() is None and out["drm_open"]
             and not record["profile"].startswith("pyxel:")):
-        function_key()
+        press_joypad_key(316)
         out["menu"] = wait_sample(1.25)
-        function_key()
+        press_joypad_key(304 if record["profile"] == "standalone:drastic" else 316)
         out["resumed"] = wait_sample(1.25)
     if diagnostic_frames and proc.poll() is None:
         try:

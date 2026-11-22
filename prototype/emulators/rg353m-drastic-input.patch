@@ -1,0 +1,48 @@
+--- a/sdl2/src/video/nds/nds_event.c
++++ b/sdl2/src/video/nds/nds_event.c
+@@ -1059,16 +1059,18 @@
+         trace("set KEY_BIT_START\n");
+         set_key_bit(KEY_BIT_START, v);
+     }
++#if defined(GKD_MINIPLUS)
++    if (c == DEV_KEY_CODE_DRASTIC ||
++        (c == DEV_KEY_CODE_MENU && SDL_getenv("PLUMOS_DRASTIC_INPUT"))) {
++        trace("set KEY_BIT_DRASTIC\n");
++        set_key_bit(KEY_BIT_DRASTIC, v);
++        return 0;
++    }
++#endif
+     if (c == myevent.keypad.menu) {
+         trace("set KEY_BIT_MENU\n");
+         set_key_bit(KEY_BIT_MENU, v);
+     }
+-#if defined(GKD_MINIPLUS)
+-    if (c == DEV_KEY_CODE_DRASTIC) {
+-        trace("set KEY_BIT_DRASTIC\n");
+-        set_key_bit(KEY_BIT_DRASTIC, v);
+-    }
+-#endif
+     if (c == myevent.keypad.save) {
+         trace("set KEY_BIT_SAVE\n");
+         set_key_bit(KEY_BIT_SAVE, v);
+@@ -1657,13 +1659,18 @@
+     int rj = 0;
+     int sleep_us = 10000;
+     struct input_event ev = {{ 0 }};
++#if !defined(UT)
++    const char *input_dev = SDL_getenv("PLUMOS_DRASTIC_INPUT");
++#endif
+ 
+     trace("call %s()\n", __func__);
+ 
+ #if !defined(UT)
+-    myevent.fd = open(INPUT_DEV, O_RDONLY | O_NONBLOCK | O_CLOEXEC);
++    if (!input_dev || !*input_dev)
++        input_dev = INPUT_DEV;
++    myevent.fd = open(input_dev, O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+     if (myevent.fd < 0) {
+-        error("failed to open \"%s\"\n", INPUT_DEV);
++        error("failed to open \"%s\"\n", input_dev);
+         exit(-1);
+     }
+ #endif

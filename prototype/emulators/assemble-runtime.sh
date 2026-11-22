@@ -49,7 +49,22 @@ s = launcher.read_text()
 needle = """            printf '%s\\n' 'video_context_driver = ""'
             printf '%s\\n' 'video_threaded = "true"'"""
 assert s.count(needle) == 1
-launcher.write_text(s.replace(needle, needle.replace('video_threaded = "true"', 'video_threaded = "false"')))
+s = s.replace(needle, needle.replace('video_threaded = "true"', 'video_threaded = "false"'))
+needle = '    *:flycast:*|*:flycast_xtreme:*|*:km_duckswanstation_xtreme_amped:*|'
+assert s.count(needle) == 1
+gl_routes = [
+    "mednafen_pce",
+    "fbneo",
+    "mednafen_vb",
+    "mame2000",
+    "mame2003_plus",
+    "scummvm",
+    "potator",
+    "puae",
+    "km_puae_xtreme_amped",
+]
+gl_patterns = "".join(f"    *:{core}:*|\\\n" for core in gl_routes)
+launcher.write_text(s.replace(needle, gl_patterns + needle))
 
 for manifest in (root / "components").glob("*/checksums.sha256"):
     lines = []

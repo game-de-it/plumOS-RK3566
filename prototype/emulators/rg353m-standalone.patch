@@ -1,0 +1,137 @@
+--- a/package/standalone-bubble/plumos/bin/plumos-standalone-launch
++++ b/package/standalone-bubble/plumos/bin/plumos-standalone-launch
+@@ -343,6 +343,7 @@
+         LD_PRELOAD="$drm_share_preload" \
+         SDL_VIDEO_EGL_DRIVER="$PLUMOS_ROOT/emulator/lib/libmali.so.1" \
+         SDL_VIDEO_GL_DRIVER="$PLUMOS_ROOT/emulator/lib/libmali.so.1" \
++        PLUMOS_RG353M_OPENBOR_FN=1 \
+         SDL_VIDEODRIVER=kmsdrm \
+         SDL_RENDER_DRIVER=opengles2 \
+         SDL_AUDIODRIVER=alsa \
+@@ -369,6 +370,8 @@
+     work="$config_root/work"
+     log="$PLUMOS_ROOT/logs/drastic-standalone.log"
+     drastic_mounts=""
++    drastic_scratch=""
++    drastic_overlay=""
+     runner_pid=""
+     setarch_mode=""
+ 
+@@ -379,12 +382,17 @@
+         printf 'plumos-standalone-launch: DraStic runtime is missing\n' >&2
+         exit 1
+     }
+-    [ -c /dev/input/event2 ] || {
+-        printf 'stage=S62_RUNTIME result=failed emulator=drastic reason=missing-event2\n' \
+-            >>"$route_log"
+-        printf 'plumos-standalone-launch: Bubble controller event device is unavailable\n' >&2
+-        exit 1
+-    }
++    PLUMOS_DRASTIC_INPUT=
++    for input in /sys/class/input/event*; do
++        [ "$(cat "$input/device/name" 2>/dev/null)" = retrogame_joypad ] || continue
++        PLUMOS_DRASTIC_INPUT="/dev/input/${input##*/}"
++        break
++    done
++    [ -c "$PLUMOS_DRASTIC_INPUT" ] || {
++        printf 'plumos-standalone-launch: RG353M gamepad is unavailable\n' >&2
++        exit 1
++    }
++    export PLUMOS_DRASTIC_INPUT
+     [ -c /dev/dri/card0 ] && [ -c /dev/mali0 ] || {
+         printf 'plumos-standalone-launch: DraStic Bubble graphics devices are unavailable\n' >&2
+         exit 1
+@@ -409,16 +417,6 @@
+         "$work/unzip_cache" \
+         "$PLUMOS_ROOT/logs" \
+         "$RUNTIME_ROOT/standalone"
+-    for mutable_dir in \
+-        backup \
+-        config \
+-        input_record \
+-        profiles \
+-        savestates \
+-        system \
+-        unzip_cache; do
+-        "$BB" mkdir -p "$runtime/$mutable_dir"
+-    done
+     for factory_config in "$runtime"/config/*; do
+         [ -f "$factory_config" ] || continue
+         config_name="${factory_config##*/}"
+@@ -464,6 +462,15 @@
+             "$BB" umount "$mount_target" >/dev/null 2>&1 || true
+         done
+         drastic_mounts=""
++        if [ -n "$drastic_overlay" ]; then
++            if "$BB" umount "$drastic_overlay"; then
++                drastic_overlay=""
++            fi
++        fi
++        if [ -n "$drastic_scratch" ] && [ -z "$drastic_overlay" ]; then
++            "$BB" rm -rf "$drastic_scratch"
++            drastic_scratch=""
++        fi
+         if [ "$cpu_snapshot_active" -eq 1 ]; then
+             "$BB" sh "$cpu_control" restore "$cpu_snapshot" >/dev/null 2>&1 || true
+             cpu_snapshot_active=0
+@@ -474,12 +481,38 @@
+     trap 'exit 130' INT
+     trap 'exit 143' TERM
+ 
++    "$BB" mkdir -p /dev/shm
++    if ! "$BB" grep -qs ' /dev/shm ' /proc/mounts; then
++        "$BB" mount -t tmpfs -o mode=1777,nosuid,nodev tmpfs /dev/shm
++    fi
++
++    # The closed core writes beside its executable. Keep those writes out of SYSTEM.
++    drastic_scratch=$("$BB" mktemp -d "$RUNTIME_ROOT/standalone/drastic.XXXXXX")
++    "$BB" mkdir "$drastic_scratch/upper" "$drastic_scratch/work" "$drastic_scratch/root"
++    "$BB" mount -t overlay overlay \
++        -o "lowerdir=$runtime,upperdir=$drastic_scratch/upper,workdir=$drastic_scratch/work" \
++        "$drastic_scratch/root"
++    drastic_overlay="$drastic_scratch/root"
++    runtime="$drastic_overlay"
++    loader="$runtime/runtime/ld-linux-armhf.so.3"
++    drastic="$runtime/drastic"
++    runner="$runtime/runner"
++    for mutable_dir in \
++        backup \
++        config \
++        input_record \
++        profiles \
++        savestates \
++        system \
++        unzip_cache; do
++        "$BB" mkdir -p "$runtime/$mutable_dir"
++    done
++
+     cpu_snapshot="$RUNTIME_ROOT/standalone/cpu-governors.$$"
+     if [ -x "$cpu_control" ] &&
+         "$BB" sh "$cpu_control" snapshot "$cpu_snapshot"; then
+         cpu_snapshot_active=1
+-        "$BB" sh "$cpu_control" apply "$cpu_policy" >/dev/null 2>&1 ||
+-            restore_drastic_runtime
++        "$BB" sh "$cpu_control" apply "$cpu_policy" >/dev/null 2>&1 || exit 1
+     else
+         "$BB" rm -f "$cpu_snapshot"
+     fi
+@@ -548,7 +581,7 @@
+     printf 'drastic_runner=result=ready wait_ms=%s pid=%s\n' \
+         "$((runner_wait * 50))" "$runner_pid" >>"$log"
+ 
+-    printf 'drastic_start=armhf-gkd-event2-runner content-%s\n' \
++    printf 'drastic_start=armhf-rg353m-runner content-%s\n' \
+         "${content##*/}" >>"$log"
+     set +e
+     (
+@@ -653,7 +686,9 @@
+     HOME="$home" \
+     XDG_CACHE_HOME="$config_root/cache" \
+     LD_LIBRARY_PATH="$PLUMOS_ROOT/emulator/lib:$runtime/lib:/usr/lib" \
+-    LD_PRELOAD="$drm_share_preload" \
++    LD_PRELOAD="/usr/lib/libSDL2-2.0.so.0:$PLUMOS_ROOT/emulator/lib/libmali.so.1:$drm_share_preload" \
++    SDL_VIDEO_EGL_DRIVER="$PLUMOS_ROOT/emulator/lib/libmali.so.1" \
++    SDL_VIDEO_GL_DRIVER="$PLUMOS_ROOT/emulator/lib/libmali.so.1" \
+     SDL_VIDEODRIVER=kmsdrm \
+     SDL_AUDIODRIVER=alsa \
+     AUDIODEV="$alsa_device" \

@@ -1,0 +1,48 @@
+--- a/engine/sdl/control.c
++++ b/engine/sdl/control.c
+@@ -41,6 +41,15 @@
+ and map them to BOR's layout.  Currently support
+ up to 4 controllers.
+ */
++#if defined(PLUMOS_BUBBLE) && defined(SDL2)
++static int rg353m_fn_port(int port)
++{
++    const char* name = joystick[port] ? SDL_JoystickName(port) : NULL;
++    return name && SDL_getenv("PLUMOS_RG353M_OPENBOR_FN") &&
++           SDL_strcmp(name, "retrogame_joypad") == 0;
++}
++#endif
++
+ void getPads(Uint8* keystate, Uint8* keystate_def)
+ {
+ 	int i, j, x, axis;
+@@ -282,6 +291,10 @@
+ 			// check buttons
+ 			for(j = 0; j < joysticks[i].NumButtons; j++)
+             {
++#if defined(PLUMOS_BUBBLE) && defined(SDL2)
++                if (j == 10 && rg353m_fn_port(i))
++                    continue;
++#endif
+                 joysticks[i].Buttons |= SDL_JoystickGetButton(joystick[i], j) << j;
+             }
+ 
+@@ -926,6 +939,18 @@
+ 				}
+ 			}
+ 		}
++#if defined(PLUMOS_BUBBLE) && defined(SDL2)
++        /* Start is OpenBOR's in-game pause action. */
++        if (player == 0 && SDL_getenv("PLUMOS_RG353M_OPENBOR_FN")) {
++            int port;
++            for (port = 0; port < JOY_LIST_TOTAL; ++port) {
++                if (rg353m_fn_port(port) && SDL_JoystickGetButton(joystick[port], 10)) {
++                    k |= FLAG_START;
++                    break;
++                }
++            }
++        }
++#endif
+ 		pcontrols->kb_break = 0;
+ 		pcontrols->newkeyflags = k & (~pcontrols->keyflags);
+ 		pcontrols->keyflags = k;
