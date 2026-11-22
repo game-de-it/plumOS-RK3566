@@ -9,6 +9,7 @@ if grep -qs ' /storage/user ' /proc/mounts; then
 fi
 export PLUMOS_ROM_ROOT=$PLUMOS_SDCARD_ROOT/Roms
 export PLUMOS_BIOS_ROOT=$PLUMOS_SDCARD_ROOT/BIOS
+export PLUMOS_IMAGE_ROOT=$PLUMOS_SDCARD_ROOT/Images
 export PLUMOS_RUNTIME_ROOT=${PLUMOS_RUNTIME_ROOT:-/run/plumos-353m}
 export PLUMOS_BUSYBOX=/usr/bin/busybox
 if [ -x "$payload/frontend/bin/busybox" ]; then
@@ -25,7 +26,7 @@ mkdir -p "$PLUMOS_ROOT/config/frontend" "$PLUMOS_ROOT/config/system" \
 export PLUMOS_INPUT_TRACE_PATH="$PLUMOS_RUNTIME_ROOT/input-events.log"
 export PLUMOS_ACTION_TRACE_PATH="$PLUMOS_RUNTIME_ROOT/frontend-actions.log"
 
-for asset in bin fonts themes share factory-defaults cores info picoarch emulator retroarch apps; do
+for asset in bin fonts themes share factory-defaults cores info picoarch emulator retroarch apps scraper storage-tools; do
     [ -d "$payload/frontend/$asset" ] || continue
     ln -sfn "$payload/frontend/$asset" "$PLUMOS_ROOT/$asset"
 done
@@ -33,6 +34,9 @@ for config in "$payload"/frontend/config/frontend/*.json; do
     [ "${config##*/}" = settings.json ] && continue
     ln -sfn "$config" "$PLUMOS_ROOT/config/frontend/${config##*/}"
 done
+if [ -f "$payload/frontend/config/frontend/scraper-sources.tsv" ]; then
+    ln -sfn "$payload/frontend/config/frontend/scraper-sources.tsv" "$PLUMOS_ROOT/config/frontend/"
+fi
 for name in frontend system; do
     settings="$PLUMOS_ROOT/config/$name/settings.json"
     if [ ! -e "$settings" ]; then

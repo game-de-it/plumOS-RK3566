@@ -45,7 +45,8 @@ trap cleanup EXIT
 unsquashfs -cat /system usr/lib/plumos-353m/frontend-source
 unsquashfs -cat /system usr/lib/plumos-353m/start-frontend >/dev/null
 unsquashfs -cat /system usr/lib/plumos-353m/adbd >/dev/null
-for component in retroarch libretro-cores picoarch standalone pyxel portmaster freej2me-plus; do
+for component in retroarch libretro-cores picoarch standalone pyxel portmaster freej2me-plus \
+    nextcommander music-player; do
     unsquashfs -cat /system "usr/lib/plumos-353m/frontend/components/$component/manifest.json" >/dev/null
 done
 cp --sparse=always /stock "$partial"

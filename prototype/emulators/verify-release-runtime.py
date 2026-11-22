@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shlex
 import sys
 
 
@@ -45,6 +46,23 @@ for route in routes.values():
         require(route["license"]["path"])
     require(coverage["ownership_policies"][route["runtime"]]["loader"], executable=True)
 
+apps = json.loads((frontend / "apps.json").read_text())["apps"]
+internal_tools = {
+    "internal:scraping": ("bin/plumos-thumbnail-scraper", "bin/curl", "scraper/lib/plumos-curl"),
+    "internal:sd2-repair": ("bin/plumos-sd2-repair", "bin/plumos-fsck-fat", "storage-tools/fsck.fat"),
+}
+for app in apps:
+    if app["menu"] != "apps" or not app.get("visible", True):
+        continue
+    profile = app["launch_profile"]
+    if profile in internal_tools:
+        for tool in internal_tools[profile]:
+            require(tool, executable=True)
+    elif profile.startswith("shell:$PLUMOS_ROOT/"):
+        require(shlex.split(profile.removeprefix("shell:$PLUMOS_ROOT/"))[0], executable=True)
+    else:
+        raise SystemExit(f"Unsupported release Apps entry: {app['id']}")
+
 for executable in (
     "bin/retroarch",
     "bin/plumos-retroarch-menu-launch",
@@ -56,10 +74,14 @@ for executable in (
     "bin/plumos-portmaster-port-stop",
     "bin/plumos-portmaster-runtime",
     "apps/portmaster/adapter/bin/aarch64/bash",
+    "apps/nextcommander/bin/NextCommander",
+    "apps/music-player/bin/plumos-music-player.bin",
+    "bin/plumos-ggfe",
     "share/libretro-system/freej2me-plus/freej2me_plus_runtime/linux-arm64/bin/java",
 ):
     require(executable, executable=True)
 for dependency in (
+    "config/frontend/scraper-sources.tsv",
     "apps/pyxel/lib/libSDL2-2.0.so.0",
     "apps/pyxel/lib/plumos-pyxel-fit.so",
     "apps/portmaster/upstream/PortMaster/pylibs.zip",
@@ -68,7 +90,7 @@ for dependency in (
     require(dependency)
 
 for component in ("retroarch", "libretro-cores", "picoarch", "standalone", "pyxel",
-                  "portmaster", "freej2me-plus"):
+                  "portmaster", "freej2me-plus", "nextcommander", "music-player"):
     checksums = require(f"components/{component}/checksums.sha256").read_text().splitlines()
     if not checksums:
         raise SystemExit(f"Empty release checksums for {component}")
@@ -81,4 +103,4 @@ for component in ("retroarch", "libretro-cores", "picoarch", "standalone", "pyxe
         if digest.hexdigest() != expected_hash:
             raise SystemExit(f"Release runtime checksum mismatch: {relative}")
 
-print(f"Verified {len(routes)} FE profiles and seven packaged components")
+print(f"Verified {len(routes)} FE profiles, visible Apps entries and nine packaged components")

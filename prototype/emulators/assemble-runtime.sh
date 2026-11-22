@@ -102,12 +102,35 @@ for name in ("plumos-portmaster-launch", "plumos-portmaster-port-launch"):
     # load the private Pyxel/Python libc.
     libraries = "${PLUMOS_ROOT}/apps/pyxel/lib:${PLUMOS_ROOT}/apps/python/lib:"
     assert s.count(libraries) == 1
-    s = s.replace(libraries, "")
+    s = s.replace(libraries, "").replace("${PLUMOS_ROOT}/apps/nextcommander/lib:", "")
     if name == "plumos-portmaster-port-launch":
         needle = 'LOG_FILE="${PLUMOS_ROOT}/logs/apps/portmaster-ports.log"'
         assert s.count(needle) == 1
         s = s.replace(needle, needle + '\nmkdir -p "${LOG_FILE%/*}"')
     port_launcher.write_text(s)
+
+port_runtime = root / "bin/plumos-portmaster-runtime"
+s = port_runtime.read_text()
+needle = '  link_one libSDL2_mixer-2.0.so.0'
+assert s.count(needle) == 1
+port_runtime.write_text(s.replace(needle, '''  # Add only the image codecs, keeping NextCommander's libc private.
+  for codec in libpng16.so.16 libjpeg.so.62 libtiff.so.6 libwebp.so.7 \
+    libLerc.so.4 libjbig.so.0 libdeflate.so.0; do
+    link_one "$codec" "${NEXTCOMMANDER_LIB}/$codec"
+  done
+''' + needle))
+
+pyxel = root / "bin/plumos-pyxel-setup"
+s = pyxel.read_text()
+needle = '  install) install_site ;;'
+assert s.count(needle) == 1
+pyxel.write_text(s.replace(needle, '''  install)
+    if [ "$REQUIREMENTS_SOURCE" = project ]; then
+      install_site
+    else
+      print_status
+    fi
+    ;;'''))
 control = root / "bin/plumos-portmaster-frontend-control"
 s = control.read_text()
 needle = '    case "$cmdline" in\n'

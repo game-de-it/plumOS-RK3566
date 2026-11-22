@@ -48,6 +48,8 @@ chmod 755 "$payload/frontend/bin/plumos-bubble-mount-sd2"
 install -m 755 "$prototype/system/usr/lib/plumos-353m/frontend/bin/plumos-safe-shutdown" "$payload/frontend/bin/"
 install -m 755 "$adbd" "$payload/adbd"
 cp -R "$runtime/." "$payload/frontend/"
+"$prototype/stage-bubble-apps.sh" "$bubble" "$revision" "$image" "$stage/apps-source" \
+    "$payload/frontend"
 install -m 755 "$prototype/system/usr/lib/plumos-353m/frontend/bin/plumos-network-control" \
     "$payload/frontend/bin/"
 sed 's/udhcpc -q -n/udhcpc -n -R/' "$frontend/bin/plumos-network-control" \
