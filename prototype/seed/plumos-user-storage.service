@@ -1,0 +1,9 @@
+[Unit]
+Description=Prepare and mount the plumOS user partition
+RequiresMountsFor=/storage
+Before=emustation.service
+
+[Service]
+Type=oneshot
+ExecStart=/storage/plumos-rk3566/provision/start-storage
+RemainAfterExit=yes

@@ -1,0 +1,21 @@
+#!/bin/sh
+set -eu
+
+tools=/storage/plumos-rk3566/provision
+flash=$(awk '$2=="/flash" {print $1}' /proc/mounts)
+case "$flash" in /dev/mmcblk[0-9]*p3) ;; *) exit 1 ;; esac
+disk=${flash%p3}
+test "$(cat "/sys/class/block/${disk##*/}/device/type")" = SD
+if [ ! -f "$tools/ready" ]; then
+    "$tools/boot-splash" "$tools/provision-start.xrgb" || :
+fi
+result=0
+"$tools/provision-storage" "$disk" || result=$?
+case "$result" in
+    0) ;;
+    75) systemctl --no-block reboot ;;
+    *)
+        "$tools/boot-splash" "$tools/provision-error.xrgb" || :
+        exit "$result"
+        ;;
+esac

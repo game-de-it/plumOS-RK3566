@@ -1,0 +1,85 @@
+#!/bin/sh
+set -eu
+
+# The service supplies the SD containing both verified JELOS mounts.
+disk=$1
+state=/storage/plumos-rk3566/provision
+runtime=${disk}p4
+user=${disk}p5
+runtime_start=4227072
+runtime_size=8388608
+user_start=$((runtime_start + runtime_size))
+runtime_partuuid=b9ce4be6-d47b-4fc7-a099-ddf3bef5a7e7
+
+geometry() { cat "/sys/class/block/${1##*/}/$2"; }
+fdisk_tool() { LD_LIBRARY_PATH="$state/lib" "$state/sfdisk" "$@"; }
+partitions() { fdisk_tool --dump "$disk" | awk '/ : start=/ {printf "%s", substr($1,length($1))}'; }
+write_state() {
+    printf '%s\n' "$2" > "$state/$1.new"
+    mv "$state/$1.new" "$state/$1"
+    sync
+}
+
+test "$(cat "$state/seed")" = 'plumOS-RK3566 storage v1'
+test "$(awk '$2=="/flash" {print $1}' /proc/mounts)" = "${disk}p3"
+test "$(awk '$2=="/storage" && $3=="ext4" {print $1}' /proc/mounts)" = "$runtime"
+test "$(geometry "$disk" size)" -ge "$((user_start + 1048576 + 34))"
+test "$(geometry "${disk}p1" start):$(geometry "${disk}p1" size)" = '16384:8192'
+test "$(geometry "${disk}p2" start):$(geometry "${disk}p2" size)" = '24576:8192'
+test "$(geometry "${disk}p3" start):$(geometry "${disk}p3" size)" = '32768:4194304'
+test "$(geometry "$runtime" start)" = "$runtime_start"
+test "$(blkid -s UUID -o value "${disk}p3")" = 2211-3302
+test "$(blkid -s UUID -o value "$runtime")" = 886d8592-40ad-4e4c-b9c4-fad8076d367a
+test "$(blkid -s PARTUUID -o value "$runtime")" = "$runtime_partuuid"
+
+if [ "$(geometry "$runtime" size)" = 65536 ] && [ "$(partitions)" = 1234 ]; then
+    test ! -e "$state/ready"
+    if [ ! -s "$state/partition-id" ]; then
+        write_state partition-id "$(cat /proc/sys/kernel/random/uuid)"
+    fi
+    user_partuuid=$(cat "$state/partition-id")
+    # Keep all existing entries and write both layout changes in one transaction.
+    echo 'plumOS: creating the storage and user partitions'
+    last=$(( $(geometry "$disk" size) - 34 ))
+    fdisk_tool --dump "$disk" > "$state/original.sfdisk"
+    awk -v runtime="$runtime" -v size="$runtime_size" -v last="$last" '
+        /^last-lba:/ { $0 = "last-lba: " last }
+        $1 == runtime { sub(/size=[[:space:]]*[0-9]+/, "size= " size) }
+        { print }
+    ' "$state/original.sfdisk" > "$state/target.sfdisk"
+    printf '%s : start=%s, size=%s, type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7, uuid=%s, name="userdata"\n' \
+        "$user" "$user_start" "$((last - user_start + 1))" "$user_partuuid" >> "$state/target.sfdisk"
+    fdisk_tool --no-reread --no-tell-kernel --wipe never --wipe-partitions never \
+        "$disk" < "$state/target.sfdisk"
+    test "$(partitions)" = 12345
+    sync
+    # Restart so the kernel reads both sizes from the new table before resize2fs.
+    exit 75
+fi
+
+test "$(geometry "$runtime" size)" = "$runtime_size"
+test "$(geometry "$user" start)" = "$user_start"
+test "$(geometry "$user" size)" -ge 1048576
+test "$(blkid -s PARTUUID -o value "$user")" = "$(cat "$state/partition-id")"
+
+if [ ! -f "$state/ready" ]; then
+    echo 'plumOS: expanding the update storage'
+    resize2fs "$runtime"
+    if signature=$(blkid -p -D -o export "$user"); then
+        printf '%s\n' "$signature" | grep -qx 'TYPE=vfat'
+        printf '%s\n' "$signature" | grep -qx 'LABEL=PLUMOS'
+    else
+        # blkid -p distinguishes a blank partition from ambiguous signatures.
+        test "$?" = 2
+        mkfs.vfat -F 32 -n PLUMOS "$user"
+    fi
+fi
+test "$(blkid -p -s TYPE -o value "$user")" = vfat
+test "$(blkid -p -s LABEL -o value "$user")" = PLUMOS
+mkdir -p /storage/user
+mount -t vfat -o rw,noatime "$user" /storage/user
+mkdir -p /storage/user/Roms /storage/user/BIOS /storage/user/Images
+if [ ! -f "$state/ready" ]; then
+    write_state ready v1
+    echo 'plumOS: user partition ready'
+fi
