@@ -1,0 +1,50 @@
+#!/bin/sh
+set -eu
+state=/storage/plumos-rk3566/system
+active=/dev/plumos-system-active
+
+valid_hash() {
+    case "$1" in ''|*[!0123456789abcdef]*) return 1 ;; esac
+    [ "${#1}" -eq 64 ]
+}
+
+write_selection() {
+    valid_hash "$1"
+    test -s "$state/$1.squashfs"
+    tmp=$(mktemp "$state/$2.XXXXXXXX")
+    printf '%s\n' "$1" > "$tmp"
+    mv "$tmp" "$state/$2"
+    sync
+}
+
+case "${1:-status}" in
+    publish)
+        test "$#" -eq 2
+        valid_hash "$2"
+        cd "$state"
+        printf '%s  SYSTEM.partial\n' "$2" | sha256sum -c
+        mv SYSTEM.partial "$2.squashfs"
+        sync
+        ;;
+    trial)
+        test "$#" -eq 2
+        write_selection "$2" next
+        ;;
+    keep)
+        test "$#" -eq 1
+        hash=$(cat "$active")
+        test "$(cat "$state/healthy")" = "$hash"
+        write_selection "$hash" default
+        ;;
+    stock)
+        rm -f "$state/next" "$state/default" "$state/pending"
+        sync
+        ;;
+    status)
+        printf 'active=%s\n' "$(cat "$active" 2>/dev/null || echo stock)"
+        for name in next default pending healthy; do
+            printf '%s=%s\n' "$name" "$(cat "$state/$name" 2>/dev/null || :)"
+        done
+        ;;
+    *) echo 'Usage: boot-system [status|publish SHA256|trial SHA256|keep|stock]' >&2; exit 2 ;;
+esac

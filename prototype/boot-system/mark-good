@@ -1,0 +1,22 @@
+#!/bin/sh
+set -eu
+
+state=/storage/plumos-rk3566/system
+hash=$(cat /dev/plumos-system-active)
+for second in $(seq 1 45); do
+    pid=$(systemctl show -p MainPID --value emustation.service)
+    if test -s /tmp/plumos-fe-ready &&
+        [ "$(readlink "/proc/$pid/exe" 2>/dev/null)" = /usr/lib/plumos-353m/frontend/bin/plumos-controller-ui ] &&
+        systemctl is-active --quiet plumos-usb-adb.service &&
+        [ "$(cat /sys/kernel/config/usb_gadget/plumos353m/UDC 2>/dev/null)" = fcc00000.dwc3 ]; then
+        test "$(cat "$state/pending")" = "$hash"
+        printf '%s\n' "$hash" > "$state/healthy.new"
+        mv "$state/healthy.new" "$state/healthy"
+        rm "$state/pending"
+        sync
+        exit 0
+    fi
+    sleep 1
+done
+echo 'plumOS boot health check did not pass; next boot can fall back to JELOS' >&2
+exit 1

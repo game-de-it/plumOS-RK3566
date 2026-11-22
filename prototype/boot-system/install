@@ -1,0 +1,50 @@
+#!/bin/sh
+# Run on the RG353M from the directory containing these boot-system files.
+set -eu
+
+test "$(tr -d '\000' </proc/device-tree/model)" = 'Anbernic RG353M'
+grep -qw 'boot=UUID=2211-3302' /proc/cmdline
+test "$(cat /sys/block/loop0/loop/backing_file)" = /flash/SYSTEM
+state=/storage/plumos-rk3566/system
+units=/storage/.config/system.d
+hook=/flash/mount-storage.sh
+hook_hash=$(sha256sum mount-storage.sh | cut -d ' ' -f 1)
+if [ -e "$hook" ]; then
+    test "$(sha256sum "$hook" | cut -d ' ' -f 1)" = "$hook_hash" || {
+        echo 'A different mount-storage.sh already exists' >&2
+        exit 1
+    }
+fi
+test -f "$units/plumos-rk3566-adb.service"
+test -L "$units/jelos.target.wants/plumos-rk3566-adb.service"
+mkdir -p "$state" "$units/plumos-rk3566-adb.service.d" \
+    "$units/run-plumos-bubble.mount.d" "$units/emustation.service.d" \
+    "$units/multi-user.target.wants"
+install -m 755 boot-system mark-good "$state/"
+install -m 644 plumos-system-health.service "$units/"
+ln -sfn ../plumos-system-health.service "$units/multi-user.target.wants/plumos-system-health.service"
+for unit in plumos-rk3566-adb.service run-plumos-bubble.mount; do
+    printf '[Unit]\nConditionPathExists=!/dev/plumos-system-active\n' \
+        > "$units/$unit.d/90-stock-recovery.conf"
+done
+
+dropin="$units/emustation.service.d/90-plumos-rk3566.conf"
+if [ -f "$dropin" ]; then
+    grep -qx 'ExecStart=/run/plumos/bubble/usr/lib/plumos-353m/start-frontend' "$dropin"
+    test ! -e "$state/legacy-frontend.conf"
+    mv "$dropin" "$state/legacy-frontend.conf"
+fi
+printf '[Service]\nEnvironment=PLUMOS_ROOT=/storage/plumos-rk3566/frontend\n' \
+    > "$units/emustation.service.d/91-plumos-state.conf"
+
+if [ ! -e "$hook" ]; then
+    mount -o remount,rw /flash
+    trap 'sync; mount -o remount,ro /flash' EXIT
+    cp mount-storage.sh "$hook.new"
+    printf '%s  %s\n' "$hook_hash" "$hook.new" | sha256sum -c
+    mv "$hook.new" "$hook"
+    sync
+    mount -o remount,ro /flash
+    trap - EXIT
+fi
+sync
