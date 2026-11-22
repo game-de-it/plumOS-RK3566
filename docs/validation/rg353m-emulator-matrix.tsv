@@ -1,0 +1,264 @@
+system	profile	rom	attempt	outcome	display_fps	reported_hz	drm_open	pcm_progress	pcm_states	fn_evidence	fn_fps	resumed_fps	resumed_pcm	soft_volume_raw	exit_code	pico_frames	pico_underrun_samples	notes
+nes	retroarch:quicknes	nes/Binary Land.nes	main	frames_observed	58.98	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	57.92	True	215,215				-
+nes	retroarch:fceumm	nes/Binary Land.nes	main	frames_observed	58.6	60.10	True	True	RUNNING	retroarch_menu_plane	0.0	57.8	True	215,215				-
+nes	retroarch:nestopia	nes/Binary Land.nes	main	frames_observed	59.07	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	57.35	True	215,215				-
+nes	picoarch:quicknes	nes/Binary Land.nes	main	frames_observed	59.15		True	True	RUNNING	display_paused_and_resumed	0.0	57.92	True	215,215				-
+nes	picoarch:fceumm	nes/Binary Land.nes	main	frames_observed	58.56		True	True	RUNNING	display_paused_and_resumed	0.0	57.8	True	215,215				-
+nes	picoarch:nestopia	nes/Binary Land.nes	main	frames_observed	58.81		True	True	RUNNING	display_paused_and_resumed	0.0	57.32	True	215,215				-
+fds	retroarch:fceumm	_etc/fds/勇士の紋章　ディープダンジョンII.fds.zip	main	frames_observed	59.28	60.10	True	True	RUNNING	retroarch_menu_plane	0.0	58.2	True	215,215				-
+fds	retroarch:nestopia	_etc/fds/勇士の紋章　ディープダンジョンII.fds.zip	main	frames_observed	59.08	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	55.92	True	215,215				-
+fds	picoarch:fceumm	_etc/fds/勇士の紋章　ディープダンジョンII.fds.zip	main	frames_observed	59.03		True	True	RUNNING	display_paused_and_resumed	0.0	58.43	True	215,215				-
+fds	picoarch:nestopia	_etc/fds/勇士の紋章　ディープダンジョンII.fds.zip	main	frames_observed	59.07		True	True	RUNNING	display_paused_and_resumed	0.0	58.04	True	215,215				-
+sfc	retroarch:snes9x2005	snes/Space Invaders - The Original Game.sfc	main	frames_observed	57.83	59.92	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	56.45	True	215,215				-
+sfc	retroarch:snes9x	snes/Space Invaders - The Original Game.sfc	main	frames_observed	58.61	60.10	True	True	RUNNING	retroarch_menu_plane	0.0	56.33	True	215,215				-
+sfc	retroarch:chimerasnes	snes/Space Invaders - The Original Game.sfc	main	frames_observed	58.59		True	True	RUNNING	retroarch_menu_plane	0.0	56.31	True	215,215				-
+sfc	retroarch:mednafen_supafaust	snes/Space Invaders - The Original Game.sfc	main	frames_observed	56.44	60.10	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	57.73	True	215,215				-
+sfc	retroarch:snes9x2002	snes/Space Invaders - The Original Game.sfc	main	frames_observed	58.14	59.92	True	True	RUNNING	retroarch_menu_plane	0.0	55.93	True	215,215				-
+sfc	retroarch:snes9x2005_plus	snes/Space Invaders - The Original Game.sfc	main	frames_observed	58.73	59.92	True	True	RUNNING	retroarch_menu_plane	0.0	58.02	True	215,215				-
+sfc	retroarch:snes9x2010	snes/Space Invaders - The Original Game.sfc	main	frames_observed	59.1	60.10	True	True	RUNNING	retroarch_menu_plane	0.0	58.07	True	215,215				-
+sfc	picoarch:snes9x2005	snes/Space Invaders - The Original Game.sfc	main	frames_observed	59.33		True	True	RUNNING	display_paused_and_resumed	0.0	57.97	True	215,215				-
+sfc	picoarch:snes9x	snes/Space Invaders - The Original Game.sfc	main	frames_observed	58.81		True	True	RUNNING	display_paused_and_resumed	0.0	58.05	True	215,215				-
+sfc	picoarch:chimerasnes	snes/Space Invaders - The Original Game.sfc	main	frames_observed	58.86		True	True	RUNNING	display_paused_and_resumed	0.0	58.23	True	215,215				-
+sfc	picoarch:mednafen_supafaust	snes/Space Invaders - The Original Game.sfc	main	frames_observed	59.12		True	True	RUNNING	display_paused_and_resumed	0.0	57.69	True	215,215				-
+sfc	picoarch:snes9x2002	snes/Space Invaders - The Original Game.sfc	main	frames_observed	58.99		True	True	RUNNING	display_paused_and_resumed	0.0	58.06	True	215,215				-
+sfc	picoarch:snes9x2005_plus	snes/Space Invaders - The Original Game.sfc	main	frames_observed	59.26		True	True	RUNNING	display_paused_and_resumed	0.0	57.25	True	215,215				-
+sfc	picoarch:snes9x2010	snes/Space Invaders - The Original Game.sfc	main	frames_observed	59.14		True	True	RUNNING	display_paused_and_resumed	0.0	58.34	True	215,215				-
+gb	retroarch:gambatte	gb/Dr. Mario [V1.0].gb	main	frames_observed	56.63	59.73	True	True	RUNNING,XRUN	retroarch_menu_plane	0.0	53.29	True	215,215				-
+gb	retroarch:mgba	gb/Dr. Mario [V1.0].gb	main	frames_observed	58.57	59.73	True	True	RUNNING	retroarch_menu_plane	0.0	57.04	True	215,215				-
+gb	retroarch:gearboy	gb/Dr. Mario [V1.0].gb	main	frames_observed	58.33	59.73	True	True	RUNNING	retroarch_menu_plane	0.0	57.94	True	215,215				-
+gb	retroarch:tgbdual	gb/Dr. Mario [V1.0].gb	main	frames_observed	54.12	59.73	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	55.63	True	215,215				-
+gb	retroarch:vbam	gb/Dr. Mario [V1.0].gb	main	frames_observed	59.01	59.73	True	True	RUNNING	retroarch_menu_plane	0.0	55.12	True	215,215				-
+gb	picoarch:gambatte	gb/Dr. Mario [V1.0].gb	main	frames_observed	58.74		True	True	RUNNING	display_paused_and_resumed	0.0	58.73	True	215,215				-
+gb	picoarch:gearboy	gb/Dr. Mario [V1.0].gb	main	frames_observed	58.98		True	True	RUNNING	display_paused_and_resumed	0.0	58.03	True	215,215				-
+gb	picoarch:vbam	gb/Dr. Mario [V1.0].gb	main	frames_observed	58.71		True	True	RUNNING	display_paused_and_resumed	0.0	57.84	True	215,215				-
+gbc	retroarch:gambatte	gbc/Horde DX (USA).gbc	main	frames_observed	53.85	59.73	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	52.77	True	215,215				-
+gbc	retroarch:mgba	gbc/Horde DX (USA).gbc	main	frames_observed	57.46	59.73	True	True	RUNNING,XRUN	retroarch_menu_plane	0.0	53.77	True	215,215				-
+gbc	retroarch:gearboy	gbc/Horde DX (USA).gbc	main	frames_observed	57.47	59.73	True	True	RUNNING	retroarch_menu_plane	0.0	58.31	True	215,215				-
+gbc	retroarch:tgbdual	gbc/Horde DX (USA).gbc	main	frames_observed	53.67	59.73	True	True	RUNNING	retroarch_menu_plane	0.0	55.99	True	215,215				-
+gbc	retroarch:vbam	gbc/Horde DX (USA).gbc	main	frames_observed	57.54	59.73	True	True	RUNNING	retroarch_menu_plane	0.0	57.04	True	215,215				-
+gbc	picoarch:gambatte	gbc/Horde DX (USA).gbc	main	frames_observed	58.94		True	True	RUNNING	display_paused_and_resumed	0.0	57.54	True	215,215				-
+gbc	picoarch:gearboy	gbc/Horde DX (USA).gbc	main	frames_observed	58.84		True	True	RUNNING	display_paused_and_resumed	0.0	57.45	True	215,215				-
+gbc	picoarch:vbam	gbc/Horde DX (USA).gbc	main	frames_observed	58.54		True	True	RUNNING	display_paused_and_resumed	0.0	56.85	True	215,215				-
+gba	retroarch:gpsp	gba/Densetsu no Stafy (Japan).gba	main	frames_observed	57.14	59.73	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	57.66	True	215,215				-
+gba	retroarch:mgba	gba/Densetsu no Stafy (Japan).gba	main	frames_observed	56.36		True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	55.11	True	215,215				-
+gba	retroarch:mednafen_gba	gba/Densetsu no Stafy (Japan).gba	main	frames_observed	58.76	59.73	True	True	RUNNING	retroarch_menu_plane	0.0	58.32	True	215,215				-
+gba	retroarch:meteor	gba/Densetsu no Stafy (Japan).gba	main	frames_observed	59.06	59.73	True	True	RUNNING	retroarch_menu_plane	0.0	57.43	True	215,215				-
+gba	retroarch:vba_next	gba/Densetsu no Stafy (Japan).gba	main	frames_observed	55.6	59.73	True	True	RUNNING	retroarch_menu_plane	0.0	58.35	True	215,215				-
+gba	picoarch:gpsp	gba/Densetsu no Stafy (Japan).gba	main	frames_observed	58.7		True	True	RUNNING	display_paused_and_resumed	0.0	57.51	True	215,215				-
+gba	picoarch:mgba	gba/Densetsu no Stafy (Japan).gba	main	frames_observed	58.35		True	True	RUNNING	display_paused_and_resumed	0.0	57.4	True	215,215				-
+megadrive	retroarch:genesis_plus_gx	megadrive/WorldofIllusionstarri.BIN	main	no_frames_observed			False							215,215	1			[ERROR] [Content] Failed to load content.
+megadrive	retroarch:picodrive	megadrive/WorldofIllusionstarri.BIN	main	no_frames_observed			False							215,215	1			[libretro ERROR] Failed to detect ROM/CD image type. / [ERROR] [Content] Failed to load content.
+megadrive	picoarch:genesis_plus_gx	megadrive/WorldofIllusionstarri.BIN	main	no_frames_observed			False							215,215	255			libpicofe/reERROR: Couldn't read content file / ERROR: Couldn't load content
+megadrive	picoarch:picodrive	megadrive/WorldofIllusionstarri.BIN	main	no_frames_observed			False							215,215	255			libpicofe/reERROR: Couldn't read content file / ERROR: Failed to detect ROM/CD image type. / ERROR: Couldn't load content
+mastersystem	retroarch:genesis_plus_gx	mastersystem/MS_Operation_Wolf_mod_2025_0318_1147.SMS	main	frames_observed	59.22	59.92	True	True	RUNNING	retroarch_menu_plane	0.0	54.46	True	215,215				-
+mastersystem	retroarch:picodrive	mastersystem/MS_Operation_Wolf_mod_2025_0318_1147.SMS	main	frames_observed	54.74	60.00	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	56.99	True	215,215				-
+mastersystem	retroarch:gearsystem	mastersystem/MS_Operation_Wolf_mod_2025_0318_1147.SMS	main	frames_observed	59.19	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	57.8	True	215,215				-
+mastersystem	picoarch:genesis_plus_gx	mastersystem/MS_Operation_Wolf_mod_2025_0318_1147.SMS	main	frames_observed	59.21		True	True	RUNNING	display_paused_and_resumed	0.0	57.92	True	215,215				-
+mastersystem	picoarch:picodrive	mastersystem/MS_Operation_Wolf_mod_2025_0318_1147.SMS	main	frames_observed	58.78		True	True	RUNNING	display_paused_and_resumed	0.0	57.91	True	215,215				-
+mastersystem	picoarch:gearsystem	mastersystem/MS_Operation_Wolf_mod_2025_0318_1147.SMS	main	frames_observed	59.02		True	True	RUNNING	display_paused_and_resumed	0.0	57.94	True	215,215				-
+gamegear	retroarch:genesis_plus_gx	gamegear/Columns [V1.0].gg	main	frames_observed	59.34	59.92	True	True	RUNNING	retroarch_menu_pause	57.46	58.66	True	215,215				-
+gamegear	retroarch:picodrive	gamegear/Columns [V1.0].gg	main	frames_observed	57.33	60.00	True	True	RUNNING	retroarch_menu_pause	57.56	58.39	True	215,215				-
+gamegear	retroarch:gearsystem	gamegear/Columns [V1.0].gg	main	frames_observed	57.6	60.00	True	True	RUNNING	retroarch_menu_pause	58.07	55.48	True	215,215				-
+gamegear	picoarch:genesis_plus_gx	gamegear/Columns [V1.0].gg	main	frames_observed	57.88		True	True	RUNNING	display_paused_and_resumed	0.0	58.0	True	215,215				-
+gamegear	picoarch:picodrive	gamegear/Columns [V1.0].gg	main	frames_observed	58.76		True	True	RUNNING	display_paused_and_resumed	0.0	58.02	True	215,215				-
+gamegear	picoarch:gearsystem	gamegear/Columns [V1.0].gg	main	frames_observed	58.97		True	True	RUNNING	display_paused_and_resumed	0.0	57.77	True	215,215				-
+sega32x	retroarch:picodrive	_etc/sega32x/BC Racers (USA).32x	main	frames_observed	58.66	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	56.83	True	215,215				-
+sega32x	picoarch:picodrive	_etc/sega32x/BC Racers (USA).32x	main	frames_observed	58.71		True	True	RUNNING	display_paused_and_resumed	0.0	57.1	True	215,215				-
+segacd	retroarch:genesis_plus_gx	_etc/segacd/Fatal Fury Special (Europe) (Demo)/Fatal Fury Special (Europe) (Demo).cue	main	no_frames_observed			False							215,215	1			[libretro ERROR] Unable to open CD BIOS: /storage/user/.plumos-emulator-matrix/bios/bios_CD_E.bin. / [ERROR] [Content] Failed to load content.
+segacd	retroarch:picodrive	_etc/segacd/Fatal Fury Special (Europe) (Demo)/Fatal Fury Special (Europe) (Demo).cue	main	no_frames_observed			False							215,215	1			[libretro ERROR] Missing BIOS / [ERROR] [Content] Failed to load content.
+segacd	picoarch:genesis_plus_gx	_etc/segacd/Fatal Fury Special (Europe) (Demo)/Fatal Fury Special (Europe) (Demo).cue	main	no_frames_observed			False							215,215	255			libpicofe/reERROR: Unable to open CD BIOS: /storage/user/.plumos-emulator-matrix/bios/bios_CD_E.bin. / ERROR: Couldn't load content
+segacd	picoarch:picodrive	_etc/segacd/Fatal Fury Special (Europe) (Demo)/Fatal Fury Special (Europe) (Demo).cue	main	no_frames_observed			False							215,215	255			libpicofe/reERROR: Missing BIOS / ERROR: Couldn't load content
+pcengine	retroarch:mednafen_pce_fast	pcengine/dummy.PCE	main	no_frames_observed			False							215,215	139			"[ERROR] [Content] Could not read content file: ""/storage/user/.plumos-emulator-matrix/pcengine/dummy.PCE"". / Segmentation fault"
+pcengine	retroarch:mednafen_pce	pcengine/dummy.PCE	main	no_frames_observed			False							215,215	1			"[ERROR] [Content] Could not read content file: ""/storage/user/.plumos-emulator-matrix/pcengine/dummy.PCE""."
+pcengine	retroarch:mednafen_supergrafx	pcengine/dummy.PCE	main	no_frames_observed			False							215,215	1			"[ERROR] [Content] Could not read content file: ""/storage/user/.plumos-emulator-matrix/pcengine/dummy.PCE""."
+pcengine	picoarch:mednafen_pce_fast	pcengine/dummy.PCE	main	frames_observed	58.67		True	True	RUNNING	display_paused_and_resumed	0.0	57.48	True	215,215				-
+pcengine	picoarch:mednafen_supergrafx	pcengine/dummy.PCE	main	frames_observed	58.61		True	True	RUNNING	display_paused_and_resumed	0.0	58.06	True	215,215				-
+supergrafx	retroarch:mednafen_supergrafx	_etc/supergrafx/Axelay_SuperGrafx_Demo__(PC_Engine)/Axelay_Demo (SGX).pce	main	frames_observed	59.12		True	True	RUNNING	retroarch_menu_plane	0.0	55.75	True	215,215				-
+supergrafx	retroarch:mednafen_pce_fast	_etc/supergrafx/Axelay_SuperGrafx_Demo__(PC_Engine)/Axelay_Demo (SGX).pce	main	frames_observed	58.63		True	True	RUNNING	retroarch_menu_plane	0.0	54.85	True	215,215				-
+supergrafx	picoarch:mednafen_supergrafx	_etc/supergrafx/Axelay_SuperGrafx_Demo__(PC_Engine)/Axelay_Demo (SGX).pce	main	frames_observed	58.84		True	True	RUNNING	display_paused_and_resumed	0.0	57.87	True	215,215				-
+supergrafx	picoarch:mednafen_pce_fast	_etc/supergrafx/Axelay_SuperGrafx_Demo__(PC_Engine)/Axelay_Demo (SGX).pce	main	frames_observed	58.55		True	True	RUNNING	display_paused_and_resumed	1.99	58.36	True	215,215				-
+pcenginecd	retroarch:mednafen_pce_fast	pcenginecd/DEDEN no DEN.cue	main	frames_observed	58.51		True	True	RUNNING	retroarch_menu_plane	0.0	58.45	True	215,215				-
+pcenginecd	picoarch:mednafen_pce_fast	pcenginecd/DEDEN no DEN.cue	main	frames_observed	58.87		True	True	RUNNING	display_paused_and_resumed	2.0	57.33	True	215,215				-
+psx	retroarch:pcsx_rearmed	psx/chroQW.img	main	no_frames_observed	0.0		True	True	RUNNING	retroarch_menu_plane	0.0	33.45	True	215,215				-
+psx	standalone:pcsx_rearmed	psx/chroQW.img	main	no_frames_observed	0.0		True	True	RUNNING	audio_paused_and_resumed	0.0	0.0	True	215,215				Creating memcawarning: failed to do hugetlb mmap (0x80000000, 2162688): 22 / menu_load_config: failed to open: /storage/plumos-rk3566/frontend/config/standalone/pcsx_rearmed/home/.pcsx/cfg/CHOROQ-SLPS02205.cfg
+psx	retroarch:km_duckswanstation_xtreme_amped	psx/chroQW.img	main	no_frames_observed			False							215,215	1			[ERROR] [Content] Failed to load content.
+psp	standalone:ppsspp	psp/Star Soldier (Japan)/Star Soldier (Japan).iso	main	frames_observed	59.38		True	True	RUNNING	inconclusive	58.08	51.59	True	215,215				-
+n64	retroarch:parallel_n64	n64/AeroGauge [V1.1].z64	main	frames_observed	16.62		True	True	RUNNING	retroarch_menu_pause	58.27	28.79	True	215,215				-
+n64	retroarch:mupen64plus_next	n64/AeroGauge [V1.1].z64	main	frames_observed	58.28		True	True	RUNNING,XRUN	retroarch_menu_pause	57.68	43.56	True	215,215				-
+nds	standalone:drastic	nds/パワダケこうしえん KONAMI.nds	main	no_frames_observed			False							215,215	1			mkdir: can't create directory '/storage/plumos-rk3566/frontend/emulator/standalone/drastic/backup': Read-only file system
+dreamcast	retroarch:flycast_xtreme	dreamcast/Crazy Taxi (Japan).chd	main	frames_observed	58.31		True	True	RUNNING,XRUN	retroarch_menu_pause	57.93	57.79	True	215,215				-
+dreamcast	retroarch:flycast	dreamcast/Crazy Taxi (Japan).chd	main	frames_observed	58.97	60.00	True	True	PREPARED,RUNNING	retroarch_menu_pause	57.52	57.78	True	215,215				-
+saturn	standalone:yabasanshiro	saturn/TOWER_The.cue	main	no_frames_observed			False							215,215	255			LIBGL: Error while gathering supported extension (eglInitialize: EGL_BAD_DISPLAY), default to none
+saturn	retroarch:yabasanshiro	saturn/TOWER_The.cue	main	frames_observed	7.23	60.00	True	True	PREPARED,RUNNING,closed	retroarch_menu_pause	57.73	52.01	True	215,215				-
+saturn	retroarch:beetle_saturn	saturn/TOWER_The.cue	main	frames_observed	18.23	59.83	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	16.04	True	215,215				-
+neogeo	retroarch:fbneo	_etc/neogeo/ART OF FIGHTING/aof.zip	main	frames_observed	52.36	59.18	True	True	RUNNING,XRUN	retroarch_menu_plane	0.0	58.06	True	215,215				-
+neogeo	retroarch:fbalpha2012	_etc/neogeo/ART OF FIGHTING/aof.zip	main	frames_observed	58.58	59.18	True	True	RUNNING	retroarch_menu_plane	0.0	56.16	True	215,215				-
+neogeo	retroarch:fbalpha2012_neogeo	_etc/neogeo/ART OF FIGHTING/aof.zip	main	frames_observed	58.96		True	True	RUNNING	retroarch_menu_plane	0.0	57.64	True	215,215				-
+neogeocd	retroarch:neocd	_etc/neogeocd/Fatal Fury/Fatal Fury.cue	main	no_frames_observed			False							215,215	1			[libretro ERROR] File type MP3 is not supported. / [libretro ERROR] Could not open CUE file: /storage/user/.plumos-emulator-matrix/_etc/neogeocd/Fatal Fury/Fatal Fury.cue / [ERROR] [Content] Failed to load content.
+ngp	retroarch:mednafen_ngp		main	unavailable														no_compatible_sample_in_rom2
+ngpc	retroarch:mednafen_ngp	ngpc/Pocket Tennis Color - Pocket Sports Series (World) (En,Ja).ngc	main	frames_observed	59.31	60.25	True	True	RUNNING	retroarch_menu_plane	0.0	57.65	True	215,215				-
+wonderswan	retroarch:mednafen_wswan	wonderswan/Puzzle Bobble.ws	main	frames_observed	59.01	60.38	True	True	RUNNING	retroarch_menu_plane	0.0	55.17	True	215,215				-
+wonderswancolor	retroarch:mednafen_wswan		main	unavailable														no_compatible_sample_in_rom2
+lynx	retroarch:mednafen_lynx	ATARI/Lynx/Super Asteroids & Missile Command (1995).lnx	main	frames_observed	53.94	75.00	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	53.75	True	215,215				-
+lynx	retroarch:handy	ATARI/Lynx/Super Asteroids & Missile Command (1995).lnx	main	frames_observed	54.46	60.00	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	55.64	True	215,215				-
+virtualboy	retroarch:mednafen_vb	_etc/viretualboy/tron.VB	main	frames_observed	29.14	50.27	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	30.93	True	215,215				-
+arcade	retroarch:mame2003_plus	fbneo/imgfight.zip	main	no_frames_observed			False							215,215	1			[libretro ERROR] [MAME 2003+] Required files are missing, the game cannot be run. / [libretro ERROR] [MAME 2003+] readroms failed / [ERROR] [Content] Failed to load content.
+arcade	retroarch:km_mame2003_xtreme	fbneo/imgfight.zip	main	no_frames_observed			False							215,215	1			[ERROR] [Environ] GET_VARIABLE: mame2003-xtreme-amped-cyclone_mode - Invalid value. / [ERROR] [Content] Failed to load content. / ERROR: required files are missing, the game cannot be run.
+arcade	retroarch:fbneo	fbneo/imgfight.zip	main	frames_observed	27.57	55.00	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	27.33	True	215,215				-
+arcade	retroarch:fbalpha2012	fbneo/imgfight.zip	main	frames_observed	51.3	55.00	True	True	RUNNING	retroarch_menu_plane	0.0	46.69	True	215,215				-
+arcade	retroarch:mame2000	fbneo/imgfight.zip	main	no_frames_observed		55.00	False							215,215	139			Segmentation fault
+arcade	retroarch:mba_mini	fbneo/imgfight.zip	main	no_frames_observed			False							215,215	1			[ERROR] [Content] Failed to load content. / Error: mame return an error
+fbneo	retroarch:fbneo	fbneo/imgfight.zip	main	frames_observed	30.15	55.00	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	17.3	True	215,215				-
+mame2003plus	retroarch:mame2003_plus	mame/varthj.zip	main	frames_observed	26.89		True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	25.17	True	215,215				-
+cps1	retroarch:fbneo	mame/varthj.zip	main	frames_observed	59.21	59.63	True	True	RUNNING	retroarch_menu_plane	0.0	58.07	True	215,215				-
+cps1	retroarch:fbalpha2012	mame/varthj.zip	main	frames_observed	58.54	59.61	True	True	RUNNING	retroarch_menu_plane	0.0	56.09	True	215,215				-
+cps1	retroarch:fbalpha2012_cps1	mame/varthj.zip	main	no_frames_observed			False							215,215	1			[libretro ERROR] [FBA] Failed to find archive: /storage/user/.plumos-emulator-matrix/mame/varth / [ERROR] [Content] Failed to load content.
+cps2	retroarch:fbneo	mame/ssf2tu.zip	main	frames_observed	58.99	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	56.03	True	215,215				-
+cps2	retroarch:fbalpha2012	mame/ssf2tu.zip	main	no_frames_observed			False							215,215	1			[libretro ERROR] [FBA] Cannot find driver. / [libretro ERROR] [FBA] Cannot load this game. / [ERROR] [Content] Failed to load content.
+cps2	retroarch:fbalpha2012_cps2	mame/ssf2tu.zip	main	no_frames_observed			False							215,215	1			[libretro ERROR] [FBA] Failed to find archive: /storage/user/.plumos-emulator-matrix/mame/ssf2t / [ERROR] [Content] Failed to load content.
+cps3	retroarch:fbneo	mame/sfiii3nr1.zip	main	frames_observed	58.82	59.59	True	True	RUNNING	retroarch_menu_plane	0.0	54.06	True	215,215				-
+cps3	retroarch:fbalpha2012	mame/sfiii3nr1.zip	main	frames_observed	58.64	59.59	True	True	RUNNING	retroarch_menu_plane	0.0	53.17	True	215,215				-
+cps3	retroarch:fbalpha2012_cps3	mame/sfiii3nr1.zip	main	frames_observed	58.88	59.59	True	True	RUNNING	retroarch_menu_plane	0.0	54.16	True	215,215				-
+dos	retroarch:dosbox_pure	pc/DOSBOX_ALIENBREED.ZIP	main	frames_observed	58.78	70.09	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	58.09	True	215,215				-
+dos	retroarch:dosbox_pure_0.9.7	pc/DOSBOX_ALIENBREED.ZIP	main	frames_observed	58.39	70.09	True	True	RUNNING	retroarch_menu_plane	0.0	58.21	True	215,215				-
+easyrpg	retroarch:easyrpg	_etc/EASYRPG/TurnedIntoAGirl/RPG_RT.ldb	main	frames_observed	58.84		True	True	RUNNING	retroarch_menu_plane	0.0	57.14	True	215,215				-
+pico8	retroarch:fake08	pico-8/51752.p8	main	frames_observed	53.11	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	49.84	True	215,215				-
+pico8	retroarch:retro8	pico-8/51752.p8	main	frames_observed	51.83	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	56.74	True	215,215				-
+scummvm	retroarch:scummvm	scummvm/BASS-Floppy-1.3/sky.scummvm	main	frames_observed	29.34		True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	29.27	True	215,215				-
+openbor	standalone:openbor	openbor/Dragon Ball [v.3.0 Build 4086].PAK	main	frames_observed	59.16		True	True	RUNNING	inconclusive	57.39	57.76	True	215,215				-
+ports	external:port	ports/VA-11 HALL-A/depot_447532/run.sh	main	unavailable														external_port_requires_review
+msx	retroarch:bluemsx	msx2/bios/blueMSXv282full/Machines/SVI - Spectravideo SVI-328 80 Column/svi806.rom	main	no_frames_observed			False							215,215	1			[ERROR] [Content] Failed to load content.
+msx	retroarch:fmsx	msx2/bios/blueMSXv282full/Machines/SVI - Spectravideo SVI-328 80 Column/svi806.rom	main	frames_observed	56.72	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	53.2	True	215,215				-
+pc88	retroarch:quasi88	pc88/XeGrader100001.d88	main	frames_observed	54.71	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	53.24	True	215,215				-
+pc98	retroarch:np2kai	_etc/pc-9800/Can Can Bunny 5 and half Limited.hdi	main	frames_observed	54.65		True	True	RUNNING	retroarch_menu_plane	0.0	53.7	True	215,215				-
+pc98	retroarch:nekop2	_etc/pc-9800/Can Can Bunny 5 and half Limited.hdi	main	frames_observed	58.8	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	58.17	True	215,215				-
+x68000	retroarch:px68k		main	unavailable														no_compatible_sample_in_rom2
+tic80	retroarch:tic80		main	unavailable														no_compatible_sample_in_rom2
+atari2600	retroarch:stella2014	ATARI/2600/3DTicTacToe.bin	main	frames_observed	55.85	59.92	True	True	RUNNING	retroarch_menu_plane	0.0	57.94	True	215,215				-
+atari7800	retroarch:prosystem	ATARI/7800/Asteroids (1987) (Atari).a78	main	frames_observed	59.32	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	57.18	True	215,215				-
+vectrex	retroarch:vecx		main	unavailable														no_compatible_sample_in_rom2
+supervision	retroarch:potator	_etc/supervision/assembloids_supervision_2022.bin	main	frames_observed	53.99	60.00	True	True	RUNNING,XRUN	retroarch_menu_plane	0.0	54.51	True	215,215				-
+odyssey2	retroarch:o2em	_etc/odyssey2/Interpol (Europe) (Proto).bin	main	frames_observed	58.86	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	55.96	True	215,215				-
+gameandwatch	retroarch:gw	_etc/gameandwatch/Tennis Menace.zip	main	frames_observed	58.77	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	57.83	True	215,215				-
+pokemini	retroarch:pokemini	_etc/pokemini/Pokemon Party Mini - Baseline Judge (Japan) (GameCube).zip	main	frames_observed	58.21	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	55.45	True	215,215				-
+doom	retroarch:prboom	_etc/doom/freedoom-0.13.0/freedoom2.wad	main	frames_observed	58.71	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	58.18	True	215,215				-
+pyxel	pyxel:bubble	pyxel/finardry.pyxapp	main	frames_observed	25.45		True	True	RUNNING	not_applicable				215,215				-
+2048	retroarch:2048		main	frames_observed	59.03	60.00	True	False	PREPARED	retroarch_menu_plane	0.0	56.14	False	215,215				-
+3do	retroarch:opera	_etc/3do/biofury.iso	main	frames_observed	57.6	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	57.81	True	215,215				-
+amiga	retroarch:puae	_etc/amiga/3rd Day - The Ripper (19xx)(Action Force).adf	main	frames_observed	31.93	50.00	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	42.56	True	215,215				-
+amiga	retroarch:puae2021	_etc/amiga/3rd Day - The Ripper (19xx)(Action Force).adf	main	frames_observed	46.74	50.00	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	44.65	True	215,215				-
+amiga	retroarch:uae4arm	_etc/amiga/3rd Day - The Ripper (19xx)(Action Force).adf	main	frames_observed	47.56	50.00	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	43.49	True	215,215				-
+amiga	retroarch:km_puae_xtreme_amped	_etc/amiga/3rd Day - The Ripper (19xx)(Action Force).adf	main	frames_observed	33.67	50.00	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	37.9	True	215,215				-
+atari5200	retroarch:atari800	ATARI/5200/ATARI5200.ROM	main	frames_observed	58.78	59.92	True	True	RUNNING,XRUN	retroarch_menu_plane	0.0	56.04	False	215,215				-
+atari5200	retroarch:a5200	ATARI/5200/ATARI5200.ROM	main	no_frames_observed			False							215,215	1			[libretro INFO] [a5200] Failed to load content: /storage/user/.plumos-emulator-matrix/ATARI/5200/ATARI5200.ROM / [ERROR] [Content] Failed to load content.
+atari800	retroarch:atari800	ATARI/800/ATARIBAS.ROM	main	frames_observed	58.21	49.86	True	False	PREPARED	retroarch_menu_plane	0.0	57.68	False	215,215				-
+atarist	retroarch:hatari	_etc/atarist/Lattice C (19xx)(Hisoft).st	main	frames_observed	45.09	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	44.25	True	215,215				-
+bk	retroarch:bk		main	unavailable														no_compatible_sample_in_rom2
+c64	retroarch:frodo	_etc/c64/inbread_c64_disk_2022/c64mini/inbread.d64	main	frames_observed	48.75	50.00	True	True	RUNNING	retroarch_menu_plane	0.0	49.09	True	215,215				-
+c64	retroarch:vice_x64	_etc/c64/inbread_c64_disk_2022/c64mini/inbread.d64	main	frames_observed	47.6	50.12	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	48.3	True	215,215				-
+cannonball	retroarch:cannonball	_etc/cannonball/outrun-roms-master/epr-10187.88	main	no_frames_observed			False							215,215	1			[libretro ERROR] Cannot open ROM: opr-10188.71 / [ERROR] [Environ] SET_MESSAGE_EXT: Cannonball ROM files missing from game directory / [ERROR] [Content] Failed to load content.
+cavestory	retroarch:nxengine	_etc/cavestory/doukutsu/DoConfig.exe	main	no_frames_observed			False							215,215	1			[ERROR] [Content] Failed to load content.
+chailove	retroarch:chailove	_etc/chailove/FloppyBird.chailove	main	frames_observed	55.53		True	True	RUNNING	retroarch_menu_plane	0.0	50.01	True	215,215				-
+channelf	retroarch:freechaf	_etc/channelf/tents_CF.bin	main	no_frames_observed		60.00	False			retroarch_menu_pause				215,215	0			[libretro WARN] [WARN] [FREECHAF] Failed loading Channel F BIOS(1) from: /storage/user/.plumos-emulator-matrix/bios/sl31253.bin / [libretro WARN] [WARN] [FREECHAF] Failed loading Channel F BIOS(2) from: /storage/user/.plumos-emulator-matrix/bios/sl31254.bin / [libretro ERROR] Unsupported HLE function: 0xd0
+colecovision	retroarch:bluemsx	_etc/coleco/Dam Busters, The (USA).col	main	no_frames_observed			False							215,215	1			[ERROR] [Content] Failed to load content.
+cpc	retroarch:cap32	_etc/amstradcpc/Abyssal (2022)(Cabbage Corp).sna	main	frames_observed	47.53	50.01	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	46.17	True	215,215				-
+cpc	retroarch:crocods	_etc/amstradcpc/Abyssal (2022)(Cabbage Corp).sna	main	frames_observed	46.03	50.00	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	48.18	True	215,215				-
+daphne	retroarch:daphne		main	unavailable														no_compatible_sample_in_rom2
+dinothawr	retroarch:dinothawr	_etc/dinothawr/dinothawr/dinothawr.game	main	no_frames_observed			False							215,215	134			terminate called after throwing an instance of 'std::runtime_error' / what():  Failed to load font: /storage/user/.plumos-emulator-matrix/_etc/dinothawr/dinothawr/dino.font.
+flashback	retroarch:reminiscence		main	unavailable														no_compatible_sample_in_rom2
+intellivision	retroarch:freeintv	_etc/intellivision/Lock 'N' Chase (USA, Europe) (v1.1)/Lock 'N' Chase (USA, Europe) (v1.1).bin	main	frames_observed	56.83	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	56.61	True	215,215				-
+j2me	retroarch:squirreljme	_etc/j2me/Cento.jar	main	content_error	59.12	60.00	True	False	PREPARED	retroarch_menu_plane	0.0	57.13	False	215,215				SquirrelJME JVM Exec Error: -7
+jaguar	retroarch:virtualjaguar	ATARI/Jaguar/ClubDrive.j64	main	frames_observed	14.73	60.00	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.67	14.01	True	215,215				-
+lowresnx	retroarch:lowresnx	_etc/lowresnx/Rubik's cube.nx	main	frames_observed	58.52	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	57.55	True	215,215				-
+lutro	retroarch:lutro	_etc/lutro/Pong-buildbot-alpha255/lint_config.lua	main	no_frames_observed			False							215,215	1			[ERROR] [Content] Failed to load content.
+microw8	retroarch:uw8	_etc/microw8/tunnel.uw8	main	frames_observed	15.96	60.00	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	16.16	True	215,215				-
+mrboom	retroarch:mrboom		main	frames_observed	59.19	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	53.43	True	215,215				-
+music	retroarch:gme	_etc/music/blueshadow.nsfe	main	frames_observed	58.21	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	56.3	True	215,215				-
+palm	retroarch:mu		main	unavailable														no_compatible_sample_in_rom2
+pcfx	retroarch:mednafen_pcfx	_etc/pcfx/SimpleBattle_FX/simplebattle.cue	main	frames_observed	26.85	59.94	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	24.77	True	215,215				-
+quake	retroarch:tyrquake	_etc/quake/Quake Shareware (1_06) PAK/PAK0.PAK	main	frames_observed	59.24	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	58.08	True	215,215				-
+rickdangerous	retroarch:xrick		main	unavailable														no_compatible_sample_in_rom2
+sg1000	retroarch:bluemsx		main	unavailable														no_compatible_sample_in_rom2
+sg1000	retroarch:gearsystem		main	unavailable														no_compatible_sample_in_rom2
+sg1000	retroarch:genesis_plus_gx		main	unavailable														no_compatible_sample_in_rom2
+sg1000	retroarch:picodrive		main	unavailable														no_compatible_sample_in_rom2
+sharpx1	retroarch:x1		main	unavailable														no_compatible_sample_in_rom2
+thomson	retroarch:theodore	_etc/moto/3d Sub (1985)(Loriciels).k7	main	frames_observed	47.68	50.00	True	True	RUNNING	retroarch_menu_plane	0.0	48.96	True	215,215				-
+ti83	retroarch:numero	_etc/ti83/tetris.8xp	main	frames_observed	58.85	60.00	True	False	PREPARED	retroarch_menu_plane	0.0	57.89	False	215,215				-
+uzebox	retroarch:uzem	_etc/uzebox/Arkanoid2.uze	main	frames_observed	26.03	59.94	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	25.43	True	215,215				-
+vic20	retroarch:vice_xvic	_etc/vic20/tetwels.prg	main	frames_observed	45.63	50.04	True	True	RUNNING	retroarch_menu_plane	0.0	47.06	True	215,215				-
+vmu	retroarch:vemulator		main	unavailable														no_compatible_sample_in_rom2
+wolf3d	retroarch:ecwolf		main	unavailable														no_compatible_sample_in_rom2
+zx81	retroarch:81		main	unavailable														no_compatible_sample_in_rom2
+zxspectrum	retroarch:fuse	_etc/zxspectrum/10th Frame (1987)(U.S. Gold).tap	main	frames_observed	49.25	50.00	True	True	RUNNING	retroarch_menu_plane	0.0	48.77	True	215,215				-
+arduboy	retroarch:arduous		main	unavailable														no_compatible_sample_in_rom2
+megaduck	retroarch:sameduck		main	unavailable														no_compatible_sample_in_rom2
+puzzlescript	retroarch:puzzlescript		main	unavailable														no_compatible_sample_in_rom2
+superbroswar	retroarch:km_superbroswar		main	unavailable														no_compatible_sample_in_rom2
+nes	picoarch:quicknes	nes/Binary Land.nes	followup	frames_observed	59.59		True	True	RUNNING	display_paused_and_resumed	0.0	57.76	True	215,215	0	3600	88941	-
+gba	picoarch:mgba	gba/Densetsu no Stafy (Japan).gba	followup	frames_observed	59.1		True	True	RUNNING	display_paused_and_resumed	0.0	57.24	True	215,215	0	3600	79572	-
+gong	retroarch:gong		followup	frames_observed	59.1	60.00	True	False	PREPARED	retroarch_menu_plane	0.0	57.55	False	215,215				-
+megadrive	retroarch:genesis_plus_gx	megadrive/Bare Knuckle - Ikari no Tekken ~ Streets of Rage (World).md	followup	frames_observed	59.18		True	True	RUNNING	retroarch_menu_plane	0.0	56.3	True	215,215				-
+megadrive	retroarch:picodrive	megadrive/Bare Knuckle - Ikari no Tekken ~ Streets of Rage (World).md	followup	frames_observed	58.6	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	56.1	True	215,215				-
+megadrive	picoarch:genesis_plus_gx	megadrive/Bare Knuckle - Ikari no Tekken ~ Streets of Rage (World).md	followup	frames_observed	58.69		True	True	RUNNING	display_paused_and_resumed	0.0	57.33	True	215,215				-
+megadrive	picoarch:picodrive	megadrive/Bare Knuckle - Ikari no Tekken ~ Streets of Rage (World).md	followup	frames_observed	58.95		True	True	RUNNING	display_paused_and_resumed	0.0	57.9	True	215,215				-
+pcengine	retroarch:mednafen_pce_fast	pcengine/Bomberman_93_U.pce	followup	frames_observed	57.55		True	True	RUNNING	retroarch_menu_plane	0.0	58.21	True	215,215				-
+pcengine	retroarch:mednafen_pce	pcengine/Bomberman_93_U.pce	followup	frames_observed	40.06	59.83	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	42.97	True	215,215				-
+pcengine	retroarch:mednafen_supergrafx	pcengine/Bomberman_93_U.pce	followup	frames_observed	56.08		True	True	RUNNING	retroarch_menu_plane	0.0	58.06	True	215,215				-
+pcengine	picoarch:mednafen_pce_fast	pcengine/Bomberman_93_U.pce	followup	frames_observed	58.92		True	True	RUNNING	display_paused_and_resumed	0.0	58.12	True	215,215				-
+pcengine	picoarch:mednafen_supergrafx	pcengine/Bomberman_93_U.pce	followup	frames_observed	58.49		True	True	RUNNING	display_paused_and_resumed	0.0	58.17	True	215,215				-
+segacd	retroarch:genesis_plus_gx	_etc/segacd/Fatal Fury Special (Europe) (Demo)/Fatal Fury Special (Europe) (Demo).cue	followup	frames_observed	47.58		True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	45.45	True	215,215				-
+segacd	retroarch:picodrive	_etc/segacd/Fatal Fury Special (Europe) (Demo)/Fatal Fury Special (Europe) (Demo).cue	followup	frames_observed	47.88	50.00	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	49.51	True	215,215				-
+segacd	picoarch:genesis_plus_gx	_etc/segacd/Fatal Fury Special (Europe) (Demo)/Fatal Fury Special (Europe) (Demo).cue	followup	frames_observed	48.63		True	True	RUNNING	display_paused_and_resumed	0.0	47.51	True	215,215				-
+segacd	picoarch:picodrive	_etc/segacd/Fatal Fury Special (Europe) (Demo)/Fatal Fury Special (Europe) (Demo).cue	followup	frames_observed	49.42		True	True	RUNNING	display_paused_and_resumed	0.0	48.72	True	215,215				-
+psx	retroarch:pcsx_rearmed	psx/PAC-MAN_WORLD.cue	followup	frames_observed	18.52		True	True	RUNNING	retroarch_menu_plane	0.0	14.59	True	215,215				-
+psx	standalone:pcsx_rearmed	psx/PAC-MAN_WORLD.cue	followup	frames_observed	19.07		True	True	RUNNING	display_paused_and_resumed	0.0	14.61	True	215,215				-
+psx	retroarch:km_duckswanstation_xtreme_amped	psx/PAC-MAN_WORLD.cue	followup	no_frames_observed			False							215,215	1			[ERROR] [Content] Failed to load content.
+neogeocd	retroarch:neocd	_etc/neogeocd/Fatal Fury WAV/Fatal Fury WAV.cue	followup	frames_observed	58.93	59.60	True	True	RUNNING	retroarch_menu_plane	0.0	58.06	True	215,215				-
+arcade	retroarch:mame2003_plus	mame/tmnt.zip	followup	no_frames_observed			False							215,215	1			[libretro ERROR] [MAME 2003+] Required files are missing, the game cannot be run. / [libretro ERROR] [MAME 2003+] readroms failed / [ERROR] [Content] Failed to load content.
+arcade	retroarch:km_mame2003_xtreme	mame/tmnt.zip	followup	no_frames_observed			False							215,215	1			[ERROR] [Environ] GET_VARIABLE: mame2003-xtreme-amped-cyclone_mode - Invalid value. / [ERROR] [Content] Failed to load content. / ERROR: required files are missing, the game cannot be run.
+arcade	retroarch:mame2000	mame/tmnt.zip	followup	no_frames_observed		60.00	False							215,215	139			Segmentation fault
+arcade	retroarch:mba_mini	mame/tmnt.zip	followup	no_frames_observed			False							215,215	1			[ERROR] [Content] Failed to load content. / Error: mame return an error
+cps1	retroarch:fbalpha2012_cps1	mame/ffight.zip	followup	frames_observed	56.7	59.63	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	57.51	True	215,215				-
+cps2	retroarch:fbalpha2012	mame/ssf2u.zip	followup	frames_observed	59.51	59.62	True	True	RUNNING	retroarch_menu_plane	0.0	57.86	True	215,215				-
+cps2	retroarch:fbalpha2012_cps2	mame/ssf2u.zip	followup	no_frames_observed			False							215,215	1			[libretro ERROR] [FBA] Failed to find archive: /storage/user/.plumos-emulator-matrix/mame/ssf2 / [ERROR] [Content] Failed to load content.
+msx	retroarch:bluemsx	msx2/usas.rom	followup	no_frames_observed			False							215,215	1			[libretro ERROR] [libretro]: machine initialization failed / [ERROR] [Content] Failed to load content.
+msx	retroarch:fmsx	msx2/usas.rom	followup	frames_observed	56.63	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	54.58	True	215,215				-
+atari5200	retroarch:atari800	ATARI/5200/Millipede.a52	followup	frames_observed	58.8	59.92	True	True	RUNNING	retroarch_menu_plane	0.0	58.44	True	215,215				-
+atari5200	retroarch:a5200	ATARI/5200/Millipede.a52	followup	frames_observed	58.64	60.00	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	52.07	True	215,215				-
+atari800	retroarch:atari800	ATARI/800/CavernsOfMars.rom	followup	frames_observed	56.85	49.86	True	False	PREPARED	retroarch_menu_plane	0.0	55.45	False	215,215				-
+cannonball	retroarch:cannonball	_etc/cannonball/outrun-roms-master/epr-10187.88	followup	frames_observed	58.75	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	58.1	True	215,215				-
+cavestory	retroarch:nxengine	_etc/cavestory/doukutsu/Doukutsu.exe	followup	frames_observed	58.24	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	57.06	True	215,215				-
+colecovision	retroarch:bluemsx	_etc/coleco/Dam Busters, The (USA).col	followup	frames_observed	54.63	60.00	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	51.28	True	215,215				-
+dinothawr	retroarch:dinothawr	_etc/dinothawr/dinothawr/dinothawr.game	followup	frames_observed	58.14	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	55.28	True	215,215				-
+lutro	retroarch:lutro	_etc/lutro/lutro-pong.lutro	followup	frames_observed	59.13	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	58.16	True	215,215				-
+gb	retroarch:gambatte	gb/Dr. Mario [V1.0].gb	followup	frames_observed	56.51	59.73	True	True	RUNNING	retroarch_menu_plane	0.0	55.69	True	215,215				-
+gbc	retroarch:gambatte	gbc/Horde DX (USA).gbc	followup	frames_observed	57.29	59.73	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	54.75	True	215,215				-
+gbc	retroarch:mgba	gbc/Horde DX (USA).gbc	followup	frames_observed	56.53	59.73	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	55.11	True	215,215				-
+n64	retroarch:mupen64plus_next	n64/AeroGauge [V1.1].z64	followup	frames_observed	57.55		True	True	RUNNING,XRUN	retroarch_menu_pause	58.17	57.84	True	215,215				-
+dreamcast	retroarch:flycast_xtreme	dreamcast/Crazy Taxi (Japan).chd	followup	frames_observed	42.52	60.00	True	True	PREPARED,RUNNING	retroarch_menu_pause	58.01	9.26	True	215,215				-
+saturn	retroarch:beetle_saturn	saturn/TOWER_The.cue	followup	frames_observed	17.63	59.83	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	16.8	True	215,215				-
+neogeo	retroarch:fbneo	_etc/neogeo/ART OF FIGHTING/aof.zip	followup	frames_observed	57.43	59.18	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	57.72	True	215,215				-
+virtualboy	retroarch:mednafen_vb	_etc/viretualboy/tron.VB	followup	frames_observed	29.14	50.27	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	28.91	True	215,215				-
+arcade	retroarch:fbneo	fbneo/imgfight.zip	followup	frames_observed	27.59	55.00	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	34.17	True	215,215				-
+fbneo	retroarch:fbneo	fbneo/imgfight.zip	followup	frames_observed	27.02	55.00	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	33.18	True	215,215				-
+mame2003plus	retroarch:mame2003_plus	mame/varthj.zip	followup	frames_observed	26.38		True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	24.69	True	215,215				-
+scummvm	retroarch:scummvm	scummvm/BASS-Floppy-1.3/sky.scummvm	followup	frames_observed	29.24		True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	28.43	True	215,215				-
+supervision	retroarch:potator	_etc/supervision/assembloids_supervision_2022.bin	followup	frames_observed	57.34	60.00	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	52.49	True	215,215				-
+amiga	retroarch:puae	_etc/amiga/3rd Day - The Ripper (19xx)(Action Force).adf	followup	frames_observed	31.4	50.00	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	27.38	True	215,215				-
+amiga	retroarch:km_puae_xtreme_amped	_etc/amiga/3rd Day - The Ripper (19xx)(Action Force).adf	followup	frames_observed	31.92	50.00	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	28.72	True	215,215				-
+jaguar	retroarch:virtualjaguar	ATARI/Jaguar/ClubDrive.j64	followup	frames_observed	17.96	60.00	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	22.03	True	215,215				-
+microw8	retroarch:uw8	_etc/microw8/tunnel.uw8	followup	frames_observed	16.09	60.00	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	16.7	True	215,215				-
+pcfx	retroarch:mednafen_pcfx	_etc/pcfx/SimpleBattle_FX/simplebattle.cue	followup	frames_observed	24.64	59.94	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	25.29	True	215,215				-
+uzebox	retroarch:uzem	_etc/uzebox/Arkanoid2.uze	followup	frames_observed	26.27	59.94	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	26.14	True	215,215				-
+nes	picoarch:quicknes	nes/Binary Land.nes	continuous_no_fn	frames_observed	59.38		True	True	RUNNING					215,215	0	3600	0	-
+gba	picoarch:mgba	gba/Densetsu no Stafy (Japan).gba	continuous_no_fn	frames_observed	59.39		True	True	RUNNING					215,215	0	3600	43	-
+arcade	retroarch:mame2003_plus	mame/striderj.zip	late_followup	frames_observed	26.5		True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	26.65	True	215,215				-
+arcade	retroarch:km_mame2003_xtreme	mame/striderj.zip	late_followup	frames_observed	29.86	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	29.44	True	215,215				-
+arcade	retroarch:mame2000	mame/striderj.zip	late_followup	frames_observed	57.13	60.00	True	True	PREPARED,RUNNING,XRUN	retroarch_menu_plane	0.0	57.7	True	215,215				-
+arcade	retroarch:mba_mini	mame/striderj.zip	late_followup	frames_observed	55.33	60.00	True	True	PREPARED,RUNNING	retroarch_menu_plane	0.0	55.47	True	215,215				-
+msx	retroarch:bluemsx	msx2/usas.rom	late_followup	frames_observed	56.6	60.00	True	True	RUNNING	retroarch_menu_plane	0.0	56.02	True	215,215				-
+supergrafx	picoarch:mednafen_pce_fast	_etc/supergrafx/Axelay_SuperGrafx_Demo__(PC_Engine)/Axelay_Demo (SGX).pce	late_followup	frames_observed	59.37		True	True	RUNNING	display_paused_and_resumed	0.0	55.1	True	215,215				-
+pcenginecd	picoarch:mednafen_pce_fast	pcenginecd/DEDEN no DEN.cue	late_followup	frames_observed	59.05		True	True	RUNNING	display_paused_and_resumed	0.0	57.02	True	215,215				-
+psp	standalone:ppsspp	psp/Star Soldier (Japan)/Star Soldier (Japan).iso	late_followup	frames_observed	55.86		True	True	RUNNING	inconclusive	57.59	57.93	True	215,215				-
+openbor	standalone:openbor	openbor/Dragon Ball [v.3.0 Build 4086].PAK	late_followup	frames_observed	55.51		True	True	RUNNING	inconclusive	57.41	56.87	True	215,215				-
