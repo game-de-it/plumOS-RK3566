@@ -14,7 +14,7 @@
 
 入手物は `output/jelos-20240206-sources/` に置きました。カーネルには大文字と小文字だけが異なるファイル名があり、Mac上の通常の作業ツリーでは一部のファイルが衝突しました。保存した `rk356x-kernel-c741d56477939654bb4056be240f93d1ad1ae91e.tar.gz` はGitオブジェクトから生成し、アーカイブ内のコミットIDと、大文字・小文字が異なる両方のファイルが含まれることを確認しました。展開・ビルドには大文字小文字を区別するファイルシステムを使います。
 
-rkbinからは、RK3566用のDDR `rk3566_ddr_1056MHz_v1.16.bin`、SPL `rk356x_spl_v1.12.bin`、BL31 `rk3568_bl31_v1.42.elf` を取得しました。これらはJELOSのビルドが取り込む配布バイナリです。個別のバイナリを生成したソース及び配布イメージ全体の再ビルドは未確認です。[JELOSのブートローダー組み立て](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/projects/Rockchip/bootloader/install)
+rkbinからは、RK3566用のDDR `rk3566_ddr_1056MHz_v1.16.bin`、SPL `rk356x_spl_v1.12.bin`、BL31 `rk3568_bl31_v1.42.elf` を取得しました。これらはJELOSの標準ビルドが取り込む配布バイナリです。[JELOSのブートローダー組み立て](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/projects/Rockchip/bootloader/install)
 
 ## 実物のイメージとの照合
 
@@ -71,3 +71,14 @@ PortMasterのレシピが直接取得する旧 `compat.zip` にもダウンロ�
 既にRG353Mで起動したJELOSのSDカードから採取した先頭16 MiBも、元の配布イメージと照合しました。IDB、U-Boot FIT、`resource.img` の領域はバイト単位で一致しました。差分があったのは、初回起動後のストレージ拡張を反映する保護MBRとGPT、およびVendorStorageの25バイトです。実機SDのVendorStorageにはLAN用MACアドレスのレコードが1件あり、U-Bootにはこのレコードを保存する処理があります。再ビルドの比較基準には配布イメージを使います。[U-Bootの保存処理](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/arch/arm/mach-rockchip/board.c#L90-L134)
 
 `p3` のFATボリュームIDはイメージ生成時の日時から作られ、`p4` のext4 UUIDは `uuidgen` で生成されます。JELOSは同じ値をファイルシステムと `extlinux.conf` の `boot=UUID=`・`disk=UUID=` に設定します。配布版固有の `0602-1646` と再ビルド版の値が異なっても、各イメージ内で参照先が一致すれば仕様どおりです。[UUID生成](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/scripts/image#L305-L308) · [Rockchipのextlinux設定](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/projects/Rockchip/bootloader/mkimage#L89-L98)
+
+### 最初に完成したSDイメージ
+
+64ビット版の全550工程とDockerでのイメージ生成が完了しました。試作SDの起動確認用に `output/jelos-20240206-rebuild/JELOS-RK3566.aarch64-20240206.img.gz` を用意しました。圧縮ファイルのSHA-256は `abc97f89dd26c7a975f3f2ba2127f258b86e8f75891603f5c42525694dec59e9` です。
+
+- 主・副GPTのCRCを検証し、4パーティションの位置、サイズ、型、名前、属性が一致しました。生成されたディスクGUIDとPARTUUIDには差があります。
+- IDBと未起動のVendorStorage領域はバイト単位で一致しました。U-Boot FITでは配布版と同じ構成が選ばれ、BL31の6セグメントとU-Boot用DTBが一致しました。FIT内全ペイロードの格納ハッシュを照合しました。
+- `resource.img` は未使用のハッシュ欄に差がありました。ブートパーティションの全7機種分のDTBと、`KERNEL` に埋め込まれたinitramfsの `/init`・`/functions` は、配布版とバイト単位で一致しました。カーネル設定では `CONFIG_INITRAMFS_SOURCE` の絶対パスに差がありました。
+- FATの `2211-3302` とext4の `886d8592-40ad-4e4c-b9c4-fad8076d367a` は、最終イメージ内の `extlinux.conf` の参照と一致しました。UUIDを置換して比較すると `extlinux.conf` 全体が一致しました。`KERNEL` と `SYSTEM` の格納MD5および圧縮・展開後イメージのSHA-256も検証しました。
+
+`SYSTEM` のファイル一覧には差がありました。両版ともLibretroコアは110本あります。最初の再ビルドではDraSticの補助ライブラリ2本と格納ディレクトリ、およびVLCの `libvpx_plugin.so` が不足していました。DraSticは別の保存コミットに補助ライブラリを含む配布ファイルがあり、JELOSの処理どおりストリップすると実行ファイルと補助ライブラリのSHA-256が配布版と一致しました。VLCの構成ログでは、`libvpx` のビルドより先にVLCが構成され、VPXが検出されていませんでした。同じレシピで `libvpx` の完了後にVLCを再構成できることを利用して、上記の起動確認用イメージとは別に再生成することにしました。[DraSticの保存コミット](https://github.com/RetroGFX/UnofficialOSAddons/commit/3fbcb1d03271c38270fd3a4dbd3d0b189582363f)
