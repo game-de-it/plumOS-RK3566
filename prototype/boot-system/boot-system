@@ -2,6 +2,7 @@
 set -eu
 state=/storage/plumos-rk3566/system
 active=/dev/plumos-system-active
+init=/storage/plumos-rk3566/init
 
 valid_hash() {
     case "$1" in ''|*[!0123456789abcdef]*) return 1 ;; esac
@@ -37,8 +38,30 @@ case "${1:-status}" in
         test "$(cat "$state/healthy")" = "$hash"
         write_selection "$hash" default
         ;;
+    init-trial)
+        test -x "$init/init" && test -x "$init/entry"
+        touch "$init/next"
+        sync
+        ;;
+    init-keep)
+        test -e /dev/plumos-native-init
+        test ! -e "$init/pending"
+        test -s /run/plumos-353m/boot-ready
+        touch "$init/default"
+        sync
+        ;;
+    reboot|poweroff)
+        if [ -e /dev/plumos-native-init ]; then
+            printf '%s\n' "$1" > /run/plumos-353m/power-request.next
+            mv /run/plumos-353m/power-request.next /run/plumos-353m/power-request
+            kill -USR1 1
+        else
+            systemctl --no-block "$1"
+        fi
+        ;;
     stock)
         rm -f "$state/next" "$state/default" "$state/pending"
+        rm -f "$init/next" "$init/default" "$init/pending"
         sync
         ;;
     status)
@@ -46,6 +69,10 @@ case "${1:-status}" in
         for name in next default pending healthy; do
             printf '%s=%s\n' "$name" "$(cat "$state/$name" 2>/dev/null || :)"
         done
+        if [ -e /dev/plumos-native-init ]; then echo 'init=plumOS'; else echo 'init=systemd'; fi
+        for name in next default pending; do
+            if [ -e "$init/$name" ]; then printf 'init-%s=yes\n' "$name"; fi
+        done
         ;;
-    *) echo 'Usage: boot-system [status|publish SHA256|trial SHA256|keep|stock]' >&2; exit 2 ;;
+    *) echo 'Usage: boot-system [status|publish SHA256|trial SHA256|keep|init-trial|init-keep|stock|reboot|poweroff]' >&2; exit 2 ;;
 esac

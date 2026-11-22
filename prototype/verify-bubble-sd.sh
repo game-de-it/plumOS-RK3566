@@ -15,7 +15,7 @@ work=$(mktemp -d)
 root="$work/root"
 loop=
 cleanup() {
-    for target in "$root/sysroot" "$root/storage/user" "$root/storage" "$root/flash" "$root/proc" "$root/sys" "$root/dev"; do
+    for target in "$root/sysroot/usr/lib/systemd/systemd" "$root/sysroot" "$root/storage/user" "$root/storage" "$root/flash" "$root/proc" "$root/sys" "$root/dev"; do
         if mountpoint -q "$target"; then umount "$target"; fi
     done
     if [ -n "$loop" ]; then losetup -d "$loop"; fi
@@ -114,6 +114,29 @@ mount -o ro,loop /flash/SYSTEM /sysroot
 test ! -e /dev/plumos-system-active
 test -L /sysroot/usr/lib/systemd/system/jelos.target.wants/plumos-usb-adb.service
 umount /sysroot
+
+# A native trial binds the launcher and consumes its one-shot flag. A pending
+# default must fall back to the original entry when the previous boot failed.
+init=/storage/plumos-rk3566/init
+test -x "$init/power"
+"$state/boot-system" init-trial
+mount -o ro,loop /flash/SYSTEM /sysroot
+. /flash/mount-storage.sh
+test -f /dev/plumos-native-init
+test -f "$init/pending"
+test ! -e "$init/next"
+entry_hash=$(sha256sum "$init/entry" | cut -d " " -f 1)
+printf '%s  %s\n' "$entry_hash" /sysroot/usr/lib/systemd/systemd | sha256sum -c
+umount /sysroot/usr/lib/systemd/systemd
+umount /sysroot
+rm /dev/plumos-native-init
+touch "$init/default"
+mount -o ro,loop /flash/SYSTEM /sysroot
+. /flash/mount-storage.sh
+test ! -e /dev/plumos-native-init
+test "$(sha256sum /sysroot/usr/lib/systemd/systemd | cut -d " " -f 1)" != "$entry_hash"
+"$state/boot-system" stock
+umount /sysroot
 UPDATE
 detach_card
 test "$(prefix)" = "$expected"
@@ -131,5 +154,5 @@ assert before['partitions'][:3] == after['partitions'][:3]
 assert after['partitions'][3] == {**before['partitions'][3], 'size': 8388608}
 assert after['partitions'][4]['start'] == 12615680
 PY
-echo 'First boot, reboot continuation, existing user data, SYSTEM update and recovery verified.'
+echo 'First boot, reboot continuation, existing user data, SYSTEM update and native init recovery verified.'
 TEST

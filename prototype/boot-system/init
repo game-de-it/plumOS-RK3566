@@ -1,0 +1,134 @@
+#!/usr/bin/busybox sh
+# Supervise the RG353M frontend and recovery transport as PID 1.
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin HOME=/storage
+payload=/usr/lib/plumos-353m
+runtime=/run/plumos-353m
+storage=/storage/plumos-rk3566
+init_state=$storage/init
+system_state=$storage/system
+export PLUMOS_ROOT=$storage/frontend PLUMOS_FAST_BOOT=1
+export XDG_RUNTIME_DIR=$runtime
+
+for directory in /run /tmp; do
+    grep -qs " $directory " /proc/mounts || mount -t tmpfs tmpfs "$directory"
+done
+mkdir -p "$runtime" /dev/pts
+chmod 700 "$runtime"
+grep -qs ' /dev/pts ' /proc/mounts || mount -t devpts -o mode=620,ptmxmode=0666 devpts /dev/pts
+exec >>"$runtime/init.log" 2>&1
+printf '%s\n' "$$" > "$runtime/pid1"
+cut -d ' ' -f 1 /proc/uptime > "$runtime/pid1-uptime"
+printf 'plumOS init: PID %s; inherited boot arguments: %s\n' "$$" "$*"
+
+frontend=
+adb_pid=
+attempt=0
+provisioned=no
+
+power_action() {
+    local action
+    action=$(cat "$runtime/power-request" 2>/dev/null) || return 0
+    rm -f "$runtime/power-request"
+    case "$action" in reboot|poweroff) ;; *) return 0 ;; esac
+    echo "plumOS init: requested $action"
+    if [ -n "$frontend" ]; then
+        kill "$frontend" 2>/dev/null || :
+        for second in 1 2 3; do
+            kill -0 "$frontend" 2>/dev/null || break
+            sleep 1
+        done
+        kill -KILL "$frontend" 2>/dev/null || :
+        wait "$frontend" 2>/dev/null || :
+        frontend=
+    fi
+    sync
+    if grep -qs ' /storage/user ' /proc/mounts; then
+        if ! mount -o remount,ro /storage/user; then
+            echo 'plumOS init: could not remount user storage; power action cancelled'
+            return 0
+        fi
+    fi
+    if ! mount -o remount,ro /storage; then
+        echo 'plumOS init: could not remount runtime storage; power action cancelled'
+        if grep -qs ' /storage/user ' /proc/mounts; then mount -o remount,rw /storage/user; fi
+        return 0
+    fi
+    sync
+    # Power operations from an ADB shell may retain a cwd on /storage.
+    # Keep the transport alive until the filesystems are synchronized.
+    "$init_state/power" "$action"
+    # A failed reboot syscall must leave PID 1 and the recovery transport alive.
+    mount -o remount,rw /storage
+    if grep -qs ' /storage/user ' /proc/mounts; then mount -o remount,rw /storage/user; fi
+    echo 'plumOS init: power syscall failed'
+}
+
+mark_ready() {
+    local hash
+    [ ! -e "$runtime/boot-ready" ] || return 0
+    [ -n "$frontend" ] && kill -0 "$frontend" 2>/dev/null &&
+        [ -s /tmp/plumos-fe-ready ] &&
+        [ "$(cat /sys/kernel/config/usb_gadget/plumos353m/UDC 2>/dev/null)" = fcc00000.dwc3 ] || return 0
+    if [ -f /dev/plumos-system-active ]; then
+        hash=$(cat /dev/plumos-system-active)
+        [ "$(cat "$system_state/pending" 2>/dev/null)" = "$hash" ] || return 0
+        printf '%s\n' "$hash" > "$system_state/healthy.new" &&
+            mv "$system_state/healthy.new" "$system_state/healthy" &&
+            rm "$system_state/pending" || return 0
+    fi
+    if [ -f /dev/plumos-native-init ]; then
+        rm -f "$init_state/pending" || return 0
+    fi
+    cut -d ' ' -f 1 /proc/uptime > "$runtime/boot-ready"
+    echo 'plumOS init: frontend and ADB ready'
+}
+
+# A request wakes the polling loop; shutdown itself runs outside a signal handler.
+trap ':' USR1
+"$payload/start-adb" &
+adb_pid=$!
+
+if [ -x "$storage/provision/start-storage" ]; then
+    result=0
+    "$storage/provision/start-storage" || result=$?
+    case "$result" in
+        0) provisioned=yes ;;
+        75)
+            if touch "$init_state/next"; then
+                printf 'reboot\n' > "$runtime/power-request"
+                power_action
+            fi
+            ;;
+    esac
+elif [ -f /storage/.plumos-user-layout ]; then
+    "$payload/mount-user-storage" && provisioned=yes
+elif [ ! -f /storage/.please_resize_me ]; then
+    provisioned=yes
+fi
+if [ "$provisioned" = no ]; then
+    echo 'plumOS init: storage is unavailable; ADB recovery remains active'
+fi
+
+while :; do
+    power_action
+    if ! kill -0 "$adb_pid" 2>/dev/null; then
+        wait "$adb_pid" 2>/dev/null || :
+        sleep 1
+        "$payload/start-adb" &
+        adb_pid=$!
+    fi
+    if [ -n "$frontend" ] && ! kill -0 "$frontend" 2>/dev/null; then
+        wait "$frontend"
+        echo "plumOS init: frontend exited status=$?"
+        frontend=
+        if [ "$attempt" -eq 5 ]; then echo 'plumOS init: frontend restart limit; ADB remains active'; fi
+        sleep 1
+    fi
+    if [ "$provisioned" = yes ] && [ -z "$frontend" ] && [ "$attempt" -lt 5 ]; then
+        "$payload/start-frontend" &
+        frontend=$!
+        attempt=$((attempt + 1))
+    fi
+    mark_ready
+    sleep 0.2
+done

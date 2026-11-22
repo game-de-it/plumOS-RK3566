@@ -13,7 +13,10 @@ result=0
 "$tools/provision-storage" "$disk" || result=$?
 case "$result" in
     0) ;;
-    75) systemctl --no-block reboot ;;
+    75)
+        if [ -e /dev/plumos-native-init ]; then exit 75; fi
+        systemctl --no-block reboot
+        ;;
     *)
         "$tools/boot-splash" "$tools/provision-error.xrgb" || :
         exit "$result"

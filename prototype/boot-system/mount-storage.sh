@@ -55,3 +55,7 @@ plumos_select_system() {
 }
 
 plumos_select_system
+
+if [ -r /storage/plumos-rk3566/init/select-init.sh ]; then
+    . /storage/plumos-rk3566/init/select-init.sh
+fi

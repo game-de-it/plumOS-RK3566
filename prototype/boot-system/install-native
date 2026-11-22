@@ -1,0 +1,34 @@
+#!/bin/sh
+# Run on RG353M from a staged native-init payload with SHA256SUMS.
+set -eu
+
+test "$(tr -d '\000' </proc/device-tree/model)" = 'Anbernic RG353M'
+grep -qw 'boot=UUID=2211-3302' /proc/cmdline
+sha256sum -c SHA256SUMS
+base=/storage/plumos-rk3566
+test -x "$base/provision/provision-storage"
+test -x "$base/system/boot-system"
+old_hook=58a1d3a24ec28f0d80aad8cba1024da13d1702dea20e6e7955279e61a9dcedbf
+new_hook=$(sha256sum mount-storage.sh | cut -d ' ' -f 1)
+case "$(sha256sum /flash/mount-storage.sh | cut -d ' ' -f 1)" in
+    "$old_hook"|"$new_hook") ;;
+    *) echo 'Cannot replace an unknown mount-storage.sh' >&2; exit 1 ;;
+esac
+
+mkdir -p "$base/init"
+install -m 755 entry init power "$base/init/"
+install -m 644 select-init.sh "$base/init/"
+install -m 755 boot-system "$base/system/boot-system.new"
+mv "$base/system/boot-system.new" "$base/system/boot-system"
+install -m 755 start-storage "$base/provision/start-storage.new"
+mv "$base/provision/start-storage.new" "$base/provision/start-storage"
+sync
+
+mount -o remount,rw /flash
+trap 'sync; mount -o remount,ro /flash' EXIT
+cp mount-storage.sh /flash/mount-storage.sh.new
+printf '%s  %s\n' "$new_hook" /flash/mount-storage.sh.new | sha256sum -c
+mv /flash/mount-storage.sh.new /flash/mount-storage.sh
+sync
+mount -o remount,ro /flash
+trap - EXIT

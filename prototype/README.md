@@ -71,6 +71,8 @@ ADBはUSB専用で、試作機のrootシェルを認証なしで公開します�
 
 ## Bubble由来のPID 1を試す
 
+小容量の初回セットアップ付きseedの導入、起動時間、ADB復旧手順は[RG353MのplumOS init移行](../docs/validation/2026-11-22-rg353m-native-init.md)を参照してください。以下は固定レイアウト版の手順です。
+
 新しいSDイメージでは、JELOSのinitramfsの引き渡し先をplumOS initに接続しています。ビルドで記録した `PARTUUID` と同一SD上の `p5` を照合し、FAT32を `/storage/user` にマウントします。
 
 旧systemd試作のSDで `PLUMOS_TRY_PID1=1` を付けて `deploy-boot-overlay.sh` を実行すると、次の1回だけJELOSが呼び出すinitの箇所にplumOSの `init` をバインドします。起動時に試行フラグを消費するため、その次の再起動は元の起動経路へ戻ります。

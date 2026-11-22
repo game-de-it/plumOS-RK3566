@@ -1,0 +1,3 @@
+#!/usr/bin/busybox sh
+# The pinned JELOS initramfs calls this entry at the historical init pathname.
+exec /storage/plumos-rk3566/init/init "$@"
