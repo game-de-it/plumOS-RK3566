@@ -24,7 +24,7 @@ Docker生成のrawイメージは2,198,863,872バイト。入力JELOSとSD先頭
 
 JELOSのストレージマウントフックで、試験または既定のフラグを確認する。選択時は、initramfsの `switch_root` が実行するパスにランチャーをファイル単位でバインドする。ランチャーがplumOS initへ `exec` し、plumOS initが初回セットアップ、Bubble、ADB、同期・再起動を担当する。この起動経路のSYSTEM更新は `boot-system` が扱う。最初の試験では、JELOSのinitramfs版BusyBoxに `touch` がなく、試験フラグを消費した後にsystemdで起動した。元のinitramfsからBusyBoxを展開してアプレット一覧を照合し、フラグ作成をシェルのリダイレクトに変更した。
 
-既存のRG353M seedには以下で導入できる。Dockerビルドで新しく作るseedには同じinitが入っているため、導入コマンドは省略できる。新規seedは従来の初回起動を既定とし、ADBからinit試験を予約できる。
+既存のRG353M seedには以下で導入できる。Dockerビルドで新しく作るseedには同じinitが入っているため、導入コマンドは省略できる。現在のDockerビルドでは、新規seedの初回起動からplumOS initを選択する。GPT更新による予定再起動もplumOS initへ戻る。起動失敗で `pending` が残った場合はsystemd経路で復旧できる。
 
 ```sh
 ./prototype/boot-system/build-native-payload.sh output/native-init
