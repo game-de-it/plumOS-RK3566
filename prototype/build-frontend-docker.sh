@@ -2,8 +2,8 @@
 # Reuse the pinned Bubble ARM64 toolchain to build the RG353M frontend.
 set -euo pipefail
 
-if [ "$#" -ne 2 ]; then
-    printf 'Usage: %s BUILD_WORK JELOS_SYSTEM\n' "$0" >&2
+if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
+    printf 'Usage: %s BUILD_WORK JELOS_SYSTEM [BUBBLE_FRONTEND_SOURCE]\n' "$0" >&2
     exit 2
 fi
 if ! command -v docker >/dev/null; then
@@ -21,7 +21,10 @@ fi
 work=$(cd "$1" && pwd)
 system=$(cd "$(dirname "$2")" && pwd)/$(basename "$2")
 bubble=$work/refs/Bubble
-source=$work/refs/mini-PLUS/src/frontend
+source=${3:-$work/refs/mini-PLUS/src/frontend}
+source=$(cd "$source" && pwd)
+input_define=PLUMOS_MINI_PLUS_INPUT
+if [ "$#" -eq 3 ]; then input_define=PLUMOS_BUBBLE_INPUT; fi
 revision=ec81d42c0c2c39e7a32973bfe4df9b3027512a5d
 image=plumos-rk3566-bubble-tools:ec81d42
 test -f "$system"
@@ -34,6 +37,7 @@ if ! docker image inspect "$image" >/dev/null 2>&1; then
 fi
 
 docker run --rm -i --platform linux/arm64 --user "$(id -u):$(id -g)" \
+    -e "INPUT_DEFINE=$input_define" \
     -v "$source:/src:ro" -v "$system:/jelos-system:ro" \
     -v "$work/compiled:/out" "$image" bash -s <<'BUILD'
 set -euo pipefail
@@ -42,7 +46,7 @@ unsquashfs -processors 4 -no-progress -d "$build/root" /jelos-system \
     'usr/lib/libpng*' 'usr/lib/libfreetype*' 'usr/lib/libdrm.so*'
 lib=$build/root/usr/lib
 flags=(-std=gnu99 -O2 -D_GNU_SOURCE)
-cc "${flags[@]}" -DPLUMOS_MINI_PLUS_INPUT=1 -DPLUMOS_ENABLE_FBDEV_RENDERER=1 \
+cc "${flags[@]}" "-D$INPUT_DEFINE=1" -DPLUMOS_ENABLE_FBDEV_RENDERER=1 \
     -DPLUMOS_FBDEV_ENABLE_PNG=1 -DPLUMOS_FBDEV_ENABLE_FREETYPE=1 \
     -DPLUMOS_FBDEV_ENABLE_DRM=1 $(pkg-config --cflags libpng freetype2 libdrm) \
     -Wl,--allow-shlib-undefined /src/plumos_controller_ui.c \
