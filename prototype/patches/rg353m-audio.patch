@@ -1,0 +1,419 @@
+--- a/package/frontend-bubble/plumos/bin/plumos-audio-output
++++ b/package/frontend-bubble/plumos/bin/plumos-audio-output
+@@ -12,12 +12,51 @@
+     exit 1
+ }
+ 
++# The USB Audio driver publishes usbid for each USB ALSA card. Select
++# playback-capable interfaces only, including devices with capture endpoints.
++find_usb_playback() {
++    for pcm in "${PLUMOS_SOUND_SYSFS:-/sys/class/sound}"/pcmC*D*p; do
++        [ -e "$pcm" ] || continue
++        address=${pcm##*/pcmC}
++        usb_card=${address%%D*}
++        usb_device=${address#*D}
++        usb_device=${usb_device%p}
++        case "$usb_card:$usb_device" in
++            :*|*:|*[!0-9:]*) continue ;;
++        esac
++        [ -r "${PLUMOS_PROC_ASOUND:-/proc/asound}/card$usb_card/usbid" ] || continue
++        [ -c "${PLUMOS_SOUND_DEVICES:-/dev/snd}/${pcm##*/}" ] || continue
++        card=$usb_card
++        device=$usb_device
++        mode=usb_dac
++        id=$(cat "${PLUMOS_SOUND_SYSFS:-/sys/class/sound}/card$card/id" 2>/dev/null || printf 'USB')
++        return 0
++    done
++    return 1
++}
++
+ prepare() {
+-    [ -c /dev/snd/pcmC0D0p ] || fail 'RK817 playback PCM is unavailable'
++    settings=${PLUMOS_SYSTEM_SETTINGS_JSON:-$PLUMOS_ROOT/config/system/settings.json}
++    requested=$(sed -n 's/.*"audio_output"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$settings" 2>/dev/null | head -n 1)
++    codec_id=rockchiprk817co
++    codec_path=$(readlink "${PLUMOS_PROC_ASOUND:-/proc/asound}/$codec_id")
++    codec_card=${codec_path##*card}
++    case "$codec_card" in ''|*[!0-9]*) fail 'RK817 control card is unavailable' ;; esac
++    card=$codec_card
++    device=0
++    id=$codec_id
++    mode=internal_stereo
++    case "$requested" in
++        ''|auto|usb_dac) find_usb_playback || : ;;
++    esac
++    if [ "$mode" = internal_stereo ]; then
++        [ -c "${PLUMOS_SOUND_DEVICES:-/dev/snd}/pcmC${card}D0p" ] || fail 'RK817 playback PCM is unavailable'
++        "$PLUMOS_ROOT/bin/plumos-rk3566-audio-route" apply
++    fi
+     mkdir -p "$AUDIO_DIR"
+     tmp=$CONFIG.tmp.$$
+     trap 'rm -f "$tmp" "$STATUS.tmp.$$"' EXIT HUP INT TERM
+-    cat >"$tmp" <<'EOF'
++    cat >"$tmp" <<EOF
+ # ALSA's softvol plugin opens its control as "hw:CARD" even when the PCM
+ # slave is declared inline.  ALSA_CONFIG_PATH replaces the distribution
+ # alsa.conf completely on stockOS, so retain the minimum hw control alias.
+@@ -28,18 +67,18 @@
+         default 0
+     }
+     type hw
+-    card $CARD
++    card \$CARD
+ }
+ 
+ ctl.!default {
+     type hw
+-    card 0
++    card $codec_card
+ }
+ 
+ pcm.plumos_hw {
+     type hw
+-    card 0
+-    device 0
++    card $card
++    device $device
+ }
+ 
+ pcm.plumos_softvol {
+@@ -47,7 +86,7 @@
+     slave.pcm "plumos_hw"
+     control {
+         name "Soft Volume Master"
+-        card 0
++        card $codec_card
+     }
+     min_dB -90.0
+     max_dB 0.0
+@@ -72,11 +111,11 @@
+     chmod 0644 "$tmp"
+     mv -f "$tmp" "$CONFIG"
+     {
+-        printf 'mode=internal_stereo\n'
++        printf 'mode=%s\n' "$mode"
+         printf 'router=alsa_softvol\n'
+-        printf 'card=0\n'
+-        printf 'card_id=rockchiprk817co\n'
+-        printf 'physical_pcm=hw:0,0\n'
++        printf 'card=%s\ncard_id=%s\n' "$card" "$id"
++        printf 'physical_pcm=hw:%s,%s\n' "$card" "$device"
++        printf 'control_card=%s\n' "$codec_card"
+         printf 'pcm=plumos_output\n'
+         printf 'alsa_config_path=%s\n' "$CONFIG"
+     } >"$STATUS.tmp.$$"
+--- a/package/frontend-bubble/plumos/bin/plumos-volume-control
++++ b/package/frontend-bubble/plumos/bin/plumos-volume-control
+@@ -48,21 +48,36 @@
+     printf '%s\n' "$value" >"$tmp" && mv -f "$tmp" "$RUNTIME_STATE"
+ }
+ 
+-write_persisted() {
++write_persisted() (
++    set -e
+     value=$(normalize "$1") || return 2
+     mkdir -p "${SYSTEM_SETTINGS%/*}" "$PLUMOS_ROOT/backups/system"
++    exec 8>"$SYSTEM_SETTINGS.lock"
++    flock -x 8
+     backup=$PLUMOS_ROOT/backups/system/settings.json.before-bubble-softvol
+     [ -e "$backup" ] || cp -p "$SYSTEM_SETTINGS" "$backup" 2>/dev/null || true
+     tmp=$SYSTEM_SETTINGS.tmp.$$
+     if [ -r "$SYSTEM_SETTINGS" ] && grep -q '"volume"[[:space:]]*:' "$SYSTEM_SETTINGS"; then
+         sed 's/"volume"[[:space:]]*:[[:space:]]*[0-9][0-9]*/"volume": '"$value"'/' \
+             "$SYSTEM_SETTINGS" >"$tmp"
++    elif [ -s "$SYSTEM_SETTINGS" ]; then
++        # Append a missing key without discarding the existing settings.
++        awk -v volume="$value" '
++            { json = json $0 "\n" }
++            END {
++                sub(/[[:space:]]*$/, "", json)
++                if (json !~ /^[[:space:]]*\{/ || json !~ /} *$/) exit 1
++                sub(/[[:space:]]*}$/, "", json)
++                separator = json ~ /\{[[:space:]]*$/ ? "" : ","
++                printf "%s%s\n  \"volume\": %s\n}\n", json, separator, volume
++            }
++        ' "$SYSTEM_SETTINGS" >"$tmp"
+     else
+         printf '{\n  "version": 1,\n  "volume": %s\n}\n' "$value" >"$tmp"
+     fi
+     mv -f "$tmp" "$SYSTEM_SETTINGS"
+     sync
+-}
++)
+ 
+ softvol_exists() {
+     [ -x "$AMIXER" ] && "$AMIXER" cget iface=MIXER,name="$SOFTVOL_NAME" >/dev/null 2>&1
+@@ -114,7 +129,9 @@
+ 
+ apply() {
+     value=$(normalize "${1:-$(read_runtime)}") || return 2
+-    initialize || return 1
++    if [ "${2:-prepare}" = prepare ] || [ ! -s "$ALSA_CONFIG_PATH" ] || ! softvol_exists; then
++        initialize || return 1
++    fi
+     raw=$(volume_to_raw "$value") || return 2
+     "$AMIXER" cset iface=MIXER,name="$SOFTVOL_NAME" "$raw" >"$LOG" 2>&1 || return 1
+     write_runtime "$value"
+@@ -123,14 +140,18 @@
+ }
+ 
+ change() {
+-    current=$(read_persisted)
++    current=$(read_runtime)
+     next=$((current + $1))
+     [ "$next" -ge 0 ] || next=0
+     [ "$next" -le 20 ] || next=20
++    apply "$next" existing || return 1
+     write_persisted "$next" || return 1
+-    apply "$next" || return 1
+     printf 'volume=%s\n' "$next"
+ }
++
++# Button repeats and FE changes share the mixer and its runtime value.
++exec 9>"$RUNTIME_STATE.lock" || exit 1
++flock -x 9 || exit 1
+ 
+ case ${1:-status} in
+     init) initialize ;;
+@@ -138,10 +159,10 @@
+     up) change 1 ;;
+     down) change -1 ;;
+     step) [ "$#" -eq 2 ] && signed_integer "$2" || exit 2; change "$2" ;;
+-    runtime-up) value=$(( $(read_runtime) + 1 )); [ "$value" -le 20 ] || value=20; apply "$value" ;;
+-    runtime-down) value=$(( $(read_runtime) - 1 )); [ "$value" -ge 0 ] || value=0; apply "$value" ;;
+-    runtime-step) [ "$#" -eq 2 ] && signed_integer "$2" || exit 2; value=$(( $(read_runtime) + $2 )); [ "$value" -ge 0 ] || value=0; [ "$value" -le 20 ] || value=20; apply "$value" ;;
+-    persist-runtime) value=$(read_runtime); write_persisted "$value"; apply "$value" ;;
++    runtime-up) value=$(( $(read_runtime) + 1 )); [ "$value" -le 20 ] || value=20; apply "$value" existing ;;
++    runtime-down) value=$(( $(read_runtime) - 1 )); [ "$value" -ge 0 ] || value=0; apply "$value" existing ;;
++    runtime-step) [ "$#" -eq 2 ] && signed_integer "$2" || exit 2; value=$(( $(read_runtime) + $2 )); [ "$value" -ge 0 ] || value=0; [ "$value" -le 20 ] || value=20; apply "$value" existing ;;
++    persist-runtime) write_persisted "$(read_runtime)" ;;
+     get) read_persisted ;;
+     status) initialize && "$AMIXER" cget iface=MIXER,name="$SOFTVOL_NAME" ;;
+     *) printf 'usage: plumos-volume-control init|apply [0..20]|up|down|step N|get|status|runtime-up|runtime-down|runtime-step N|persist-runtime\n' >&2; exit 2 ;;
+--- a/src/services/plumos_bubble_volume_keys.c
++++ b/src/services/plumos_bubble_volume_keys.c
+@@ -260,7 +260,7 @@
+ 
+ static void usage(const char *argv0) {
+   fprintf(stderr,
+-          "usage: %s [--event PATH] [--power-event PATH] [--once]\n",
++          "usage: %s [--event PATH] [--power-event PATH] [--volume-only] [--once]\n",
+           argv0);
+ }
+ 
+@@ -291,6 +291,8 @@
+     } else if (strcmp(argv[index], "--power-event") == 0 &&
+                index + 1 < argc) {
+       configured_power_event = argv[++index];
++    } else if (strcmp(argv[index], "--volume-only") == 0) {
++      power_done = 1;
+     } else if (strcmp(argv[index], "--once") == 0) {
+       once = 1;
+     } else {
+@@ -325,12 +327,12 @@
+   signal(SIGINT, stop_running);
+   signal(SIGTERM, stop_running);
+   setvbuf(stderr, NULL, _IOLBF, 0);
+-  fprintf(stderr, "volume-keys: start owner=plumos device=bubble\n");
++  fprintf(stderr, "volume-keys: start owner=plumos\n");
+   (void)run_volume_helper("apply");
+ 
+   if (once) {
+     volume_done = !configured_event || !configured_event[0];
+-    power_done = !configured_power_event || !configured_power_event[0];
++    power_done = power_done || !configured_power_event || !configured_power_event[0];
+   }
+ 
+   while (running) {
+--- a/src/frontend/plumos_controller_ui.c
++++ b/src/frontend/plumos_controller_ui.c
+@@ -8,6 +8,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#include <sys/file.h>
+ #include <sys/ioctl.h>
+ #include <sys/stat.h>
+ #include <sys/statvfs.h>
+@@ -2675,6 +2676,22 @@
+   return device_id && strcmp(device_id, "rg353m") == 0;
+ }
+ 
++static long rg353m_runtime_volume(long fallback) {
++  const char *root = getenv("PLUMOS_RUNTIME_ROOT");
++  char path[PATH_MAX];
++  char buffer[32];
++  char *end;
++  long volume;
++
++  if (!root || !join_path(path, sizeof(path), root, "volume/current") ||
++      !read_first_line_file(path, buffer, sizeof(buffer))) {
++    return fallback;
++  }
++  volume = strtol(buffer, &end, 10);
++  return end != buffer && *end == '\0' && volume >= 0 &&
++         volume <= PLUMOS_VOLUME_MAX ? volume : fallback;
++}
++
+ static int runtime_uses_bubble_display(void) {
+   return runtime_device_is_bubble() || runtime_device_is_rg353m();
+ }
+@@ -4920,15 +4937,38 @@
+   return ok;
+ }
+ 
++static int save_system_config_literal(struct ui_state *ui, const char *key,
++                                      const char *value) {
++  char path[PATH_MAX];
++  int fd;
++  int saved;
++
++  if (!runtime_device_is_rg353m()) {
++    return replace_json_key_value_atomic(ui->system_config_path, key, value);
++  }
++  if (snprintf(path, sizeof(path), "%s.lock", ui->system_config_path) >=
++      (int)sizeof(path)) {
++    return 0;
++  }
++  fd = open(path, O_CREAT | O_RDWR | O_CLOEXEC, 0644);
++  if (fd < 0) {
++    return 0;
++  }
++  saved = flock(fd, LOCK_EX) == 0 &&
++          replace_json_key_value_atomic(ui->system_config_path, key, value);
++  close(fd);
++  return saved;
++}
++
+ static int save_system_config_number(struct ui_state *ui, const char *key, long value) {
+   char literal[64];
+ 
+   snprintf(literal, sizeof(literal), "%ld", value);
+-  return replace_json_key_value_atomic(ui->system_config_path, key, literal);
++  return save_system_config_literal(ui, key, literal);
+ }
+ 
+ static int save_system_config_bool(struct ui_state *ui, const char *key, int value) {
+-  return replace_json_key_value_atomic(ui->system_config_path, key,
++  return save_system_config_literal(ui, key,
+                                        value ? "true" : "false");
+ }
+ 
+@@ -4939,7 +4979,7 @@
+   if (!append_json_string_literal(literal, sizeof(literal), value)) {
+     return 0;
+   }
+-  return replace_json_key_value_atomic(ui->system_config_path, key, literal);
++  return save_system_config_literal(ui, key, literal);
+ }
+ 
+ static int ensure_os_timezone_backup(struct ui_state *ui) {
+@@ -5213,6 +5253,9 @@
+     if (stored_volume != ui->device.volume) {
+       save_system_config_number(ui, "volume", ui->device.volume);
+     }
++    if (runtime_device_is_rg353m()) {
++      ui->device.volume = rg353m_runtime_volume(ui->device.volume);
++    }
+   }
+   {
+     long stored_brightness = json_get_long(json, json_end, "brightness",
+@@ -5230,7 +5273,8 @@
+                       sizeof(config_value)) &&
+       (strcmp(config_value, "speaker") == 0 ||
+        strcmp(config_value, "headphone") == 0 ||
+-       (runtime_device_is_rg353m() && strcmp(config_value, "auto") == 0))) {
++       (runtime_device_is_rg353m() &&
++        (strcmp(config_value, "auto") == 0 || strcmp(config_value, "usb_dac") == 0)))) {
+     copy_string(ui->device.audio_output, sizeof(ui->device.audio_output),
+                 config_value);
+   }
+@@ -5973,6 +6017,7 @@
+     {"auto", "Auto"},
+     {"speaker", "Speaker"},
+     {"headphone", "Headphone"},
++    {"usb_dac", "USB DAC"},
+ };
+ 
+ static const struct setting_choice SYSTEM_AUDIO_OUTPUT_CHOICES[] = {
+@@ -13803,7 +13848,7 @@
+       return 0;
+     }
+     copy_string(ui->device.audio_output, sizeof(ui->device.audio_output), raw);
+-    if (!run_volume_control_command("apply", ui->device.volume, 1)) {
++    if (!run_volume_control_command("apply", ui->device.volume, !runtime_device_is_rg353m())) {
+       set_status(ui, "audio output saved; runtime apply failed");
+       return 1;
+     }
+@@ -13885,6 +13930,8 @@
+   return 1;
+ }
+ 
++static int change_system_volume(struct ui_state *ui, int direction);
++
+ static int save_setting_number(struct ui_state *ui, const char *id,
+                                const char *display_value, int direction) {
+   struct frontend_settings settings;
+@@ -13907,6 +13954,9 @@
+       !system_number_setting_runtime_available(id)) {
+     set_status(ui, "runtime backend unavailable");
+     return 0;
++  }
++  if (runtime_device_is_rg353m() && strcmp(id, "system_volume") == 0) {
++    return change_system_volume(ui, direction);
+   }
+   value = strtol(display_value ? display_value : "0", NULL, 10);
+   if (strcmp(id, "rom_scan_slow_threshold_ms") == 0) {
+@@ -14012,6 +14062,16 @@
+ 
+   if (!ui || direction == 0) {
+     return 0;
++  }
++  if (runtime_device_is_rg353m()) {
++    if (!run_volume_control_command(direction > 0 ? "up" : "down", 0, 0)) {
++      set_status(ui, "volume apply failed");
++      return 0;
++    }
++    update_settings_entries_after_save(ui);
++    snprintf(ui->status, sizeof(ui->status), "Volume %ld/%d",
++             ui->device.volume, PLUMOS_VOLUME_MAX);
++    return 1;
+   }
+   value = clamp_long(ui->device.volume + (direction > 0 ? 1 : -1), 0,
+                      PLUMOS_VOLUME_MAX);
+@@ -16081,6 +16141,27 @@
+   return ui->render_failed ? 0 : 1;
+ }
+ 
++static void refresh_rg353m_volume(struct ui_state *ui) {
++  struct setting_entry *entry;
++  long volume;
++
++  if (!runtime_device_is_rg353m() || ui->screen != SCREEN_SETTINGS ||
++      ui->settings_category != SETTINGS_CATEGORY_SYSTEM ||
++      ui->setting_count == 0) {
++    return;
++  }
++  entry = &ui->setting_entries[0];
++  if (strcmp(entry->id, "system_volume") != 0) {
++    return;
++  }
++  volume = rg353m_runtime_volume(ui->device.volume);
++  if (volume != ui->device.volume) {
++    ui->device.volume = volume;
++    snprintf(entry->value, sizeof(entry->value), "%ld", volume);
++    render_ui(ui);
++  }
++}
++
+ static int ui_needs_periodic_refresh(const struct ui_state *ui) {
+   if (!ui) {
+     return 0;
+@@ -16269,6 +16350,7 @@
+     }
+     now_ms = current_time_ms();
+     (void)run_scheduled_mmf_brightness_reapply(ui, now_ms);
++    refresh_rg353m_volume(ui);
+     if (poll_rom_scan_refresh(ui)) {
+       render_ui(ui);
+       if (ui_needs_periodic_refresh(ui)) {

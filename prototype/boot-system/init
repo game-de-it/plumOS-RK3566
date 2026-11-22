@@ -28,6 +28,7 @@ printf 'plumOS init: PID %s; inherited boot arguments: %s\n' "$$" "$*"
 frontend=
 adb_pid=
 audio_pid=
+volume_keys_pid=
 attempt=0
 provisioned=no
 
@@ -48,6 +49,11 @@ power_action() {
         frontend=
     fi
     attempt=0
+    if [ -n "$volume_keys_pid" ]; then
+        kill "$volume_keys_pid" 2>/dev/null || :
+        wait "$volume_keys_pid" 2>/dev/null || :
+        volume_keys_pid=
+    fi
     if [ -x "$PLUMOS_ROOT/bin/plumos-network-services" ]; then
         "$PLUMOS_ROOT/bin/plumos-network-services" quiesce
         rm -f "$runtime/network-boot-started"
@@ -165,6 +171,14 @@ while :; do
         "$payload/start-frontend" &
         frontend=$!
         attempt=$((attempt + 1))
+    fi
+    if [ -n "$volume_keys_pid" ] && ! kill -0 "$volume_keys_pid" 2>/dev/null; then
+        wait "$volume_keys_pid" 2>/dev/null || :
+        volume_keys_pid=
+    fi
+    if [ -z "$volume_keys_pid" ] && [ -s /tmp/plumos-fe-ready ]; then
+        "$payload/frontend/bin/plumos-volume-keys" --volume-only &
+        volume_keys_pid=$!
     fi
     mark_ready
     sleep 0.2

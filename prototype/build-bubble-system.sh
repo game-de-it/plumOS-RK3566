@@ -23,7 +23,8 @@ test ! -e "$out/bubble-userland.squashfs"
 
 stage=$(mktemp -d "$out/build.XXXXXXXX")
 mkdir "$stage/source"
-git -C "$bubble" archive "$revision" src/frontend package/frontend-bubble/plumos \
+git -C "$bubble" archive "$revision" src/frontend src/services/plumos_bubble_volume_keys.c \
+    package/frontend-bubble/plumos \
     package/network-services-bubble/plumos/bin/plumos-network-services \
     scripts/generate-bubble-runtime-coverage.py scripts/build-bubble-update-package.py \
     scripts/build-network-busybox-bubble.sh \
@@ -35,6 +36,7 @@ if ! docker image inspect "$image" >/dev/null 2>&1; then
 fi
 patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-start-menu.patch"
 patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-start-helpers.patch"
+patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-audio.patch"
 python3 "$prototype/emulators/enable-frontend-builtins.py" "$stage/source/src/frontend"
 "$prototype/build-frontend-docker.sh" "$stage" "$stage/source/src/frontend"
 
@@ -55,6 +57,9 @@ install -m 755 "$prototype/system/usr/lib/plumos-353m/frontend/bin/plumos-safe-s
 install -m 755 "$adbd" "$payload/adbd"
 cp -R "$runtime/." "$payload/frontend/"
 install -m755 "$prototype/emulators/plumos-rk3566-audio-route" "$payload/frontend/bin/"
+install -m755 "$frontend/bin/"{plumos-audio-output,plumos-volume-control} "$payload/frontend/bin/"
+sed 's|/run/plumos/audio/asound.conf|${PLUMOS_RUNTIME_ROOT:-/run/plumos}/audio/asound.conf|' \
+    "$runtime/bin/plumos-pyxel-bubble-launch" >"$payload/frontend/bin/plumos-pyxel-bubble-launch"
 "$prototype/stage-bubble-apps.sh" "$bubble" "$revision" "$image" "$stage/apps-source" \
     "$payload/frontend"
 install -m 755 "$prototype/system/usr/lib/plumos-353m/frontend/bin/"{plumos-network-control,plumos-storage-health} \
@@ -64,7 +69,9 @@ sed 's/udhcpc -q -n/udhcpc -n -R/' "$frontend/bin/plumos-network-control" \
 install -m 755 "$stage/source/rootfs/bubble-minimal/usr/share/udhcpc/default.script" \
     "$payload/frontend/bin/plumos-wifi-dhcp"
 chmod 755 "$payload/frontend/bin/"{plumos-network-control-bubble,plumos-wifi-dhcp}
-docker run --rm -i --platform linux/arm64 -v "$payload/frontend:/runtime" "$image" sh -se <<'BUILD'
+docker run --rm -i --platform linux/arm64 -v "$payload/frontend:/runtime" \
+    -v "$stage/source/src/services:/services:ro" "$image" sh -se <<'BUILD'
+    cc -O2 -Wall -Wextra -o /runtime/bin/plumos-volume-keys /services/plumos_bubble_volume_keys.c
     install -m 755 /bin/busybox /runtime/bin/busybox
     /runtime/bin/busybox --list | grep -qx grep
     /runtime/bin/busybox --list | grep -qx taskset
