@@ -66,6 +66,8 @@ LLVMはホスト用の残りを1ジョブで、RG3566向けライブラリを2�
 
 PortMasterのレシピが直接取得する旧 `compat.zip` にもダウンロード失敗がありました。当時のフォークに残るアーカイブ（SHA-256 `e0c493f24ec1d94a79c3554811f5b9c9c863d6ab0988649bd64d7f6a4e44626f`）を取得し、収録される47件すべてが配布版の `/usr/lib/compat` とバイト単位で一致することを確認しました。Docker側で該当する1件の取得を検証済みのアーカイブに振り替え、レシピに変更を加えずPortMasterの組み込みが完了しました。[互換アーカイブの保存コミット](https://github.com/RetroGFX/UnofficialOSAddons/commit/351c27e6bb0b07a7f920cf303f72b8ba78fed17d)
 
-`mame-lr` のビルド中にもメモリ不足による強制終了が発生しました。DockerのLinux VMに5 GiBの一時スワップを追加し、保存済みのオブジェクトを使って同じレシピを再開しました。
+`mame-lr` のビルド中にもメモリ不足による強制終了が発生しました。DockerのLinux VMに5 GiBの一時スワップを追加し、保存済みのオブジェクトを使って同じレシピを再開しました。`mame-lr` と `same_cdi-lr` の同時コンパイルでは頻繁にスワップが発生したため、この2パッケージをJELOSの `scripts/build` で1つずつ事前ビルドし、続けて `scripts/build_distro` で通常のイメージを生成する構成にしました。
 
-既にRG353Mで起動したJELOSのSDカードから採取した先頭16 MiBも、元の配布イメージと照合しました。IDB、U-Boot FIT、`resource.img` の領域はバイト単位で一致しました。差分があったのは、初回起動後のストレージ拡張を反映する保護MBRとGPT、およびVendorStorageの25バイトです。再ビルドの比較基準には配布イメージを使います。
+既にRG353Mで起動したJELOSのSDカードから採取した先頭16 MiBも、元の配布イメージと照合しました。IDB、U-Boot FIT、`resource.img` の領域はバイト単位で一致しました。差分があったのは、初回起動後のストレージ拡張を反映する保護MBRとGPT、およびVendorStorageの25バイトです。実機SDのVendorStorageにはLAN用MACアドレスのレコードが1件あり、U-Bootにはこのレコードを保存する処理があります。再ビルドの比較基準には配布イメージを使います。[U-Bootの保存処理](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/arch/arm/mach-rockchip/board.c#L90-L134)
+
+`p3` のFATボリュームIDはイメージ生成時の日時から作られ、`p4` のext4 UUIDは `uuidgen` で生成されます。JELOSは同じ値をファイルシステムと `extlinux.conf` の `boot=UUID=`・`disk=UUID=` に設定します。配布版固有の `0602-1646` と再ビルド版の値が異なっても、各イメージ内で参照先が一致すれば仕様どおりです。[UUID生成](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/scripts/image#L305-L308) · [Rockchipのextlinux設定](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/projects/Rockchip/bootloader/mkimage#L89-L98)
