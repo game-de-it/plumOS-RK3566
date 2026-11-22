@@ -36,6 +36,9 @@ loop=$(losetup --find --show --partscan "$work/card.img")
 mkdir "$work/flash"
 node "$work/p3" 3
 mount -o ro "$work/p3" "$work/flash"
+test -r "$work/flash/post-sysroot.sh"
+test -x "$work/flash/plumos-splash/boot-splash"
+test "$(stat -c %s "$work/flash/plumos-splash/boot-splash.xrgb")" = 1228800
 unsquashfs -no-progress -d "$root" "$work/flash/SYSTEM"
 umount "$work/flash"
 mkdir -p "$root/flash" "$root/storage" "$root/dev" "$root/proc" "$root/sys" "$root/sysroot"

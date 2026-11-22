@@ -55,6 +55,11 @@ mount "$work/p4" "$work/storage"
     cp /system SYSTEM
     printf '%s  target/SYSTEM\n' "$(md5sum SYSTEM | cut -d ' ' -f 1)" > SYSTEM.md5
     cp /prototype/boot-system/mount-storage.sh .
+    mkdir plumos-splash
+    cp /splash/boot-splash /splash/boot-splash.xrgb /prototype/boot-splash.sh plumos-splash/
+    cp /prototype/seed/post-sysroot.sh .
+    cmp /splash/boot-splash plumos-splash/boot-splash
+    cmp /splash/boot-splash.xrgb plumos-splash/boot-splash.xrgb
     sha256sum -c "$work/boot.sha256"
     cmp /system SYSTEM
     # Replacing the FAT file can leave original SYSTEM bytes in unused clusters.

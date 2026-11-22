@@ -28,3 +28,14 @@
 生成したrawイメージは2,198,863,872バイト、圧縮版は1,336,887,939バイトです。圧縮版のSHA-256は `a8785a077bd9fecf4f982cb6d8c5cdaa1c83459a6d4e575fcd591954625d2c8b` です。初期GPTの主・副ヘッダー、SD先頭16 MiB、カーネル、DTBと起動設定を入力イメージと照合しました。
 
 Dockerで8 GiBに拡げた複製を使い、GPT更新、再接続後のext4拡張、FAT32の作成、既存ファイルの保持を確認しました。別のファイルシステムを置いた場合は処理が止まり、そのファイルシステムが残ることも確認しました。起動済みのシステムで使ったのと同じ選択処理で、更新候補の登録・試験起動用マウントと、出荷時の `SYSTEM` への復旧用マウントを確認しました。初回セットアップ付きのこのイメージのRG353M起動は、SDへの書き込み後に確認します。
+
+## RG353Mでの初回起動と通常起動
+
+書き込み後のカードにUSB ADBで接続しました。再起動をまたぐ最初のGPT変更は、実機の `original.sfdisk` と `target.sfdisk` を照合して確認しました。カーネルの `mmcblk1p5` の開始位置はLBA 12615680です。再起動後のjournalには、`resize2fs` が `/dev/mmcblk1p4` を4,194,304個の1 KiBブロックへ拡張し、`mkfs.fat` の後に `user partition ready` を記録したことが残っていました。最初のGPT変更を行ったブートのjournalは揮発性です。
+
+- `/dev/mmcblk1p5` はFAT32、ラベル `PLUMOS`、約109.2 GiBで、`/storage/user` に読み書き可能でマウントされました。`Roms`・`BIOS`・`Images` を確認し、USB ADBでこの領域に40バイトのファイルをpush・pullして内容を照合しました。
+- Bubbleは `/storage/user` を使って97件のシステム定義を読み込み、初回描画マーカーを生成しました。ADBの `fcc00000.dwc3` は `configured` でした。その次の起動でp5は再度マウントされ、通常起動のjournalに再フォーマットや再拡張のログはありませんでした。
+- 起動画面の履歴では `c62e66a` が文字ロゴを差し替え、`557a862` がBubbleの画像を描画する `post-sysroot.sh` とフレームバッファ描画プログラムを導入しました。初回セットアップ付きseedではこのフックと共通ロゴの収録が漏れていました。実機へADBで追加し、再起動時に640×480 XRGB8888フレームバッファへ描画したことを確認しました。内蔵画面にplumOSの画像ロゴが表示されたことをユーザーが確認しました。
+- Dockerビルドにも同じフックを追加しました。`output/bubble-sd/plumOS-RK3566-RG353M-logo.img.gz` のSHA-256は `3e4c9d60a76526a4c4f7156e779188e07fb197d5cf3cf53161de189cee7df323` です。ロゴの収録に加え、8 GiBに拡張した複製での初回処理・再セットアップ不要の通常マウント・更新時と復旧時のSYSTEM選択を再検証しました。
+- このseedの実行中のPID 1は `/usr/lib/systemd/systemd`、既定ターゲットは `jelos.target` です。通常起動で `emustation.service` はカーネル起動から約16.8秒で始まり、クリティカルチェーンには `network.target`・`sshd.service`・`jelos-autostart.service`（4.44秒）が残っていました。`emustation.service` が実行するFE自体はBubbleです。JELOSのinitramfsの汎用更新処理 `check_update` も残っています。
+- 設計コミット `37c1111` とPID 1の試作 `2a6c9a2` では、JELOSのU-Boot、カーネル、DTB、initramfsを使い、固定された `switch_root` 呼び出し先からplumOSのinitへ渡します。移行対象はsystemd、`jelos.target`、JELOSのユーザランド自動起動・電源管理・汎用更新です。plumOSのinitがp5のセットアップとマウント、FEの監視、電源操作、ADB復旧を担い、通常起動ではネットワークやROM走査を待たずにFEを描画できる状態を目指します。このseedはその前の検証段階です。[起動・初回セットアップ設計](../plumos-rk3566-design.md)
