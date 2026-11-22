@@ -47,7 +47,9 @@ if [ "$#" -eq 5 ]; then
         test -x "$runtime/emulator/standalone/pcsx_rearmed/pcsx"
     cp -R "$runtime/." "$payload/frontend/"
     docker run --rm --platform linux/arm64 -v "$payload/frontend:/runtime" "$image" sh -ec '
-        install -m 755 /bin/busybox /runtime/bin/plumos-busybox
+        install -m 755 /bin/busybox /runtime/bin/busybox
+        /runtime/bin/busybox --list | grep -qx grep
+        /runtime/bin/busybox --list | grep -qx taskset
         install -m 644 /usr/share/doc/busybox-static/copyright /runtime/licenses/busybox-static-copyright
     '
     python3 - "$payload/frontend/config/frontend/systems.json" <<'PY'
