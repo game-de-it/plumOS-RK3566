@@ -1,10 +1,9 @@
 [Unit]
 Description=Confirm plumOS frontend and USB ADB started
 ConditionPathExists=/dev/plumos-system-active
-After=emustation.service plumos-usb-adb.service
 
 [Service]
-Type=oneshot
+Type=simple
 ExecStart=/storage/plumos-rk3566/system/mark-good
 
 [Install]

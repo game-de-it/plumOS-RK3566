@@ -19,10 +19,14 @@ test -f "$units/plumos-rk3566-adb.service"
 test -L "$units/jelos.target.wants/plumos-rk3566-adb.service"
 mkdir -p "$state" "$units/plumos-rk3566-adb.service.d" \
     "$units/run-plumos-bubble.mount.d" "$units/emustation.service.d" \
-    "$units/multi-user.target.wants"
+    "$units/multi-user.target.wants" "$units/jelos.target.wants"
 install -m 755 boot-system mark-good "$state/"
 install -m 644 plumos-system-health.service "$units/"
 ln -sfn ../plumos-system-health.service "$units/multi-user.target.wants/plumos-system-health.service"
+frontend_link="$units/jelos.target.wants/emustation.service"
+if [ ! -e "$frontend_link" ] && [ ! -L "$frontend_link" ]; then
+    ln -s /usr/lib/systemd/system/emustation.service "$frontend_link"
+fi
 for unit in plumos-rk3566-adb.service run-plumos-bubble.mount; do
     printf '[Unit]\nConditionPathExists=!/dev/plumos-system-active\n' \
         > "$units/$unit.d/90-stock-recovery.conf"

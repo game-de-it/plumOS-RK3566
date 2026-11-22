@@ -33,6 +33,7 @@ case "${1:-status}" in
     keep)
         test "$#" -eq 1
         hash=$(cat "$active")
+        test ! -e "$state/pending"
         test "$(cat "$state/healthy")" = "$hash"
         write_selection "$hash" default
         ;;
