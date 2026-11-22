@@ -11,6 +11,7 @@ Bubbleの `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` から、BubbleのARM64 Doc
 - 実機では `/storage` に検証用SquashFSとサービス定義を配備し、`/run/plumos/bubble` に読み取り専用でマウントしました。EmulationStationを停止してからBubbleを起動し、`/tmp/plumos-fe-ready` を確認しました。実機の `/flash/SYSTEM` はJELOSのままで、完成した `SYSTEM` を使ったルートファイルシステムでの実機起動は未検証です。
 - USBハブ経由でADBのシェルに接続し、40バイトのファイルをpush・pullして照合しました。再起動前後のブートIDの変化、Bubble・ADB・読み取り専用マウントの自動再開を確認しました。Mac上にはUSB機器が表示される一方、再列挙後にADB一覧から消えることがありました。MacのADBサーバーを `ADB_LIBUSB=1` で再起動し、同じ機器への接続を復旧できました。
 - SD先頭16 MiBのハッシュは検証の再起動前後で `e2a6e7f2a0139d322b009116cb04da26a446b11dfe35e212f4dbeb5c455c7cee` でした。`KERNEL`・RG353M用DTB・`extlinux.conf`・`SYSTEM` も一致し、再起動後の `/flash` は読み取り専用でした。
+- ユーザーが再起動後の内蔵画面でBubbleのメニュー表示と、十字キー・A（決定）・B（戻る）の操作を確認しました。同時にADB経由の `evtest` で十字キーと、Aの `BTN_EAST`（305）、Bの `BTN_SOUTH`（304）を取得しました。
 
 ## 容量
 
