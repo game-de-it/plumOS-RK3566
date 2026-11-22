@@ -1,0 +1,32 @@
+#!/bin/sh
+set -eu
+
+root=${PLUMOS_ROOT:-/storage/plumos-rk3566/frontend}
+helper=$root/bin/plumos-storage-health-bubble
+if [ "${1:-status}" != check ]; then
+    exec "$helper" "$@"
+fi
+
+# Match boot-time observation and check the mounted volume behind the ROM paths.
+media=/storage/user
+if grep -qs ' /run/media/sd2 ' /proc/mounts; then
+    media=/run/media/sd2
+fi
+export PLUMOS_SDCARD_ROOT=$media
+runtime=${PLUMOS_RUNTIME_ROOT:-/run/plumos-353m}
+mkdir -p "$runtime"
+exec 9>"$runtime/storage-check.lock"
+flock -n 9 || exit 1
+options=$(awk -v media="$media" '$2==media && $3=="vfat" {print $4; exit}' /proc/mounts)
+case ",$options," in
+    *,ro,*) exec "$helper" check ;;
+    *,rw,*) ;;
+    *) exit 1 ;;
+esac
+sync
+mount -o remount,ro "$media" || exit 1
+trap 'mount -o remount,rw "$media"' EXIT
+trap 'exit 1' HUP INT TERM
+"$helper" check
+mount -o remount,rw "$media"
+trap - EXIT

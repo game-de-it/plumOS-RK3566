@@ -4,9 +4,11 @@ set -eu
 
 runtime=${PLUMOS_RUNTIME_ROOT:-/run/plumos-353m}
 state=$runtime/audio/codec-route
+root=${PLUMOS_ROOT:-/storage/plumos-rk3566/frontend}
+settings=${PLUMOS_SYSTEM_SETTINGS_JSON:-$root/config/system/settings.json}
 
 route() {
-    local headset card previous
+    local headset card previous output
     card=rockchiprk817co
     [ -e /proc/asound/"$card" ] || return 1
     headset=SPK
@@ -18,11 +20,15 @@ route() {
         fi
         break
     done
+    output=$(sed -n 's/.*"audio_output"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$settings" 2>/dev/null | head -n 1)
+    case "$output" in
+        speaker) headset=SPK ;;
+        headphone) [ "$headset" != SPK ] || headset=HP_NO_MIC ;;
+    esac
     previous=$(cat "$state" 2>/dev/null || :)
     [ "$headset" != "$previous" ] || return 0
 
-    # The emulator's ALSA_CONFIG_PATH is a minimal PCM graph. Use JELOS's
-    # ALSA configuration and the named card to program the physical mixer.
+    # Use the system ALSA configuration for the physical mixer.
     (unset ALSA_CONFIG_PATH; /usr/bin/amixer -q -c "$card" cset name='Playback Path' "$headset")
     mkdir -p "${state%/*}"
     printf '%s\n' "$headset" > "$state.$$"

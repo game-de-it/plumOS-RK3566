@@ -1,0 +1,245 @@
+--- a/package/frontend-bubble/plumos/bin/plumos-time-sync
++++ b/package/frontend-bubble/plumos/bin/plumos-time-sync
+@@ -3,15 +3,15 @@
+ 
+ PLUMOS_ROOT=${PLUMOS_ROOT:-/storage/plumos}
+ RUNTIME_ROOT=${PLUMOS_RUNTIME_ROOT:-/run/plumos}
+-BB=${PLUMOS_BUSYBOX:-/bin/busybox}
++BB=$PLUMOS_ROOT/network-services/bin/busybox
+ RUN_DIR=${PLUMOS_TIME_SYNC_RUN_DIR:-$RUNTIME_ROOT/time-sync}
+ SETTINGS=${PLUMOS_SYSTEM_SETTINGS_JSON:-$PLUMOS_ROOT/config/system/settings.json}
+ STATUS=${PLUMOS_TIME_SYNC_STATUS:-$RUN_DIR/status}
+ LOG=${PLUMOS_TIME_SYNC_LOG:-$PLUMOS_ROOT/logs/time-sync.log}
+ RTC=${PLUMOS_RTC_DEVICE:-/dev/rtc0}
+ RTC_SYSFS=${PLUMOS_RTC_SYSFS:-/sys/class/rtc/rtc0}
+-SERVER=${PLUMOS_TIME_SERVER:-time.nist.gov}
+-TIMEOUT=${PLUMOS_TIME_SYNC_TIMEOUT:-8}
++SERVER=${PLUMOS_TIME_SERVER:-pool.ntp.org}
++TIMEOUT=${PLUMOS_TIME_SYNC_TIMEOUT:-15}
+ 
+ usage() { printf 'Usage: plumos-time-sync sync|force-sync|store-rtc|status\n'; }
+ mkdir -p "$RUN_DIR" "${LOG%/*}" 2>/dev/null || true
+@@ -45,7 +45,7 @@
+         printf 'result=disabled\n'
+         return 0
+     fi
+-    if "$BB" timeout "$TIMEOUT" "$BB" rdate -s "$SERVER" >/dev/null 2>&1; then
++    if "$BB" timeout "$TIMEOUT" "$BB" ntpd -n -q -p "$SERVER" >/dev/null 2>&1; then
+         if store_rtc; then
+             write_status synced "$SERVER"
+             printf 'result=synced\n'
+--- a/package/frontend-bubble/plumos/bin/plumos-factory-reset
++++ b/package/frontend-bubble/plumos/bin/plumos-factory-reset
+@@ -70,11 +70,13 @@
+     source_root=$2
+     destination_root=$3
+     status=0
+-    find "$source_root" -type f | while IFS= read -r source; do
+-        relative=${source#"$source_root"/}
+-        restore_file "$group" "$source" "$destination_root/$relative" || status=1
+-    done
+-    return "$status"
++    find "$source_root" -type f | (
++        while IFS= read -r source; do
++            relative=${source#"$source_root"/}
++            restore_file "$group" "$source" "$destination_root/$relative" || status=1
++        done
++        exit "$status"
++    )
+ }
+ 
+ restore_ra() {
+--- a/package/network-services-bubble/plumos/bin/plumos-network-services
++++ b/package/network-services-bubble/plumos/bin/plumos-network-services
+@@ -8,13 +8,13 @@
+ RUN_DIR=${PLUMOS_NETWORK_SERVICES_RUN_DIR:-$RUNTIME_ROOT/network-services}
+ CONFIG_DIR=$PLUMOS_ROOT/config/network
+ SERVICES_CONF=$CONFIG_DIR/services.conf
+-LOG=$PLUMOS_ROOT/logs/network-services.log
++LOG=$RUN_DIR/network-services.log
+ DROPBEAR_RUNTIME_LOG=$RUNTIME_ROOT/dropbear/dropbear.log
+ BUSYBOX=$PLUMOS_ROOT/network-services/bin/busybox
+-SFTP_SERVER=$PLUMOS_ROOT/network-services/ssh/libexec/sftp-server
+-SFTP_SYSTEM_BRIDGE=${PLUMOS_SFTP_SYSTEM_BRIDGE:-/usr/lib/sftp-server}
+-SMBD=$PLUMOS_ROOT/network-services/samba/sbin/smbd
+-HOST_KEY=$PLUMOS_ROOT/ssh/dropbear_ed25519_host_key
++SFTP_SERVER=/usr/lib/openssh/sftp-server.real
++SFTP_SYSTEM_BRIDGE=${PLUMOS_SFTP_SYSTEM_BRIDGE:-/usr/lib/openssh/sftp-server}
++SMBD=/usr/bin/smbd
++HOST_KEY=$CONFIG_DIR/dropbear_ed25519_host_key
+ SSH_PID=${PLUMOS_SSH_PID_FILE:-/run/dropbear/dropbear.pid}
+ SFTP_PID=$RUN_DIR/dropbear-sftp.pid
+ FTP_PID=$RUN_DIR/ftp.pid
+@@ -39,7 +39,7 @@
+ enabled() {
+     key=$(config_key "$1") || return 1
+     value=$(sed -n "s/^${key}=//p" "$SERVICES_CONF" 2>/dev/null | tail -n 1)
+-    [ -n "$value" ] || { [ "$1" = ssh ]; return; }
++    [ -n "$value" ] || { [ "$1" = adb ]; return; }
+     case $value in 1|true|on) return 0 ;; *) return 1 ;; esac
+ }
+ 
+@@ -84,11 +84,6 @@
+ 
+ dropbear_running() {
+     pid_matches "$SSH_PID" dropbear && return 0
+-    for path in /proc/[0-9]*/cmdline; do
+-        [ -r "$path" ] || continue
+-        cmd=$(tr '\000' ' ' <"$path" 2>/dev/null || true)
+-        case "$cmd" in *dropbear*'-p 22 '*) return 0 ;; esac
+-    done
+     return 1
+ }
+ 
+@@ -127,15 +122,25 @@
+             print_status samba stopped 'Samba stopped'; return 2
+             ;;
+         adb)
+-            print_status adb hardware_unavailable 'Bubble kernel exposes no USB device controller'; return 1
++            if [ -r /sys/kernel/config/usb_gadget/plumos353m/UDC ] &&
++                [ -n "$(cat /sys/kernel/config/usb_gadget/plumos353m/UDC)" ]; then
++                if enabled adb; then
++                    print_status adb running 'USB ADB'
++                else
++                    print_status adb restart-to-disable 'Disable on next boot'
++                fi
++            elif enabled adb; then
++                print_status adb restart-to-enable 'Enable on next boot'
++            else
++                print_status adb stopped 'USB ADB stopped'
++            fi
+             ;;
+     esac
+ }
+ 
+ start_ssh() {
+-    set_enabled ssh 1
+-    if dropbear_running; then status_service ssh; return 0; fi
+-    [ -x /usr/sbin/dropbear ] && [ -x /usr/bin/dropbearkey ] || return 1
++    if ! dropbear_running; then
++    [ -x /usr/bin/dropbear ] && [ -x /usr/bin/dropbearkey ] || return 1
+     mkdir -p "${SSH_PID%/*}" "${HOST_KEY%/*}"
+     if [ ! -s "$HOST_KEY" ]; then
+         /usr/bin/dropbearkey -t ed25519 -f "$HOST_KEY" >>"$LOG" 2>&1 || return 1
+@@ -144,9 +149,11 @@
+     # The listener and each accepted SSH child inherit stderr. Keep that
+     # descriptor on tmpfs so an idle or active SSH session cannot prevent the
+     # final /storage remount during reboot or shutdown.
+-    /usr/sbin/dropbear -E -P "$SSH_PID" -r "$HOST_KEY" -p 22 -K 30 -I 300 \
+-        >>"$DROPBEAR_RUNTIME_LOG" 2>&1 || return 1
+-    status_service ssh
++    /usr/bin/dropbear -E -P "$SSH_PID" -r "$HOST_KEY" -p 22 -s -K 30 -I 300 \
++        >>"$DROPBEAR_RUNTIME_LOG" 2>&1 9>&- </dev/null || return 1
++    fi
++    status_service ssh >/dev/null || return 1
++    set_enabled ssh 1
+ }
+ 
+ stop_ssh() {
+@@ -158,15 +165,15 @@
+ }
+ 
+ start_ftp() {
+-    set_enabled ftp 1
+     [ -x "$BUSYBOX" ] || return 1
+     if ! pid_matches "$FTP_PID" tcpsvd; then
+         "$BUSYBOX" tcpsvd -vE -c 20 0.0.0.0 "$FTP_PORT" \
+-            "$BUSYBOX" ftpd -w -A -t 300 -T 3600 "$SHARE_DIR" >>"$LOG" 2>&1 &
++            "$BUSYBOX" ftpd -w -A -t 300 -T 3600 "$SHARE_DIR" >>"$RUN_DIR/ftp.log" 2>&1 9>&- </dev/null &
+         printf '%s\n' "$!" >"$FTP_PID"
+         sleep 1
+     fi
+-    status_service ftp
++    status_service ftp >/dev/null || return 1
++    set_enabled ftp 1
+ }
+ 
+ stop_ftp() {
+@@ -176,12 +183,11 @@
+ }
+ 
+ start_sftp() {
+-    set_enabled sftp 1
+     [ -x "$SFTP_SERVER" ] && [ -x "$SFTP_SYSTEM_BRIDGE" ] || return 1
+     # Remove the pre-V90S-compatibility listener if this is a live upgrade.
+     stop_pid "$SFTP_PID" dropbear
+     start_ssh >/dev/null || return 1
+-    status_service sftp
++    set_enabled sftp 1
+ }
+ 
+ stop_sftp() {
+@@ -203,8 +209,8 @@
+     cat >"$CONFIG_DIR/smb.conf" <<EOF
+ [global]
+    workgroup = WORKGROUP
+-   netbios name = PLUMOS-BUBBLE
+-   server string = plumOS Bubble
++   netbios name = PLUMOS-RK3566
++   server string = plumOS RK3566
+    log level = 2
+    server role = standalone server
+    security = user
+@@ -251,15 +257,15 @@
+ }
+ 
+ start_samba() {
+-    set_enabled samba 1
+     [ -x "$SMBD" ] || return 1
+     if ! pid_matches "$SMBD_PID" smbd; then
+         write_smb_conf
+-        PLUMOS_ROOT="$PLUMOS_ROOT" "$SMBD" -D -s "$CONFIG_DIR/smb.conf" \
+-            >>"$LOG" 2>&1 </dev/null || true
++        TMPDIR="$samba_run" "$SMBD" -D -s "$CONFIG_DIR/smb.conf" -l "$samba_run/log" \
++            >>"$RUN_DIR/smbd.log" 2>&1 9>&- </dev/null || true
+         sleep 1
+     fi
+-    status_service samba
++    status_service samba >/dev/null || return 1
++    set_enabled samba 1
+ }
+ 
+ stop_samba() {
+@@ -281,13 +287,21 @@
+         stop:sftp) stop_sftp ;;
+         start:samba) start_samba ;;
+         stop:samba) stop_samba ;;
+-        start:adb|stop:adb) status_service adb ;;
++        start:adb) set_enabled adb 1 ;;
++        stop:adb) set_enabled adb 0 ;;
+         *) return 2 ;;
+     esac
+ }
+ 
+ action=${1:-}
+ service=${2:-}
++case "$action" in
++    status) ;;
++    *)
++        exec 9>"$RUN_DIR/control.lock"
++        flock -x 9 || exit 1
++        ;;
++esac
+ if [ "$action" = quiesce ]; then
+     # Terminal power actions must close every persistent log descriptor without
+     # changing the user's enabled/disabled service preferences.
+@@ -299,7 +313,7 @@
+ fi
+ if [ "$action" = start-enabled ]; then
+     result=0
+-    for candidate in ftp sftp samba; do
++    for candidate in ssh ftp sftp samba; do
+         enabled "$candidate" || continue
+         run_one start "$candidate" || result=$?
+     done
+--- a/package/frontend-bubble/plumos/bin/plumos-storage-health
++++ b/package/frontend-bubble/plumos/bin/plumos-storage-health
+@@ -62,7 +62,7 @@
+ 
+ if [ -n "$device" ]; then
+     kernel_name=${device##*/}
+-    if dmesg 2>/dev/null | "$BB" grep -E "(FAT-fs|exFAT-fs) \($kernel_name\).*(error|corrupt|invalid)" >/dev/null 2>&1; then
++    if [ "$ACTION" = observe ] && dmesg 2>/dev/null | "$BB" grep -E "(FAT-fs|exFAT-fs) \($kernel_name\).*(error|corrupt|invalid)" >/dev/null 2>&1; then
+         result=dirty
+         evidence='kernel reported filesystem corruption; no repair attempted'
+     elif [ "$ACTION" = observe ]; then

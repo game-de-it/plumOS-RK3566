@@ -9,6 +9,7 @@ system_state=$storage/system
 sd2_service=$payload/manage-sd2
 export PLUMOS_ROOT=$storage/frontend
 export XDG_RUNTIME_DIR=$runtime
+export PLUMOS_RUNTIME_ROOT=$runtime PLUMOS_SDCARD_ROOT=/storage/user
 
 for directory in /run /tmp; do
     grep -qs " $directory " /proc/mounts || mount -t tmpfs tmpfs "$directory"
@@ -47,6 +48,10 @@ power_action() {
         frontend=
     fi
     attempt=0
+    if [ -x "$PLUMOS_ROOT/bin/plumos-network-services" ]; then
+        "$PLUMOS_ROOT/bin/plumos-network-services" quiesce
+        rm -f "$runtime/network-boot-started"
+    fi
     network=$PLUMOS_ROOT/bin/plumos-network-control
     if [ -x "$network" ]; then
         "$network" --wifi off || echo 'plumOS init: Wi-Fi shutdown failed'
@@ -89,7 +94,8 @@ mark_ready() {
     local hash
     [ ! -e "$runtime/boot-ready" ] || return 0
     [ -n "$frontend" ] && kill -0 "$frontend" 2>/dev/null &&
-        [ -s /tmp/plumos-fe-ready ] &&
+        [ -s /tmp/plumos-fe-ready ] || return 0
+    [ -z "$adb_pid" ] ||
         [ "$(cat /sys/kernel/config/usb_gadget/plumos353m/UDC 2>/dev/null)" = fcc00000.dwc3 ] || return 0
     if [ -f /dev/plumos-system-active ]; then
         hash=$(cat /dev/plumos-system-active)
@@ -103,13 +109,17 @@ mark_ready() {
             echo 'plumOS init: runtime update health could not be recorded'
     fi
     cut -d ' ' -f 1 /proc/uptime > "$runtime/boot-ready"
-    echo 'plumOS init: frontend and ADB ready'
+    echo 'plumOS init: frontend and selected USB policy ready'
 }
 
 # A request wakes the polling loop; shutdown itself runs outside a signal handler.
 trap ':' USR1
-"$payload/start-adb" &
-adb_pid=$!
+adb_policy=$PLUMOS_ROOT/config/network/services.conf
+if [ -e /dev/plumos-system-active ] || [ ! -s "$storage/provision/ready" ] ||
+    ! grep -qs '^adb_enabled=0$' "$adb_policy"; then
+    "$payload/start-adb" &
+    adb_pid=$!
+fi
 
 if [ -x "$storage/provision/start-storage" ]; then
     result=0
@@ -124,13 +134,14 @@ if [ -x "$storage/provision/start-storage" ]; then
 fi
 if [ "$provisioned" = no ]; then
     echo 'plumOS init: storage is unavailable; ADB recovery remains active'
+    if [ -z "$adb_pid" ]; then "$payload/start-adb" & adb_pid=$!; fi
 elif [ -x "$sd2_service" ]; then
     "$sd2_service" start || echo 'plumOS init: SD2 setup or library scan failed'
 fi
 
 while :; do
     power_action
-    if ! kill -0 "$adb_pid" 2>/dev/null; then
+    if [ -n "$adb_pid" ] && ! kill -0 "$adb_pid" 2>/dev/null; then
         wait "$adb_pid" 2>/dev/null || :
         sleep 1
         "$payload/start-adb" &
@@ -140,7 +151,10 @@ while :; do
         wait "$frontend"
         echo "plumOS init: frontend exited status=$?"
         frontend=
-        if [ "$attempt" -eq 5 ]; then echo 'plumOS init: frontend restart limit; ADB remains active'; fi
+        if [ "$attempt" -eq 5 ]; then
+            echo 'plumOS init: frontend restart limit; enabling ADB recovery'
+            if [ -z "$adb_pid" ]; then "$payload/start-adb" & adb_pid=$!; fi
+        fi
         sleep 1
     fi
     if [ -z "$audio_pid" ] && [ -x "$payload/frontend/bin/plumos-rk3566-audio-route" ]; then

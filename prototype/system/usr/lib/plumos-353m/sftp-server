@@ -1,0 +1,7 @@
+#!/bin/sh
+# Dropbear launches its SFTP subsystem without the frontend environment.
+set -eu
+config=/storage/plumos-rk3566/frontend/config/network/services.conf
+enabled=$(sed -n 's/^sftp_enabled=//p' "$config" 2>/dev/null | tail -n 1)
+[ "$enabled" = 1 ] || exit 1
+exec /usr/lib/openssh/sftp-server.real -d /storage/user "$@"

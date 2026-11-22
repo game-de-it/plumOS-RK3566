@@ -33,3 +33,24 @@
 - Performance SettingsのSystem切替、CPU Governorの保存、Reset to Defaultを確認した。NESの既定値はPerformanceで、試験設定ではOndemandへの保存と既定値への復帰ができた。
 - Helpの表示を確認した。掲載されているWi-Fi/SSHの救援画面は現行FEで無効化されている。
 - RebootとShutdownの確認から、plumOS init用の電源ヘルパーまで、実機でdry-runを通した。
+
+## 未対応項目の移植と実機再検証
+
+2026年11月23日（JST）。同じBubbleリビジョンからFEとヘルパーをDockerでビルドした。RG353Mの試作SD上にADBで `SYSTEM` を転送し、ハッシュを照合して試験起動した。調整値は操作後に元に戻し、Factory Resetは `/run` の隔離領域で実行した。
+
+| 項目 | RG353Mでの確認結果 |
+| --- | --- |
+| Brightness | STARTメニューで10 → 11 → 10と操作し、バックライトの読み値が28 → 39 → 28と変化した。 |
+| Lumination / Display Color | 内蔵DSIでLumination、Contrast、Hue、Saturationをそれぞれ1段階変更して元に戻した。FEがDRMから変更値を読み戻した。 |
+| Audio Output | メニューをAuto → Speaker → Headphone → Autoと操作し、RK817の出力経路がSPK → HP_NO_MIC → SPKに切り替わった。3.5 mm端子からの聴感確認は未実施。 |
+| Lid Suspend | 蓋センサーを持たない機種のため、設定を変更できない旨を表示する。 |
+| Time Settings | 起動時の自動同期と、メニューからのSync NowでNTP同期およびRTC保存を確認した。Manual Timeで現在の分をRTCに保存した。TimezoneをJapanとUTCの間で切り替え、反映を確認した。NTPの再試行ではタイムアウトも観測した。 |
+| Factory Reset | All Emulator Settings、RetroArch、PicoArch、Standaloneの4項目を表示した。隔離領域で3種類の既定値を8ファイル復元し、既存ファイルのバックアップと復元後の一致を確認した。 |
+| Storage Check | FATの読み取り専用検査を行い、検査後にrwへ戻った。TF2挿入時はSD2、未挿入時の経路はp5が対象。p5の試験ではdirty bit、SD2ではボリュームラベルの不一致が報告された。検査時のfsckは両方とも `-n` で実行し、媒体への修復は行っていない。 |
+| INFORMATION / Help | GPUが `Mali-G52 / Rockchip DRM`、Displayが `RG353M RK3566 backlight / DSI` と表示された。Helpのネットワーク案内を実装済みの設定メニューに合わせた。 |
+| NW Service | Macから公開鍵SSH、同じ22番ポートのSFTP、FTP、Sambaの `SDCARD` 共有に接続した。SFTP、FTP、Sambaは試験ファイルを読み取って内容を照合した。FEでFTPの有効・無効とSambaの有効化を確認した。試験後はネットワークサービスを停止した。 |
+| USB ADB | FEの切り替えで次回起動時の無効化が予約されることを確認し、再起動前に有効へ戻した。試験SYSTEMでの起動と復旧時にはUSB ADBを有効にする。 |
+
+Dockerの `build-bubble-system.sh` は固定リビジョンにRG353Mのパッチを適用し、FE、BusyBoxのネットワーク用アプレット、Dropbear、SFTP、Samba、TZデータを組み込む。署名付き更新用の `bubble-userland.squashfs` と、SDイメージに収録する `SYSTEM` は同じステージから生成する。新しい外部コマンドとライブラリを必要とするため、旧SYSTEMから最初に更新する場合は、ADBから完全な `SYSTEM` を適用する。
+
+実機で起動した `SYSTEM` のSHA-256は `50efa2c5f6596a5fe7176eb4a508ce2ad356dae6a58780830c031ab76668b877`。試験起動後にこのファイルを `/flash/SYSTEM` に反映し、通常起動でplumOS init、Bubble、USB ADB、Wi-Fi、自動時刻同期、p5、SD2を確認した。`KERNEL`、RG353MのDTB、`extlinux.conf`、`mount-storage.sh` のハッシュとSDのパーティション表を前後で照合した。試験用のSYSTEMは確認後に片付けた。

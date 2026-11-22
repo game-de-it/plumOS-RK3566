@@ -24,13 +24,17 @@ test ! -e "$out/bubble-userland.squashfs"
 stage=$(mktemp -d "$out/build.XXXXXXXX")
 mkdir "$stage/source"
 git -C "$bubble" archive "$revision" src/frontend package/frontend-bubble/plumos \
+    package/network-services-bubble/plumos/bin/plumos-network-services \
     scripts/generate-bubble-runtime-coverage.py scripts/build-bubble-update-package.py \
+    scripts/build-network-busybox-bubble.sh \
     rootfs/bubble-minimal/usr/share/udhcpc/default.script LICENSE |
     tar -xf - -C "$stage/source"
 if ! docker image inspect "$image" >/dev/null 2>&1; then
     git -C "$bubble" show "$revision:docker/bubble-tools/Dockerfile" |
         docker build --platform linux/arm64 -t "$image" -
 fi
+patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-start-menu.patch"
+patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-start-helpers.patch"
 python3 "$prototype/emulators/enable-frontend-builtins.py" "$stage/source/src/frontend"
 "$prototype/build-frontend-docker.sh" "$stage" "$stage/source/src/frontend"
 
@@ -42,14 +46,18 @@ cp -R "$frontend"/{config,factory-defaults,fonts,share,themes} "$payload/fronten
 install -m 755 "$stage/compiled/"{plumos-controller-ui,plumos-library-scan,plumos-text-ui,plumos-frontend} "$payload/frontend/bin/"
 install -m 755 "$prototype/system/usr/lib/plumos-353m/"{start-frontend,start-adb,mount-frontend} "$payload/"
 install -m 755 "$prototype/boot-system/manage-sd2" "$payload/"
-install -m 755 "$frontend/bin/"{plumos-bubble-mount-sd2,plumos-storage-health,plumos-library-index-media} \
+install -m 755 "$frontend/bin/"{plumos-bubble-mount-sd2,plumos-library-index-media,plumos-factory-reset,plumos-time-sync,plumos-display-control} \
+    "$payload/frontend/bin/"
+install -m 755 "$frontend/bin/plumos-storage-health" "$payload/frontend/bin/plumos-storage-health-bubble"
+install -m 755 "$stage/source/package/network-services-bubble/plumos/bin/plumos-network-services" \
     "$payload/frontend/bin/"
 install -m 755 "$prototype/system/usr/lib/plumos-353m/frontend/bin/plumos-safe-shutdown" "$payload/frontend/bin/"
 install -m 755 "$adbd" "$payload/adbd"
 cp -R "$runtime/." "$payload/frontend/"
+install -m755 "$prototype/emulators/plumos-rk3566-audio-route" "$payload/frontend/bin/"
 "$prototype/stage-bubble-apps.sh" "$bubble" "$revision" "$image" "$stage/apps-source" \
     "$payload/frontend"
-install -m 755 "$prototype/system/usr/lib/plumos-353m/frontend/bin/plumos-network-control" \
+install -m 755 "$prototype/system/usr/lib/plumos-353m/frontend/bin/"{plumos-network-control,plumos-storage-health} \
     "$payload/frontend/bin/"
 sed 's/udhcpc -q -n/udhcpc -n -R/' "$frontend/bin/plumos-network-control" \
     > "$payload/frontend/bin/plumos-network-control-bubble"
@@ -74,8 +82,23 @@ docker run --rm -i --platform linux/arm64 -v "$payload/frontend:/runtime" "$imag
     install -m 644 COPYING /runtime/licenses/wpa_cli-COPYING
     /runtime/bin/wpa_cli -v
 BUILD
+# Bubble's static network BusyBox supplies the service and clock applets.
+network_builder=$stage/source/scripts/build-network-busybox-bubble.sh
+python3 - "$network_builder" <<'PY_CONFIG'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+text = path.read_text()
+line = "    -e 's/^# CONFIG_STATIC is not set$/CONFIG_STATIC=y/' " + chr(92)
+assert text.count(line) == 1
+path.write_text(text.replace(line, line + "\n    -e 's/^# CONFIG_NTPD is not set$/CONFIG_NTPD=y/' " + chr(92)))
+PY_CONFIG
+PLUMOS_BUBBLE_TOOLS_IMAGE="$image" "$network_builder"
+mkdir -p "$payload/frontend/network-services/bin"
+install -m755 "$stage/source/output/network-busybox/bubble/busybox" \
+    "$payload/frontend/network-services/bin/busybox"
 catalog="$payload/frontend/config/frontend"
-python3 - "$catalog/systems.json" <<'PY'
+python3 - "$catalog/systems.json" "$catalog/start-menu-coverage.json" <<'PY'
 import json
 from pathlib import Path
 import sys
@@ -100,6 +123,23 @@ for system_id in ("2048", "mrboom"):
     directory.mkdir(parents=True, exist_ok=True)
     (directory / name).write_text("[Desktop Entry]\nName=" + system["display_name"] + "\n")
 path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + "\n")
+
+path = Path(sys.argv[2])
+coverage = json.loads(path.read_text())
+coverage["device"] = "rg353m"
+coverage["unsupported_visible"] = [
+    {"path": "system/lid-suspend", "reason": "no-lid-device"},
+]
+coverage["product_excluded"] = [
+    item for item in coverage["product_excluded"] if item["path"] != "network/services/adb"
+]
+coverage["implemented_subroutes"].extend([
+    {"path": "system/brightness", "backend": "RK3566 backlight"},
+    {"path": "system/time", "backend": "NTP and RK817 RTC"},
+    {"path": "system/storage-check", "backend": "read-only FAT32 check of active SD media"},
+    {"path": "network/services/adb", "backend": "USB ADB policy applied on reboot"},
+])
+path.write_text(json.dumps(coverage, indent=2, ensure_ascii=False) + "\n")
 PY
 python3 "$stage/source/scripts/generate-bubble-runtime-coverage.py" \
     --systems "$catalog/systems.json" --app-root "$payload/frontend" \

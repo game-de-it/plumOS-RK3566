@@ -57,9 +57,20 @@ copy_binary() {
 }
 
 for command in amixer aplay alsactl bash blkid depmod dropbear dropbearkey e2fsck \
-    findmnt flock fsck.vfat lsblk mkfs.vfat modprobe mount openssl resize2fs sfdisk stdbuf \
+    findmnt flock fsck.vfat lsblk mkfs.vfat modprobe mount openssl resize2fs sfdisk smbd stdbuf \
     umount unzip wpa_cli wpa_supplicant; do
     copy_binary "$command"
+done
+install -D -m755 /usr/lib/openssh/sftp-server "$root/usr/lib/openssh/sftp-server.real"
+copy_libraries /usr/lib/openssh/sftp-server
+install -m755 /prototype/system/usr/lib/plumos-353m/sftp-server "$root/usr/lib/openssh/sftp-server"
+ln -s openssh/sftp-server "$root/usr/lib/sftp-server"
+mkdir -p "$root/usr/lib/aarch64-linux-gnu"
+cp -a /usr/lib/aarch64-linux-gnu/samba "$root/usr/lib/aarch64-linux-gnu/"
+cp -a /usr/lib/aarch64-linux-gnu/gconv "$root/usr/lib/aarch64-linux-gnu/"
+for worker in /usr/libexec/samba/samba-dcerpcd /usr/libexec/samba/rpcd_*; do
+    install -D -m755 "$worker" "$root$worker"
+    copy_libraries "$worker"
 done
 
 # Resolve ARM64 SONAMEs supplied by the toolchain for Bubble's executable payloads.
@@ -80,7 +91,7 @@ done
 for soname in libSDL2-2.0.so.0 libasound.so.2; do
     ln -s "aarch64-linux-gnu/$soname" "$root/usr/lib/$soname"
 done
-cp -a /usr/share/alsa "$root/usr/share/"
+cp -a /usr/share/alsa /usr/share/zoneinfo "$root/usr/share/"
 install -D -m644 /etc/ssl/certs/ca-certificates.crt "$root/etc/ssl/certs/ca-certificates.crt"
 printf 'root:x:0:0:root:/storage:/bin/sh\n' > "$root/etc/passwd"
 printf 'root:x:0:\naudio:x:29:\ninput:x:104:\nvideo:x:44:\n' > "$root/etc/group"
@@ -88,6 +99,7 @@ printf 'hosts: files dns\n' > "$root/etc/nsswitch.conf"
 printf '127.0.0.1 localhost\n' > "$root/etc/hosts"
 ln -s /run/resolv.conf "$root/etc/resolv.conf"
 printf 'NAME="plumOS"\nID=plumos\nPRETTY_NAME="plumOS-RK3566"\n' > "$root/etc/os-release"
+install -m644 /layer/usr/lib/plumos-353m/frontend/VERSION "$root/etc/plumos-system-version"
 
 # Keep the 4.19 hardware ABI used by the preserved boot kernel. Only board support
 # files are read from the reference image, plus the matching vendor Mali driver.
@@ -121,6 +133,11 @@ chroot "$root" /bin/sh -n /usr/lib/plumos-353m/init
 chroot "$root" /usr/lib/plumos-353m/frontend/bin/plumos-controller-ui --help >/dev/null
 chroot "$root" /usr/lib/plumos-353m/frontend/bin/plumos-library-scan --help >/dev/null
 chroot "$root" /usr/bin/wpa_supplicant -v >/dev/null
+chroot "$root" /usr/bin/smbd --version >/dev/null
+network_applets=$(chroot "$root" /usr/lib/plumos-353m/frontend/network-services/bin/busybox --list)
+for applet in ftpd ntpd tcpsvd; do
+    grep -qx "$applet" <<< "$network_applets"
+done
 mksquashfs "$root" "/out/$1.partial" -noappend -all-root -comp lzo -b 524288 -no-xattrs -no-progress
 chmod 644 "/out/$1.partial"
 mv "/out/$1.partial" "/out/$1"
