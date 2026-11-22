@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [ "$#" -ne 5 ]; then
-    echo "Usage: $0 STOCK_SYSTEM BUBBLE_GIT STATIC_ADBD OUTPUT_DIRECTORY EMULATOR_RUNTIME" >&2
+    echo "Usage: $0 KERNEL_SUPPORT_SYSTEM BUBBLE_GIT STATIC_ADBD OUTPUT_DIRECTORY EMULATOR_RUNTIME" >&2
     exit 2
 fi
 
@@ -24,7 +24,7 @@ test ! -e "$out/bubble-userland.squashfs"
 stage=$(mktemp -d "$out/build.XXXXXXXX")
 mkdir "$stage/source"
 git -C "$bubble" archive "$revision" src/frontend package/frontend-bubble/plumos \
-    scripts/generate-bubble-runtime-coverage.py \
+    scripts/generate-bubble-runtime-coverage.py scripts/build-bubble-update-package.py \
     rootfs/bubble-minimal/usr/share/udhcpc/default.script LICENSE |
     tar -xf - -C "$stage/source"
 if ! docker image inspect "$image" >/dev/null 2>&1; then
@@ -32,19 +32,18 @@ if ! docker image inspect "$image" >/dev/null 2>&1; then
         docker build --platform linux/arm64 -t "$image" -
 fi
 python3 "$prototype/emulators/enable-frontend-builtins.py" "$stage/source/src/frontend"
-"$prototype/build-frontend-docker.sh" "$stage" "$stock" "$stage/source/src/frontend"
+"$prototype/build-frontend-docker.sh" "$stage" "$stage/source/src/frontend"
 
 layer=$stage/layer
 payload=$layer/usr/lib/plumos-353m
-mkdir -p "$payload/frontend/bin" "$layer/usr/lib/systemd/system/jelos.target.wants"
+mkdir -p "$payload/frontend/bin"
 frontend=$stage/source/package/frontend-bubble/plumos
 cp -R "$frontend"/{config,factory-defaults,fonts,share,themes} "$payload/frontend/"
 install -m 755 "$stage/compiled/"{plumos-controller-ui,plumos-library-scan,plumos-text-ui,plumos-frontend} "$payload/frontend/bin/"
-install -m 755 "$prototype/system/usr/lib/plumos-353m/"{start-frontend,start-adb} "$payload/"
+install -m 755 "$prototype/system/usr/lib/plumos-353m/"{start-frontend,start-adb,mount-frontend} "$payload/"
 install -m 755 "$prototype/boot-system/manage-sd2" "$payload/"
-git -C "$bubble" show "$revision:package/frontend-bubble/plumos/bin/plumos-bubble-mount-sd2" \
-    > "$payload/frontend/bin/plumos-bubble-mount-sd2"
-chmod 755 "$payload/frontend/bin/plumos-bubble-mount-sd2"
+install -m 755 "$frontend/bin/"{plumos-bubble-mount-sd2,plumos-storage-health,plumos-library-index-media} \
+    "$payload/frontend/bin/"
 install -m 755 "$prototype/system/usr/lib/plumos-353m/frontend/bin/plumos-safe-shutdown" "$payload/frontend/bin/"
 install -m 755 "$adbd" "$payload/adbd"
 cp -R "$runtime/." "$payload/frontend/"
@@ -54,9 +53,8 @@ install -m 755 "$prototype/system/usr/lib/plumos-353m/frontend/bin/plumos-networ
     "$payload/frontend/bin/"
 sed 's/udhcpc -q -n/udhcpc -n -R/' "$frontend/bin/plumos-network-control" \
     > "$payload/frontend/bin/plumos-network-control-bubble"
-sed 's@/run/resolv.conf@/run/libreelec/resolv.conf@g' \
-    "$stage/source/rootfs/bubble-minimal/usr/share/udhcpc/default.script" \
-    > "$payload/frontend/bin/plumos-wifi-dhcp"
+install -m 755 "$stage/source/rootfs/bubble-minimal/usr/share/udhcpc/default.script" \
+    "$payload/frontend/bin/plumos-wifi-dhcp"
 chmod 755 "$payload/frontend/bin/"{plumos-network-control-bubble,plumos-wifi-dhcp}
 docker run --rm -i --platform linux/arm64 -v "$payload/frontend:/runtime" "$image" sh -se <<'BUILD'
     install -m 755 /bin/busybox /runtime/bin/busybox
@@ -107,22 +105,28 @@ python3 "$stage/source/scripts/generate-bubble-runtime-coverage.py" \
     --systems "$catalog/systems.json" --app-root "$payload/frontend" \
     --output "$catalog/runtime-coverage.json"
 python3 "$prototype/emulators/verify-release-runtime.py" "$payload/frontend"
+install -m755 "$frontend/bin/plumos-system-update" "$payload/frontend/bin/"
+for file in "$payload/frontend/share/update/plumos-system-update.py" \
+    "$stage/source/scripts/build-bubble-update-package.py"; do
+    sed -e 's/"gkd-bubble"/"rg353m"/' -e 's/"bubble-stockos-r1"/"rk3566-plumos-r1"/' \
+        "$file" > "$file.rk3566"
+    mv "$file.rk3566" "$file"
+done
+ln -s /usr/bin/openssl "$payload/frontend/bin/plumos-openssl"
+printf '%s\n' "${PLUMOS_RUNTIME_VERSION:-0.1.0-dev}" > "$payload/frontend/VERSION"
+printf '%s\n' rk3566-plumos-r1 > "$payload/frontend/COMPAT_VENDOR"
+printf '%s\n' 1 > "$payload/frontend/RUNTIME_ABI"
+install -m755 "$stage/source/scripts/build-bubble-update-package.py" "$out/build-runtime-update.py"
 install -m 644 "$stage/source/LICENSE" "$payload/frontend/LICENSE"
 printf 'plumOS-Bubble %s\n' "$revision" > "$payload/frontend-source"
-cp -R "$prototype/system/usr/lib/systemd/system/"{emustation.service.d,plumos-usb-adb.service} "$layer/usr/lib/systemd/system/"
-ln -s ../plumos-usb-adb.service "$layer/usr/lib/systemd/system/jelos.target.wants/plumos-usb-adb.service"
-
 docker run --rm -i --platform linux/arm64 \
-    -v "$stock:/stock:ro" -v "$layer:/layer:ro" -v "$out:/out" "$image" bash -s <<'BUILD'
+    -v "$layer:/layer:ro" -v "$out:/out" "$image" bash -s <<'BUILD'
 set -euo pipefail
 mksquashfs /layer /out/bubble-userland.squashfs.partial -noappend -all-root -comp lzo -no-progress
 chmod 644 /out/bubble-userland.squashfs.partial
 mv /out/bubble-userland.squashfs.partial /out/bubble-userland.squashfs
-unsquashfs -no-progress -d /tmp/system /stock
-cp -a /layer/. /tmp/system/
-mksquashfs /tmp/system /out/SYSTEM.partial -noappend -comp lzo -b 524288 -no-xattrs -no-progress
-chmod 644 /out/SYSTEM.partial
-mv /out/SYSTEM.partial /out/SYSTEM
 BUILD
+
+"$prototype/build-runtime-system.sh" "$stock" "$layer" "$out/SYSTEM"
 
 (cd "$out" && shasum -a 256 SYSTEM bubble-userland.squashfs > SHA256SUMS)

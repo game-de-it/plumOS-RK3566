@@ -1,5 +1,5 @@
 #!/bin/sh
-# Accept the mini PLUS frontend's terminal power-action arguments on JELOS.
+# Accept the Bubble frontend's terminal power-action arguments.
 set -eu
 
 usage() {
@@ -46,10 +46,5 @@ if [ -f "$runtime/pid1" ]; then
     exit $?
 fi
 
-if [ "$dry_run" = yes ]; then
-    printf 'result=dry-run service=systemd action=%s\n' "$target"
-    exit 0
-fi
-
-printf 'service=systemd action=%s\n' "$target"
-exec /usr/bin/systemctl --no-block "$target"
+echo 'plumOS init is unavailable' >&2
+exit 1

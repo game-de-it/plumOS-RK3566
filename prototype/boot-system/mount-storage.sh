@@ -29,7 +29,8 @@ plumos_select_system() {
     if ! mount -t squashfs -o ro,loop "$image" "$staged"; then
         return 0
     fi
-    if [ ! -x "$staged/usr/lib/systemd/systemd" ] ||
+    if [ ! -r "$staged/usr/lib/plumos-353m/native-system" ] ||
+       [ ! -x "$staged/usr/lib/plumos-353m/init" ] ||
        [ ! -x "$staged/usr/lib/plumos-353m/start-frontend" ] ||
        [ ! -x "$staged/usr/lib/plumos-353m/adbd" ]; then
         umount "$staged"
@@ -56,6 +57,6 @@ plumos_select_system() {
 
 plumos_select_system
 
-if [ -r /storage/plumos-rk3566/init/select-init.sh ]; then
-    . /storage/plumos-rk3566/init/select-init.sh
+if [ -r /sysroot/usr/lib/plumos-353m/native-system ]; then
+    check_update() { :; }
 fi

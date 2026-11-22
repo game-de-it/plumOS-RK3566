@@ -4,11 +4,10 @@ export PATH=/usr/sbin:/usr/bin:/sbin:/bin HOME=/storage
 payload=/usr/lib/plumos-353m
 runtime=/run/plumos-353m
 storage=/storage/plumos-rk3566
-init_state=$storage/init
 system_state=$storage/system
+: > /dev/plumos-native-init
 sd2_service=$payload/manage-sd2
-[ -x "$sd2_service" ] || sd2_service=$init_state/manage-sd2
-export PLUMOS_ROOT=$storage/frontend PLUMOS_FAST_BOOT=1
+export PLUMOS_ROOT=$storage/frontend
 export XDG_RUNTIME_DIR=$runtime
 
 for directory in /run /tmp; do
@@ -19,7 +18,8 @@ chmod 700 "$runtime"
 grep -qs ' /dev/pts ' /proc/mounts || mount -t devpts -o mode=620,ptmxmode=0666 devpts /dev/pts
 exec >>"$runtime/init.log" 2>&1
 grep -qs ' /dev/shm ' /proc/mounts || mount -t tmpfs -o mode=1777,nosuid,nodev tmpfs /dev/shm
-rm -f "$init_state/entry.running" "$init_state/init.running" "$init_state/power.running"
+mkdir -p /run/udev
+busybox mdev -s
 printf '%s\n' "$$" > "$runtime/pid1"
 cut -d ' ' -f 1 /proc/uptime > "$runtime/pid1-uptime"
 printf 'plumOS init: PID %s; inherited boot arguments: %s\n' "$$" "$*"
@@ -31,7 +31,7 @@ attempt=0
 provisioned=no
 
 power_action() {
-    local action
+    local action network
     action=$(cat "$runtime/power-request" 2>/dev/null) || return 0
     rm -f "$runtime/power-request"
     case "$action" in reboot|poweroff) ;; *) return 0 ;; esac
@@ -46,29 +46,42 @@ power_action() {
         wait "$frontend" 2>/dev/null || :
         frontend=
     fi
-    if [ -x "$sd2_service" ] && ! "$sd2_service" stop; then
-        echo 'plumOS init: could not unmount SD2; power action cancelled'
-        return 0
+    attempt=0
+    network=$PLUMOS_ROOT/bin/plumos-network-control
+    if [ -x "$network" ]; then
+        "$network" --wifi off || echo 'plumOS init: Wi-Fi shutdown failed'
     fi
     sync
+    if grep -qs " $PLUMOS_ROOT overlay " /proc/mounts && ! umount "$PLUMOS_ROOT"; then
+        echo 'plumOS init: could not unmount the runtime; power action cancelled'
+        return 0
+    fi
+    if [ -x "$sd2_service" ] && ! "$sd2_service" stop; then
+        echo 'plumOS init: could not unmount SD2; power action cancelled'
+        "$sd2_service" start || :
+        return 0
+    fi
     if grep -qs ' /storage/user ' /proc/mounts; then
         if ! mount -o remount,ro /storage/user; then
             echo 'plumOS init: could not remount user storage; power action cancelled'
+            "$sd2_service" start || :
             return 0
         fi
     fi
     if ! mount -o remount,ro /storage; then
         echo 'plumOS init: could not remount runtime storage; power action cancelled'
         if grep -qs ' /storage/user ' /proc/mounts; then mount -o remount,rw /storage/user; fi
+        "$sd2_service" start || :
         return 0
     fi
     sync
     # Power operations from an ADB shell may retain a cwd on /storage.
     # Keep the transport alive until the filesystems are synchronized.
-    "$init_state/power" "$action"
+    "$payload/power" "$action"
     # A failed reboot syscall must leave PID 1 and the recovery transport alive.
     mount -o remount,rw /storage
     if grep -qs ' /storage/user ' /proc/mounts; then mount -o remount,rw /storage/user; fi
+    "$sd2_service" start || :
     echo 'plumOS init: power syscall failed'
 }
 
@@ -85,8 +98,9 @@ mark_ready() {
             mv "$system_state/healthy.new" "$system_state/healthy" &&
             rm "$system_state/pending" || return 0
     fi
-    if [ -f /dev/plumos-native-init ]; then
-        rm -f "$init_state/pending" || return 0
+    if [ -s "$PLUMOS_ROOT/update-state/runtime-pending.json" ]; then
+        "$PLUMOS_ROOT/bin/plumos-system-update" mark-healthy >>"$PLUMOS_ROOT/logs/system-update.log" 2>&1 ||
+            echo 'plumOS init: runtime update health could not be recorded'
     fi
     cut -d ' ' -f 1 /proc/uptime > "$runtime/boot-ready"
     echo 'plumOS init: frontend and ADB ready'
@@ -103,16 +117,10 @@ if [ -x "$storage/provision/start-storage" ]; then
     case "$result" in
         0) provisioned=yes ;;
         75)
-            if touch "$init_state/next"; then
-                printf 'reboot\n' > "$runtime/power-request"
-                power_action
-            fi
+            printf 'reboot\n' > "$runtime/power-request"
+            power_action
             ;;
     esac
-elif [ -f /storage/.plumos-user-layout ]; then
-    "$payload/mount-user-storage" && provisioned=yes
-elif [ ! -f /storage/.please_resize_me ]; then
-    provisioned=yes
 fi
 if [ "$provisioned" = no ]; then
     echo 'plumOS init: storage is unavailable; ADB recovery remains active'

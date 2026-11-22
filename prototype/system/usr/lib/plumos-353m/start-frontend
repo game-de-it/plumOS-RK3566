@@ -26,17 +26,7 @@ mkdir -p "$PLUMOS_ROOT/config/frontend" "$PLUMOS_ROOT/config/system" \
 export PLUMOS_INPUT_TRACE_PATH="$PLUMOS_RUNTIME_ROOT/input-events.log"
 export PLUMOS_ACTION_TRACE_PATH="$PLUMOS_RUNTIME_ROOT/frontend-actions.log"
 
-for asset in bin fonts themes share factory-defaults cores info picoarch emulator retroarch apps scraper storage-tools; do
-    [ -d "$payload/frontend/$asset" ] || continue
-    ln -sfn "$payload/frontend/$asset" "$PLUMOS_ROOT/$asset"
-done
-for config in "$payload"/frontend/config/frontend/*.json; do
-    [ "${config##*/}" = settings.json ] && continue
-    ln -sfn "$config" "$PLUMOS_ROOT/config/frontend/${config##*/}"
-done
-if [ -f "$payload/frontend/config/frontend/scraper-sources.tsv" ]; then
-    ln -sfn "$payload/frontend/config/frontend/scraper-sources.tsv" "$PLUMOS_ROOT/config/frontend/"
-fi
+"$payload/mount-frontend"
 for name in frontend system; do
     settings="$PLUMOS_ROOT/config/$name/settings.json"
     if [ ! -e "$settings" ]; then
@@ -44,6 +34,19 @@ for name in frontend system; do
         mv "$settings.new" "$settings"
     fi
 done
+
+export PLUMOS_USERDATA_ROOT=$PLUMOS_SDCARD_ROOT
+update=$PLUMOS_ROOT/bin/plumos-system-update
+update_state=$PLUMOS_ROOT/update-state
+if [ -x "$update" ] && [ ! -e "$PLUMOS_RUNTIME_ROOT/runtime-update-attempted" ] &&
+    { [ -s "$update_state/request.json" ] ||
+      [ -s "$update_state/runtime-transaction.json" ] ||
+      [ -s "$update_state/runtime-pending.json" ]; }; then
+    mkdir -p "$PLUMOS_ROOT/logs"
+    : > "$PLUMOS_RUNTIME_ROOT/runtime-update-attempted"
+    "$update" apply-pending >>"$PLUMOS_ROOT/logs/system-update.log" 2>&1 ||
+        echo 'plumOS: runtime update or recovery failed'
+fi
 
 export PLUMOS_WPA_STATUS="$PLUMOS_RUNTIME_ROOT/network-control/wpa_status.txt"
 if [ -e /dev/plumos-native-init ] && [ -x "$PLUMOS_ROOT/bin/plumos-network-control" ]; then
@@ -77,14 +80,25 @@ if [ -c "$power" ]; then export PLUMOS_POWER_INPUT_EVENT="$power"; fi
 
 echo "plumOS-353M frontend: DRM=$drm evdev=$pad"
 rm -f /tmp/plumos-fe-ready
-scan_state=$PLUMOS_ROOT/state/frontend
-catalog_hash=$("$PLUMOS_BUSYBOX" sha256sum "$PLUMOS_ROOT/config/frontend/systems.json")
-if [ "${PLUMOS_FAST_BOOT:-0}" != 1 ] || [ ! -s "$scan_state/library-index.json" ] ||
-    [ "$catalog_hash" != "$(cat "$scan_state/catalog.sha256" 2>/dev/null || :)" ]; then
-    if ! timeout 12 "$PLUMOS_ROOT/bin/plumos-library-scan" --defer-thumbnails; then
-        echo 'plumOS-353M: initial library scan failed or timed out' >&2
-    else
-        printf '%s\n' "$catalog_hash" > "$scan_state/catalog.sha256"
-    fi
+export PLUMOS_SD2_IDENTITY_FILE=$state/init/sd2-identity.conf
+if grep -qs ' /run/media/sd2 ' /proc/mounts; then
+    health_root=/run/media/sd2
+else
+    health_root=$PLUMOS_SDCARD_ROOT
 fi
+PLUMOS_SDCARD_ROOT=$health_root "$PLUMOS_ROOT/bin/plumos-storage-health" observe ||
+    echo 'plumOS: media health observation failed'
+decision=$("$PLUMOS_ROOT/bin/plumos-library-index-media" prepare) || decision=
+echo "$decision"
+case "$decision" in
+    library_media=preserved*) ;;
+    *)
+        if timeout "${PLUMOS_LIBRARY_SCAN_TIMEOUT:-180}" "$PLUMOS_ROOT/bin/plumos-library-scan" --defer-thumbnails; then
+            "$PLUMOS_ROOT/bin/plumos-library-index-media" record ||
+                echo 'plumOS: media cache update failed'
+        else
+            echo 'plumOS: initial library scan failed or timed out'
+        fi
+        ;;
+esac
 exec "$PLUMOS_ROOT/bin/plumos-controller-ui" --renderer fbdev --event "$pad"

@@ -42,6 +42,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
+unsquashfs -cat /system usr/lib/plumos-353m/native-system
 unsquashfs -cat /system usr/lib/plumos-353m/frontend-source
 unsquashfs -cat /system usr/lib/plumos-353m/start-frontend >/dev/null
 unsquashfs -cat /system usr/lib/plumos-353m/adbd >/dev/null
@@ -79,14 +80,8 @@ mount "$work/p4" "$work/storage"
 )
 
 base="$work/storage/plumos-rk3566"
-units="$work/storage/.config/system.d"
-mkdir -p "$base/system" "$base/init" "$base/provision" "$units/emustation.service.d" \
-    "$units/jelos.target.wants" "$units/multi-user.target.wants"
-install -m 755 /prototype/boot-system/{boot-system,mark-good} "$base/system/"
-install -m 755 /prototype/boot-system/{entry,init} "$base/init/"
-install -m 644 /prototype/boot-system/select-init.sh "$base/init/"
-cc -static -O2 -Wall -Wextra -o "$base/init/power" /prototype/boot-system/power.c
-: > "$base/init/default"
+mkdir -p "$base/system" "$base/provision"
+install -m 755 /prototype/boot-system/boot-system "$base/system/"
 install -m 755 /prototype/seed/{provision-storage,start-storage} /splash/boot-splash /usr/sbin/sfdisk "$base/provision/"
 mkdir "$base/provision/lib"
 for library in libfdisk.so.1 libsmartcols.so.1 libtinfo.so.6 libreadline.so.8 libuuid.so.1 libblkid.so.1; do
@@ -98,10 +93,6 @@ for package in fdisk libfdisk1 libsmartcols1 libtinfo6 libreadline8 libuuid1 lib
 done
 install -m 644 /splash/provision-{start,error}.xrgb "$base/provision/"
 printf '%s\n' 'plumOS-RK3566 storage v1' > "$base/provision/seed"
-install -m 644 /prototype/seed/plumos-user-storage.service /prototype/boot-system/plumos-system-health.service "$units/"
-install -m 644 /prototype/seed/95-plumos-storage.conf "$units/emustation.service.d/"
-ln -s /usr/lib/systemd/system/emustation.service "$units/jelos.target.wants/emustation.service"
-ln -s ../plumos-system-health.service "$units/multi-user.target.wants/plumos-system-health.service"
 # JELOS's first-boot resize would otherwise claim all of the SD for p4.
 test -f "$work/storage/.please_resize_me"
 rm "$work/storage/.please_resize_me"

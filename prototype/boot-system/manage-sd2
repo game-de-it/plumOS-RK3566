@@ -27,26 +27,7 @@ case "$1" in
     *) exit 2 ;;
 esac
 
-media=sd1
-if [ -b "$PLUMOS_SD2_DEVICE" ]; then
-    if ! "$helper" start; then
-        "$helper" stop
-    fi
-    if grep -qs "^$PLUMOS_SD2_DEVICE /storage/user/Roms " /proc/mounts; then
-        uuid=$(sed -n 's/^uuid=//p' "$PLUMOS_SD2_IDENTITY_FILE")
-        test -n "$uuid"
-        media=sd2-$uuid
-    fi
+if [ -b "$PLUMOS_SD2_DEVICE" ] && ! "$helper" start; then
+    "$helper" stop
+    exit 1
 fi
-
-state=$PLUMOS_ROOT/state/frontend
-index=$state/library-index.json
-owner=$state/library-index-owner
-if [ -s "$index" ] && [ "$(cat "$owner" 2>/dev/null || :)" = "$media" ]; then
-    exit 0
-fi
-mkdir -p "$state"
-PLUMOS_SDCARD_ROOT=/storage/user timeout 12 "$payload/frontend/bin/plumos-library-scan" \
-    --systems "$payload/frontend/config/frontend/systems.json" --defer-thumbnails
-printf '%s\n' "$media" >"$owner.new"
-mv "$owner.new" "$owner"

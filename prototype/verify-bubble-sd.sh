@@ -67,8 +67,14 @@ provision() { chroot "$root" /bin/sh /storage/plumos-rk3566/provision/provision-
 
 mount_card
 test ! -e "$root/storage/.please_resize_me"
-test -f "$root/storage/plumos-rk3566/init/default"
-test ! -e "$root/storage/plumos-rk3566/init/pending"
+test ! -e "$root/storage/.config/system.d"
+test ! -e "$root/storage/plumos-rk3566/init"
+test -L "$root/usr/lib/systemd/systemd"
+test "$(readlink "$root/usr/lib/systemd/systemd")" = ../plumos-353m/init
+test -x "$root/usr/lib/plumos-353m/init"
+test -r "$root/usr/lib/plumos-353m/native-system"
+test ! -e "$root/usr/bin/systemctl"
+test ! -e "$root/usr/bin/emulationstation"
 test ! -e "/sys/class/block/${loop##*/}p5"
 result=0
 provision || result=$?
@@ -97,62 +103,36 @@ digest=$(sha256sum "$root/flash/SYSTEM" | cut -d ' ' -f 1)
 chroot "$root" /bin/sh -s -- "$digest" <<'UPDATE'
 set -eu
 state=/storage/plumos-rk3566/system
-init=/storage/plumos-rk3566/init
+disk=mock
+mount_part() { test "$1" = mock && test "$2" = /storage; }
+check_update() { return 1; }
+
 "$state/boot-system" publish "$1"
 "$state/boot-system" trial "$1"
 mount -o ro,loop /flash/SYSTEM /sysroot
-mount_part() { test "$1" = mock && test "$2" = /storage; }
-disk=mock
 . /flash/mount-storage.sh
+check_update
 test "$(cat /dev/plumos-system-active)" = "$1"
 test "$(cat "$state/pending")" = "$1"
 test ! -e "$state/next"
 test -x /sysroot/usr/lib/plumos-353m/adbd
 test -x /sysroot/usr/lib/plumos-353m/start-frontend
-test -e /dev/plumos-native-init
-test -f "$init/pending"
-test ! -e "$init/next"
-entry_hash=$(sha256sum "$init/entry" | cut -d " " -f 1)
-printf '%s  %s\n' "$entry_hash" /sysroot/usr/lib/systemd/systemd | sha256sum -c
-umount /sysroot/usr/lib/systemd/systemd
+test -x /sysroot/usr/lib/plumos-353m/init
+test -r /sysroot/usr/lib/plumos-353m/native-system
 umount /sysroot
-rm /dev/plumos-system-active /dev/plumos-native-init
+rm /dev/plumos-system-active
 
-# A failed first boot must fall back with the shipped SYSTEM and systemd.
-mount -o ro,loop /flash/SYSTEM /sysroot
-. /flash/mount-storage.sh
-test ! -e /dev/plumos-native-init
-test ! -e /dev/plumos-system-active
-test "$(sha256sum /sysroot/usr/lib/systemd/systemd | cut -d " " -f 1)" != "$entry_hash"
-umount /sysroot
-"$state/boot-system" stock
+# An incomplete trial returns to the shipped native runtime.
 mount -o ro,loop /flash/SYSTEM /sysroot
 . /flash/mount-storage.sh
 test ! -e /dev/plumos-system-active
-test -L /sysroot/usr/lib/systemd/system/jelos.target.wants/plumos-usb-adb.service
+test -r /sysroot/usr/lib/plumos-353m/native-system
+test "$(readlink /sysroot/usr/lib/systemd/systemd)" = ../plumos-353m/init
 umount /sysroot
+"$state/boot-system" factory
+test ! -e "$state/pending"
+test ! -e "$state/default"
 
-# A native trial binds the launcher and consumes its one-shot flag. A pending
-# default must fall back to the original entry when the previous boot failed.
-test -x "$init/power"
-"$state/boot-system" init-trial
-mount -o ro,loop /flash/SYSTEM /sysroot
-. /flash/mount-storage.sh
-test -f /dev/plumos-native-init
-test -f "$init/pending"
-test ! -e "$init/next"
-entry_hash=$(sha256sum "$init/entry" | cut -d " " -f 1)
-printf '%s  %s\n' "$entry_hash" /sysroot/usr/lib/systemd/systemd | sha256sum -c
-umount /sysroot/usr/lib/systemd/systemd
-umount /sysroot
-rm /dev/plumos-native-init
-touch "$init/default"
-mount -o ro,loop /flash/SYSTEM /sysroot
-. /flash/mount-storage.sh
-test ! -e /dev/plumos-native-init
-test "$(sha256sum /sysroot/usr/lib/systemd/systemd | cut -d " " -f 1)" != "$entry_hash"
-"$state/boot-system" stock
-umount /sysroot
 UPDATE
 detach_card
 test "$(prefix)" = "$expected"
