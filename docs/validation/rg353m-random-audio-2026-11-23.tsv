@@ -1,0 +1,9 @@
+system	profile	rom	governor	baseline_pcm_starts_3s	new_pcm_starts_45s	new_seconds	new_display_fps	new_pcm_states	new_pcm_progress	new_cpu_khz_min	new_cpu_khz_max
+neogeo	retroarch:fbalpha2012_neogeo	_etc/neogeo/ART OF FIGHTING/aof.zip	ondemand	2	1	45	58.81	RUNNING	True	408000	1992000
+pico8	retroarch:fake08	pico-8/51752.p8	ondemand	11	1	45	57.44	RUNNING	True	408000	1992000
+ngpc	retroarch:mednafen_ngp	ngpc/Pocket Tennis Color - Pocket Sports Series (World) (En,Ja).ngc	ondemand	2	1	45	58.26	RUNNING	True	408000	1992000
+gbc	retroarch:tgbdual	gbc/Horde DX (USA).gbc	ondemand	8	1	45	59.15	RUNNING	True	408000	1992000
+colecovision	retroarch:bluemsx	_etc/coleco/Dam Busters, The (USA).col	ondemand	4	1	45	57.1	RUNNING	True	408000	1992000
+pcengine	retroarch:mednafen_pce_fast	pcengine/Bomberman_93_U.pce	ondemand	3	1	45	59.07	RUNNING	True	408000	1992000
+msx	retroarch:fmsx	msx2/usas.rom	ondemand	4	1	45	58.3	RUNNING	True	408000	1992000
+atari7800	retroarch:prosystem	ATARI/7800/Asteroids (1987) (Atari).a78	ondemand	3	1	45	56.14	RUNNING	True	408000	1992000
