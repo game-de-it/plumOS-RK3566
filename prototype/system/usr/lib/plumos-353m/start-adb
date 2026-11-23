@@ -67,14 +67,31 @@ done
 [ "$bound" = yes ]
 echo "plumOS ADB: FunctionFS bound to $controller"
 
-# Re-establish the binding if FunctionFS closes it during a USB disconnect.
+# adbd can survive a cable disconnect while its USB transport stops answering
+# the host. Watching only the process or the gadget's UDC binding misses that
+# state: both remain present after the controller becomes configured again.
+# Restart this service after a real configured -> disconnected -> configured
+# transition so cleanup tears down FunctionFS and init starts a fresh adbd.
+observed_configured=no
+saw_disconnect=no
+udc_state=/sys/class/udc/$controller/state
 while kill -0 "$daemon" 2>/dev/null; do
+    state=$(cat "$udc_state" 2>/dev/null || :)
+    if [ "$state" = configured ]; then
+        if [ "$saw_disconnect" = yes ]; then
+            echo 'plumOS ADB: USB reconnected; restarting stale FunctionFS transport'
+            exit 1
+        fi
+        observed_configured=yes
+    elif [ "$observed_configured" = yes ]; then
+        saw_disconnect=yes
+    fi
     if [ -z "$(cat "$gadget/UDC")" ] && [ -e "$functionfs/ep2" ]; then
         if printf '%s\n' "$controller" > "$gadget/UDC"; then
             echo "plumOS ADB: FunctionFS rebound to $controller"
         fi
     fi
-    sleep 0.2
+    sleep 0.1
 done
 wait "$daemon" || exit $?
 exit 1
