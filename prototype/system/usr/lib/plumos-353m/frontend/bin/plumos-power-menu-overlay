@@ -88,6 +88,9 @@ PLUMOS_BUSYBOX="$BB" \
 PLUMOS_FRONTEND_MODE=manual \
 PLUMOS_POWER_MENU_SELECTION="$SELECTION_FILE" \
 PLUMOS_INPUT_EVENT=${PLUMOS_INPUT_EVENT:-/dev/input/event5} \
+PLUMOS_DRM_DEVICE=${PLUMOS_DRM_DEVICE:-/dev/dri/card0} \
+PLUMOS_RG353M_DRM=1 \
+LD_LIBRARY_PATH="$PLUMOS_ROOT/frontend/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
     "$MENU" --power-overlay --renderer fbdev >>"$LOG_FILE" 2>&1
 menu_rc=$?
 selection=$(read_selection)
