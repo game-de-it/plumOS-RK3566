@@ -133,6 +133,17 @@ pyxel.write_text(s.replace(needle, '''  install)
       print_status
     fi
     ;;'''))
+
+# The RK3566 init keeps the managed ALSA config under /run/plumos-353m.
+# Pyxel must select it even when the frontend did not export ALSA_CONFIG_PATH.
+pyxel_launcher = root / "bin/plumos-pyxel-bubble-launch"
+s = pyxel_launcher.read_text()
+needle = 'ALSA_CONFIG_PATH="${ALSA_CONFIG_PATH:-/run/plumos/audio/asound.conf}"'
+assert s.count(needle) == 1
+pyxel_launcher.write_text(s.replace(
+    needle,
+    'ALSA_CONFIG_PATH="${ALSA_CONFIG_PATH:-${PLUMOS_RUNTIME_ROOT:-/run/plumos}/audio/asound.conf}"',
+))
 control = root / "bin/plumos-portmaster-frontend-control"
 s = control.read_text()
 needle = '    case "$cmdline" in\n'
