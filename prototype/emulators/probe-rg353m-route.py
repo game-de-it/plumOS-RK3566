@@ -20,7 +20,7 @@ trace = Path("/sys/kernel/tracing/instances/plumos-matrix")
 def playback_pcm():
     """Follow the physical ALSA sink selected by the production audio router."""
     status = (run / "audio/output.status").read_text(errors="replace")
-    selected = re.search(r"^physical_pcm=hw:(\d+),(\d+)$", status, re.M)
+    selected = re.search(r"^physical_pcm=(?:plug)?hw:(\d+),(\d+)$", status, re.M)
     if not selected:
         raise RuntimeError("audio output has no physical PCM")
     return (Path(f"/proc/asound/card{selected[1]}/pcm{selected[2]}p/sub0/status"),
@@ -222,7 +222,8 @@ try:
     out["drm_open"] = process_owns_drm(proc.pid)
     sample_seconds = record.get("sample_seconds", 6 if diagnostic_frames else 3)
     out["play"] = wait_sample(sample_seconds) if proc.poll() is None else {}
-    mixer = subprocess.run(["/usr/bin/amixer", "-c", "0", "cget", "name=Soft Volume Master"],
+    codec = Path("/proc/asound/rockchiprk817co").resolve().name.removeprefix("card")
+    mixer = subprocess.run(["/usr/bin/amixer", "-c", codec, "cget", "name=Soft Volume Master"],
                            text=True, capture_output=True, timeout=3)
     match = re.search(r": values=(\d+(?:,\d+)*)", mixer.stdout)
     out["softvol"] = match[1] if match else None

@@ -48,6 +48,12 @@ pattern = re.compile(
 updated, count = pattern.subn(lambda _: curve, source)
 if count != 1:
     raise SystemExit(f"expected one Bubble volume curve in {path}, found {count}")
+# The control remains available for the FE, while game PCM gain is applied by
+# the hotplug router. Prime the control through its named softvol PCM.
+prime = '"$APLAY" -q -D default -f S16_LE'
+if updated.count(prime) != 1:
+    raise SystemExit(f"expected one softvol prime command in {path}")
+updated = updated.replace(prime, '"$APLAY" -q -D plumos_softvol -f S16_LE')
 old_markers = ("curve=pixel2-linear-amplitude-v1", "curve=rg353m-progressive-db-v1")
 if sum(updated.count(marker) for marker in old_markers) != 1:
     raise SystemExit(f"expected one known curve log marker in {path}")

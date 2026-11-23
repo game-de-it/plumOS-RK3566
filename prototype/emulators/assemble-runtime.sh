@@ -28,6 +28,8 @@ frontend=$bubble/package/frontend-bubble/plumos/bin
 install -m 755 "$frontend"/{plumos-retroarch-launch,plumos-retroarch-menu-launch,plumos-retroarch-config-merge,plumos-volume-control,plumos-cpu-control} "$runtime/bin/"
 python3 "$scripts/set-volume-curve.py" "$runtime/bin/plumos-volume-control"
 install -m 755 "$frontend/plumos-audio-output" "$runtime/bin/"
+install -m 755 "$scripts/plumos-rk3566-audio-output" "$runtime/bin/plumos-audio-output"
+"$scripts/build-audio-router.sh" "$runtime"
 install -m 755 "$scripts/plumos-rk3566-audio-route" "$runtime/bin/"
 ln -s /usr/bin/aplay "$runtime/bin/plumos-aplay"
 python3 - "$runtime" <<'PY'
@@ -45,11 +47,6 @@ for cfg in (root / "factory-defaults/retroarch").glob("*.cfg"):
 autoconfig = root / "factory-defaults/retroarch/autoconfig/udev/gkd-bubble-retrogame-joypad.cfg"
 autoconfig.write_text(autoconfig.read_text().replace('input_menu_toggle_btn = "17"', 'input_menu_toggle_btn = "10"')
                       .replace('input_screenshot_btn = "10"\n', ''))
-audio = root / "bin/plumos-audio-output"
-s = audio.read_text()
-needle = "prepare() {\n"
-assert s.count(needle) == 1
-audio.write_text(s.replace(needle, needle + '    "$PLUMOS_ROOT/bin/plumos-rk3566-audio-route" apply\n'))
 launcher = root / "bin/plumos-retroarch-launch"
 s = launcher.read_text()
 needle = """            printf '%s\\n' 'video_context_driver = ""'

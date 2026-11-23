@@ -69,6 +69,8 @@ install -m 755 "$adbd" "$payload/adbd"
 cp -R "$runtime/." "$payload/frontend/"
 install -m755 "$prototype/emulators/plumos-rk3566-audio-route" "$payload/frontend/bin/"
 install -m755 "$frontend/bin/"{plumos-audio-output,plumos-volume-control} "$payload/frontend/bin/"
+install -m755 "$prototype/emulators/plumos-rk3566-audio-output" "$payload/frontend/bin/plumos-audio-output"
+"$prototype/emulators/build-audio-router.sh" "$payload/frontend"
 sed 's|/run/plumos/audio/asound.conf|${PLUMOS_RUNTIME_ROOT:-/run/plumos}/audio/asound.conf|' \
     "$runtime/bin/plumos-pyxel-bubble-launch" >"$payload/frontend/bin/plumos-pyxel-bubble-launch"
 python3 - "$payload/frontend" <<'PY_PYXEL_CHECKSUM'

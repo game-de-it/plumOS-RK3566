@@ -1,8 +1,8 @@
 # RG353MのUSB DACと音量ボタン
 
-2026年11月23日（JST）。保存済みのAudio Outputが `Auto` または `USB DAC` のときは、ALSAが認識したUSB再生PCMを起動時に選ぶ。USB再生PCMがなければRK817内蔵出力を選ぶ。`Speaker` と `Headphone` は内蔵側を指定する。再生中にケーブルを差し替えた場合は、エミュレータやプレイヤーを開き直したときに新しい出力が適用される。
+2026年11月23日（JST）。保存済みのAudio Outputが `Auto` または `USB DAC` のときは、ALSAが認識したUSB再生PCMを選ぶ。USB再生PCMがなければRK817内蔵出力を選ぶ。`Speaker` と `Headphone` は内蔵側を指定する。再生中のUSB DAC抜き差しにも対応し、ゲームを開いたまま出力先を切り替える。実機結果は[再生中USB DAC切替](2026-11-23-rg353m-live-usb-dac-hotplug.md)に記録する。
 
-USBと内蔵PCMはRK817上の同じALSA Soft Volume Masterを使う。RG353MのDTBには `gpio-keys` の音量キーがあり、上が115、下が114。plumOS initがBubbleのボタン監視を音量専用で起動するため、FEを離れている間も同じ0〜20の音量を調整できる。長押しは繰り返しを適用し、操作が落ち着いてから音量を保存する。PyxelもRG353Mの共通ALSA設定を参照する。
+USBと内蔵PCMは同じ0〜20の音量値とRG353M用のdB曲線を使う。ALSAのSoft Volume MasterはFEの音量制御用として保持し、ゲームPCMのゲインは再生中切替プラグイン内で適用する。RG353MのDTBには `gpio-keys` の音量キーがあり、上が115、下が114。plumOS initがBubbleのボタン監視を音量専用で起動するため、FEを離れている間も音量を調整できる。長押しは繰り返しを適用し、操作が落ち着いてから音量を保存する。PyxelもRG353Mの共通ALSA設定を参照する。
 
 | 確認 | 結果 |
 | --- | --- |
