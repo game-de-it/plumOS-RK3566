@@ -16,4 +16,6 @@ OpenBORの最初の90秒の測定では、起動から約9秒後にPCMの開始�
 
 後続の訂正: 実聴確認の「音切れは聞こえない」という回答は選択肢の誤操作だった。OpenBOR ROMは当初SD2にはなく、隠し検証領域だけに存在したため、その回答はOpenBORの実聴結果として扱わない。ROMをMacのROM2からSD2の`/storage/user/Roms/OPENBOR/Dragon Ball [v.3.0 Build 4086].PAK`へ転送し、両側のSHA-256 `31e66369c35e8be17c4e576bf77fb09d07e987caf43445067100b2dffffaf285`が一致した。FEの`roms openbor`で1件表示、`launch openbor`で`rom_exists: yes`と`can_execute: yes`を確認した。実聴判定はROMを表示できるようになった後に行う。
 
+ROMをSD2へ転送した後、利用者から「OpenBORはOK」と実機確認の回答を得た。
+
 試験計画とJSON原本は`output/usb-dac-audio-plan.json`、`output/usb-dac-audio-results.json`、`output/usb-dac-sa-retest-results.json`、`output/usb-dac-sa-steady-results.json`に保存した。計測プログラムは`prototype/emulators/probe-rg353m-route.py`である。試験後はFEが再起動し、`validation-hold`は消え、USB DACの自動選択と元の音量値18を確認した。
