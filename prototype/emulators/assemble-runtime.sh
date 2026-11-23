@@ -26,6 +26,7 @@ rm "$pcsx_sdl2"
 ln -s /usr/lib/libSDL2-2.0.so.0 "$pcsx_sdl2"
 frontend=$bubble/package/frontend-bubble/plumos/bin
 install -m 755 "$frontend"/{plumos-retroarch-launch,plumos-retroarch-menu-launch,plumos-retroarch-config-merge,plumos-volume-control,plumos-cpu-control} "$runtime/bin/"
+python3 "$scripts/set-volume-curve.py" "$runtime/bin/plumos-volume-control"
 install -m 755 "$frontend/plumos-audio-output" "$runtime/bin/"
 install -m 755 "$scripts/plumos-rk3566-audio-route" "$runtime/bin/"
 ln -s /usr/bin/aplay "$runtime/bin/plumos-aplay"

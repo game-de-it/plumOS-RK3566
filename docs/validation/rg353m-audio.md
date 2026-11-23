@@ -13,6 +13,8 @@ USBと内蔵PCMはRK817上の同じALSA Soft Volume Masterを使う。RG353MのD
 | RG353Mの音量経路 | 稼働中のRG353Mで、生成済みの音量監視を隔離設定で起動した。実機の `gpio-keys` に上下のイベントを送り、保存値が4 → 5 → 4、RK817のSoft Volume Masterが215 → 221 → 215になった。試験後に元の音量を復元した。 |
 | RG353MのUSB DAC | OTG接続のCX31993を `hw:2,0` として選んだ。48 kHz・ステレオの試験音を `plumos_output` で再生し、USB側のPCMが `RUNNING` の間に実機の入力ノードから音量を変更した。共通ミキサーで221と215を読み戻した。DAC接続中も `Speaker` 指定で内蔵PCM `hw:0,0` が選ばれた。 |
 
+上表のraw 215/221は当時の音量曲線の記録。後続の[小音量向け曲線の調整](2026-11-23-rg353m-volume-curve.md)で現在の割り当てを変更した。
+
 ## ADBの再接続調査
 
 MacはUSBハブ経由でRG353Mを列挙し、ADBのインターフェースと両方向のバルクエンドポイントを取得した。Mac側のADBを再起動し、標準USBバックエンドとlibusbの両方で `offline` を観測した。libusbのトレースではMac側の `CNXN` 送信開始まで見え、応答パケットは取得できなかった。Wi-Fiでは本体のping応答を確認した。NW Serviceを有効にした後、SSHは公開鍵認証まで、Sambaは `SDCARD` 共有へのアクセスまで成功した。TCP ADBは引き続き接続拒否だった。USBの列挙より後のADB接続確立段階で止まっている。
