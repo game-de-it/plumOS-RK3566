@@ -10,8 +10,10 @@
 | PICO / gpSP | 同上 | 60秒 | 59.65fps | `RUNNING`、ポインタ進行 | 1回 | 4500フレーム完了、内部音声不足0フレーム |
 | SA / OpenBOR | Dragon Ball | 開始後15秒から60秒 | 59.88fps | `RUNNING`、ポインタ進行 | 1回 | プレイ中の再始動なし |
 
-OpenBORの最初の90秒の測定では、起動から約9秒後にPCMの開始時刻が1回変わった。ゲームの初期遷移と重なるため、開始後15秒から測り直した。この再試験では60秒間再始動はなかった。利用者がFEから同じOpenBORゲームを起動してUSB DACで聞き、起動時の音切れは聞こえないと回答した。
+OpenBORの最初の90秒の測定では、起動から約9秒後にPCMの開始時刻が1回変わった。ゲームの初期遷移と重なるため、開始後15秒から測り直した。この再試験では60秒間再始動はなかった。
 
-以上の区間ではUSB DAC側のPCM停止や再始動は検出されず、PICOの音声不足カウンタは0だった。OpenBORの起動時の開き直しも実聴では音切れがなかった。RAとOpenBORには音声サンプルそのものを録音するループバックがないため、耳で聞こえる微小な音切れを完全に否定する測定ではない。
+以上の区間ではUSB DAC側のPCM停止や再始動は検出されず、PICOの音声不足カウンタは0だった。RAとOpenBORには音声サンプルそのものを録音するループバックがないため、耳で聞こえる微小な音切れを完全に否定する測定ではない。
+
+後続の訂正: 実聴確認の「音切れは聞こえない」という回答は選択肢の誤操作だった。OpenBOR ROMは当初SD2にはなく、隠し検証領域だけに存在したため、その回答はOpenBORの実聴結果として扱わない。ROMをMacのROM2からSD2の`/storage/user/Roms/OPENBOR/Dragon Ball [v.3.0 Build 4086].PAK`へ転送し、両側のSHA-256 `31e66369c35e8be17c4e576bf77fb09d07e987caf43445067100b2dffffaf285`が一致した。FEの`roms openbor`で1件表示、`launch openbor`で`rom_exists: yes`と`can_execute: yes`を確認した。実聴判定はROMを表示できるようになった後に行う。
 
 試験計画とJSON原本は`output/usb-dac-audio-plan.json`、`output/usb-dac-audio-results.json`、`output/usb-dac-sa-retest-results.json`、`output/usb-dac-sa-steady-results.json`に保存した。計測プログラムは`prototype/emulators/probe-rg353m-route.py`である。試験後はFEが再起動し、`validation-hold`は消え、USB DACの自動選択と元の音量値18を確認した。
