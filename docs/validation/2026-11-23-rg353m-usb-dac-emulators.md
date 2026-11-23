@@ -10,8 +10,8 @@
 | PICO / gpSP | 同上 | 60秒 | 59.65fps | `RUNNING`、ポインタ進行 | 1回 | 4500フレーム完了、内部音声不足0フレーム |
 | SA / OpenBOR | Dragon Ball | 開始後15秒から60秒 | 59.88fps | `RUNNING`、ポインタ進行 | 1回 | プレイ中の再始動なし |
 
-OpenBORの最初の90秒の測定では、起動から約9秒後にPCMの開始時刻が1回変わった。ゲームの初期遷移と重なるため、開始後15秒から測り直した。この再試験では60秒間再始動はなかった。最初の遷移が実際に聞こえる音切れかどうかは、この計測だけでは判定できない。
+OpenBORの最初の90秒の測定では、起動から約9秒後にPCMの開始時刻が1回変わった。ゲームの初期遷移と重なるため、開始後15秒から測り直した。この再試験では60秒間再始動はなかった。利用者がFEから同じOpenBORゲームを起動してUSB DACで聞き、起動時の音切れは聞こえないと回答した。
 
-以上の区間ではUSB DAC側のPCM停止や再始動は検出されず、PICOの音声不足カウンタは0だった。RAとOpenBORには音声サンプルそのものを録音するループバックがないため、耳で聞こえる微小な音切れを完全に否定する測定ではない。OpenBOR開始直後の切り替えについては実聴確認が残る。
+以上の区間ではUSB DAC側のPCM停止や再始動は検出されず、PICOの音声不足カウンタは0だった。OpenBORの起動時の開き直しも実聴では音切れがなかった。RAとOpenBORには音声サンプルそのものを録音するループバックがないため、耳で聞こえる微小な音切れを完全に否定する測定ではない。
 
 試験計画とJSON原本は`output/usb-dac-audio-plan.json`、`output/usb-dac-audio-results.json`、`output/usb-dac-sa-retest-results.json`、`output/usb-dac-sa-steady-results.json`に保存した。計測プログラムは`prototype/emulators/probe-rg353m-route.py`である。試験後はFEが再起動し、`validation-hold`は消え、USB DACの自動選択と元の音量値18を確認した。
