@@ -16,7 +16,15 @@ root = Path("/storage/plumos-rk3566/frontend")
 rom_root = Path("/storage/user/.plumos-emulator-matrix")
 run = Path("/run/plumos-353m")
 trace = Path("/sys/kernel/tracing/instances/plumos-matrix")
-pcm = Path("/proc/asound/card0/pcm0p/sub0/status")
+
+def playback_pcm():
+    """Follow the physical ALSA sink selected by the production audio router."""
+    status = (run / "audio/output.status").read_text(errors="replace")
+    selected = re.search(r"^physical_pcm=hw:(\d+),(\d+)$", status, re.M)
+    if not selected:
+        raise RuntimeError("audio output has no physical PCM")
+    return (Path(f"/proc/asound/card{selected[1]}/pcm{selected[2]}p/sub0/status"),
+            re.search(r"^mode=(\S+)$", status, re.M).group(1), selected.group(0))
 
 def write(path, value):
     path.write_text(str(value))
@@ -28,7 +36,10 @@ def count_frames():
 def wait_sample(seconds):
     start = time.monotonic()
     count = count_frames()
+    pcm, audio_mode, physical_pcm = playback_pcm()
     pointers, states, starts = [], set(), set()
+    transitions = []
+    previous = None
     frequencies = []
     while time.monotonic() - start < seconds:
         try:
@@ -43,6 +54,12 @@ def wait_sample(seconds):
         trigger = re.search(r"^trigger_time\s*:\s*(\S+)", data, re.M)
         if trigger:
             starts.add(trigger[1])
+        current = (data.splitlines()[0] if data else "unavailable",
+                   trigger[1] if trigger else "")
+        if current != previous:
+            transitions.append({"seconds": round(time.monotonic() - start, 2),
+                                "state": current[0], "trigger_time": current[1]})
+            previous = current
         try:
             frequencies.append(int(Path("/sys/devices/system/cpu/cpufreq/policy0/scaling_cur_freq").read_text()))
         except (OSError, ValueError):
@@ -53,6 +70,9 @@ def wait_sample(seconds):
         "pcm_states": sorted(states),
         "pcm_progress": len(set(pointers)) > 1,
         "pcm_triggers": len(starts),
+        "pcm_transitions": transitions,
+        "audio_mode": audio_mode,
+        "physical_pcm": physical_pcm,
         "cpu_khz_min": min(frequencies) if frequencies else None,
         "cpu_khz_max": max(frequencies) if frequencies else None,
     }
