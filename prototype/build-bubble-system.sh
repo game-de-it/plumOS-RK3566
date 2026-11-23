@@ -60,6 +60,20 @@ install -m755 "$prototype/emulators/plumos-rk3566-audio-route" "$payload/fronten
 install -m755 "$frontend/bin/"{plumos-audio-output,plumos-volume-control} "$payload/frontend/bin/"
 sed 's|/run/plumos/audio/asound.conf|${PLUMOS_RUNTIME_ROOT:-/run/plumos}/audio/asound.conf|' \
     "$runtime/bin/plumos-pyxel-bubble-launch" >"$payload/frontend/bin/plumos-pyxel-bubble-launch"
+python3 - "$payload/frontend" <<'PY_PYXEL_CHECKSUM'
+import hashlib
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1])
+relative = "bin/plumos-pyxel-bubble-launch"
+checksums = root / "components/pyxel/checksums.sha256"
+lines = checksums.read_text().splitlines()
+matches = [i for i, line in enumerate(lines) if line.endswith("  " + relative)]
+assert len(matches) == 1
+lines[matches[0]] = hashlib.sha256((root / relative).read_bytes()).hexdigest() + "  " + relative
+checksums.write_text("\n".join(lines) + "\n")
+PY_PYXEL_CHECKSUM
 "$prototype/stage-bubble-apps.sh" "$bubble" "$revision" "$image" "$stage/apps-source" \
     "$payload/frontend"
 install -m 755 "$prototype/system/usr/lib/plumos-353m/frontend/bin/"{plumos-network-control,plumos-storage-health} \
@@ -113,7 +127,9 @@ import sys
 path = Path(sys.argv[1])
 catalog = json.loads(path.read_text())
 systems = {system["id"]: system for system in catalog["systems"]}
-systems["nes"]["default_cpu_policy"] = "performance"
+for system_id in ("nes", "gb", "gbc", "gba"):
+    systems[system_id]["default_cpu_policy"] = "schedutil"
+systems["gba"]["default_launch_profile"] = "retroarch:mgba"
 systems["pyxel"]["default_cpu_policy"] = "performance"
 j2me = systems["j2me"]
 assert j2me["launch_profiles"] == ["retroarch:squirreljme"]

@@ -42,6 +42,7 @@ set -eu
 R={root}
 V={run}
 export PLUMOS_ROOT=$R PLUMOS_RUNTIME_ROOT=$V
+"$R/bin/plumos-cpu-control" snapshot "$V/matrix-cpu-governors"
 "$R/bin/plumos-volume-control" apply 4
 test "$(cat "$V/volume/current")" = 4
 test ! -e "$V/validation-hold"
@@ -80,6 +81,9 @@ fi
 if grep -qs ' /usr/lib/plumos-353m/start-frontend ' /proc/mounts; then
     umount -l /usr/lib/plumos-353m/start-frontend
 fi
+if test -f "$V/matrix-cpu-governors"; then
+    /storage/plumos-rk3566/frontend/bin/plumos-cpu-control restore "$V/matrix-cpu-governors" || :
+fi
 rm -f "$V/validation-hold"
 rmdir /sys/kernel/tracing/instances/plumos-matrix 2>/dev/null || :
 '''
@@ -94,7 +98,10 @@ if todo:
         initialized = True
         adb("shell", "-T", setup)
         for idx, record in enumerate(todo, 1):
-            command = f"python3 {device} {shlex.quote(json.dumps(record, ensure_ascii=False))}"
+            # The production plumOS image keeps Python in the Bubble Apps
+            # runtime; it does not install /usr/bin/python3 into the base OS.
+            command = (f"PLUMOS_ROOT={root} {root}/bin/plumos-python-bubble "
+                       f"{device} {shlex.quote(json.dumps(record, ensure_ascii=False))}")
             try:
                 frame_limit = record.get("picoarch_diagnostic_frames", 0)
                 sample_seconds = record.get("sample_seconds", 3)

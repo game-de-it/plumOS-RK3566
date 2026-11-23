@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import signal
+import shutil
 import struct
 import subprocess
 import sys
@@ -28,6 +29,7 @@ def wait_sample(seconds):
     start = time.monotonic()
     count = count_frames()
     pointers, states, starts = [], set(), set()
+    frequencies = []
     while time.monotonic() - start < seconds:
         try:
             data = pcm.read_text(errors="replace")
@@ -41,12 +43,18 @@ def wait_sample(seconds):
         trigger = re.search(r"^trigger_time\s*:\s*(\S+)", data, re.M)
         if trigger:
             starts.add(trigger[1])
+        try:
+            frequencies.append(int(Path("/sys/devices/system/cpu/cpufreq/policy0/scaling_cur_freq").read_text()))
+        except (OSError, ValueError):
+            pass
         time.sleep(0.24)
     return {
         "fps": round((count_frames() - count) / (time.monotonic() - start), 2),
         "pcm_states": sorted(states),
         "pcm_progress": len(set(pointers)) > 1,
         "pcm_triggers": len(starts),
+        "cpu_khz_min": min(frequencies) if frequencies else None,
+        "cpu_khz_max": max(frequencies) if frequencies else None,
     }
 
 def press_joypad_key(code):
@@ -91,8 +99,6 @@ def command(record, env):
     kind, name = record["profile"].split(":", 1)
     rom = str(rom_root / record["rom"]) if record["rom"] else None
     cpu = record.get("cpu", "ondemand")
-    if sid == "nes":
-        cpu = "performance"
     if kind == "retroarch":
         option = ["--rom", rom] if rom else ["--no-content"]
         return ("plumos-retroarch-launch",
@@ -114,6 +120,23 @@ def command(record, env):
     raise ValueError(kind)
 
 record = json.loads(sys.argv[1])
+if record["profile"].startswith("retroarch:"):
+    # The matrix runner bind-mounts this config directory onto tmpfs. Keep
+    # audio A/B experiments scoped to a single probe and restore the factory
+    # value for the next record, including when RetroArch saves its config.
+    cfg = root / "config/retroarch/retroarch-bubble.cfg"
+    factory = root / "factory-defaults/retroarch/retroarch-bubble.cfg"
+    shutil.copyfile(factory, cfg)
+    source = cfg.read_text()
+    for key, value in (("audio_latency", record.get("audio_latency_ms")),
+                       ("audio_driver", record.get("audio_driver"))):
+        if value is None:
+            continue
+        source, changed = re.subn(rf'^{key} = "[^"]*"$',
+                                  f'{key} = "{value}"', source, flags=re.M)
+        if changed != 1:
+            raise RuntimeError(f"expected one {key} in RetroArch config")
+    cfg.write_text(source)
 if record.get("user_media"):
     rom_root = Path("/storage/user/Roms")
     sdcard_root = rom_root.parent
@@ -155,7 +178,12 @@ write(trace / "events/drm/drm_vblank_event_delivered/enable", 1)
 write(trace / "tracing_on", 1)
 proc = None
 out = {}
+cpu_min_path = Path("/sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq")
+original_cpu_min = None
 try:
+    if "cpu_floor_khz" in record:
+        original_cpu_min = cpu_min_path.read_text().strip()
+        cpu_min_path.write_text(str(int(record["cpu_floor_khz"])))
     with wrapper.open("wb") as stream:
         if record.get("frontend_launch") and record["rom"]:
             launch_command = [str(root / "bin/plumos-text-ui"), "launch", record["system"],
@@ -198,6 +226,8 @@ finally:
         stop(proc)
     write(trace / "tracing_on", 0)
     write(trace / "events/drm/drm_vblank_event_delivered/enable", 0)
+    if original_cpu_min is not None:
+        cpu_min_path.write_text(original_cpu_min)
     time.sleep(0.15)
 runtime = b""
 if log.exists():
