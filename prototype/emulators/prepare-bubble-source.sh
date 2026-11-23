@@ -20,6 +20,7 @@ cp "$scripts/rg353m-picoarch-evdev.patch" "$destination/package/picoarch-bubble/
 cp "$scripts/rg353m-drastic-input.patch" "$destination/package/standalone-bubble/patches/drastic/rg353m-input.patch"
 cp "$scripts/rg353m-openbor-input.patch" "$destination/package/standalone-bubble/patches/openbor/rg353m-input.patch"
 patch -s -d "$destination" -p1 < "$scripts/rg353m-standalone.patch"
+patch -s -d "$destination" -p1 < "$scripts/rg353m-drastic-cleanup.patch"
 python3 - "$destination" <<'PY'
 from pathlib import Path
 import sys
@@ -36,8 +37,26 @@ replace("package/picoarch-bubble/patches/picoarch-bubble-physical-input.patch",
         "+\t{ BTN_TRIGGER_HAPPY1,", "+\t{ BTN_MODE,   ", 2)
 replace("package/standalone-bubble/patches/pcsx-rearmed-bubble-kmsdrm.patch",
         "SDLK_WORLD_17", "SDLK_WORLD_10", 2)
-replace("package/standalone-bubble/plumos/bin/plumos-standalone-launch",
-        "guide:b17", "guide:b10", 4)
+standalone_launcher = "package/standalone-bubble/plumos/bin/plumos-standalone-launch"
+replace(standalone_launcher, "guide:b17", "guide:b10", 4)
+replace(standalone_launcher,
+        'drm_share_preload="${PLUMOS_DRM_SHARE_LIBRARY:-}"',
+        'drm_share_preload="${PLUMOS_DRM_SHARE_LIBRARY:-}"\n'
+        '# Reuse the SDL built for the Mali KMSDRM and GLES stack.\n'
+        'kms_sdl2="$PLUMOS_ROOT/apps/pyxel/lib/libSDL2-2.0.so.0"', 1)
+replace(standalone_launcher,
+        'LD_PRELOAD="/usr/lib/libSDL2-2.0.so.0:$PLUMOS_ROOT/emulator/lib/libmali.so.1:$drm_share_preload"',
+        'LD_PRELOAD="$kms_sdl2:$PLUMOS_ROOT/emulator/lib/libmali.so.1:$drm_share_preload"', 1)
+replace(standalone_launcher,
+        'LD_PRELOAD="$drm_share_preload" \\\nSDL_VIDEODRIVER=kmsdrm',
+        'LD_PRELOAD="$kms_sdl2:$mali_preload" \\\n'
+        'SDL_VIDEO_EGL_DRIVER="$PLUMOS_ROOT/emulator/lib/libmali.so.1" \\\n'
+        'SDL_VIDEO_GL_DRIVER="$PLUMOS_ROOT/emulator/lib/libmali.so.1" \\\n'
+        'SDL_VIDEODRIVER=kmsdrm', 1)
+replace(standalone_launcher,
+        '        export ALSA_PLUGIN_DIR="$PLUMOS_ROOT/lib/alsa-lib-armhf"',
+        '        export ALSA_CONFIG_PATH="$RUNTIME_ROOT/audio/asound-armhf.conf"\n'
+        '        export ALSA_PLUGIN_DIR="$PLUMOS_ROOT/lib/alsa-lib-armhf"', 1)
 replace("package/standalone-bubble/patches/yabasanshiro/yabasanshiro-2.10.4-bubble-input.patch",
         'mapInput("select", Input(joyId, TYPE_BUTTON, 17, 1, true))',
         'mapInput("select", Input(joyId, TYPE_BUTTON, 10, 1, true))', 1)

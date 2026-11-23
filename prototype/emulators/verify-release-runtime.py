@@ -82,7 +82,10 @@ for executable in (
     require(executable, executable=True)
 for dependency in (
     "config/frontend/scraper-sources.tsv",
+    "lib/alsa-lib/libasound_module_pcm_plumos_hotplug.so",
+    "lib/alsa-lib-armhf/libasound_module_pcm_plumos_hotplug.so",
     "apps/pyxel/lib/libSDL2-2.0.so.0",
+    "emulator/standalone/pcsx_rearmed/lib/libSDL2-2.0.so.0",
     "apps/pyxel/lib/plumos-pyxel-fit.so",
     "apps/portmaster/upstream/PortMaster/pylibs.zip",
     "share/libretro-system/freej2me-plus/freej2me_plus_runtime/linux-arm64/bin/freej2me_plus-lr.jar",

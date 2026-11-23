@@ -47,6 +47,7 @@ patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-start-menu.patch"
 patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-start-helpers.patch"
 patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-audio.patch"
 patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-power-overlay-drm.patch"
+patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-power-overlay-input.patch"
 python3 "$prototype/emulators/set-volume-curve.py" \
     "$stage/source/package/frontend-bubble/plumos/bin/plumos-volume-control"
 python3 "$prototype/emulators/enable-frontend-builtins.py" "$stage/source/src/frontend"

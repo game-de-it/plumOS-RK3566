@@ -7,17 +7,21 @@ run=${PLUMOS_RUNTIME_ROOT:-/run/plumos-353m}
 directory=${PLUMOS_AUDIO_RUN_DIR:-$run/audio}
 config=${PLUMOS_ALSA_CONFIG_PATH:-$directory/asound.conf}
 status=${PLUMOS_AUDIO_STATUS_FILE:-$directory/output.status}
-plugin=$root/lib/alsa-lib/libasound_module_pcm_plumos_hotplug.so
+name=libasound_module_pcm_plumos_hotplug.so
+libraries=$root/lib
+system_libraries=${PLUMOS_PAYLOAD:-/usr/lib/plumos-353m}/frontend/lib
+# The SYSTEM owns the router. An older writable runtime can hide its lib tree.
+if [ -r "$system_libraries/alsa-lib/$name" ] &&
+   [ -r "$system_libraries/alsa-lib-armhf/$name" ]; then
+    libraries=$system_libraries
+fi
+plugin=$libraries/alsa-lib/$name
+armhf_plugin=$libraries/alsa-lib-armhf/$name
 
-prepare() {
-    [ -r "$plugin" ] || { echo "Missing ALSA hotplug router: $plugin" >&2; return 1; }
-    codec=$(readlink /proc/asound/rockchiprk817co 2>/dev/null || :)
-    codec=${codec##*card}
-    case $codec in ''|*[!0-9]*) echo 'RK817 sound card is missing' >&2; return 1 ;; esac
-    [ -c "/dev/snd/pcmC${codec}D0p" ] || return 1
-    "$root/bin/plumos-rk3566-audio-route" apply
-    mkdir -p "$directory"
-    tmp=$config.tmp.$$
+write_config() (
+    destination=$1
+    library=$2
+    tmp=$destination.tmp.$$
     trap 'rm -f "$tmp"' EXIT HUP INT TERM
     cat >"$tmp" <<EOF
 </usr/share/alsa/alsa.conf>
@@ -25,7 +29,7 @@ prepare() {
 ctl.!default { type hw card $codec }
 
 pcm_type.plumos_hotplug {
-    lib "$plugin"
+    lib "$library"
 }
 pcm.plumos_hotplug { type plumos_hotplug }
 pcm.plumos_hotplug_plug { type plug slave.pcm "plumos_hotplug" }
@@ -42,8 +46,21 @@ pcm.plumos_pyxel { type plug slave.pcm "plumos_hotplug" }
 pcm.!default { type plug slave.pcm "plumos_hotplug" }
 EOF
     chmod 0644 "$tmp"
-    mv -f "$tmp" "$config"
-    trap - EXIT HUP INT TERM
+    mv -f "$tmp" "$destination"
+)
+
+prepare() {
+    [ -r "$plugin" ] || { echo "Missing ALSA hotplug router: $plugin" >&2; return 1; }
+    codec=$(readlink /proc/asound/rockchiprk817co 2>/dev/null || :)
+    codec=${codec##*card}
+    case $codec in ''|*[!0-9]*) echo 'RK817 sound card is missing' >&2; return 1 ;; esac
+    [ -c "/dev/snd/pcmC${codec}D0p" ] || return 1
+    "$root/bin/plumos-rk3566-audio-route" apply
+    mkdir -p "$directory"
+    write_config "$config" "$plugin"
+    if [ -r "$armhf_plugin" ]; then
+        write_config "$directory/asound-armhf.conf" "$armhf_plugin"
+    fi
     # The plugin updates this status again at every physical route change.
     if [ -r /proc/asound/cards ]; then
         card=$codec

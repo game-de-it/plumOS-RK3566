@@ -1,0 +1,103 @@
+--- a/package/standalone-bubble/plumos/bin/plumos-standalone-launch
++++ b/package/standalone-bubble/plumos/bin/plumos-standalone-launch
+@@ -373,6 +373,7 @@
+     drastic_scratch=""
+     drastic_overlay=""
+     runner_pid=""
++    drastic_pid=""
+     setarch_mode=""
+
+     [ -x "$loader" ] && [ -x "$drastic" ] && [ -x "$runner" ] &&
+@@ -443,19 +444,24 @@
+             "$BB" cp -p "$factory_bios" "$work/system/$bios_name"
+     done
+
++    stop_drastic_child() {
++        child=$1
++        [ -n "$child" ] || return 0
++        kill -TERM "$child" 2>/dev/null || true
++        attempts=0
++        while kill -0 "$child" 2>/dev/null && [ "$attempts" -lt 10 ]; do
++            "$BB" usleep 50000
++            attempts=$((attempts + 1))
++        done
++        kill -0 "$child" 2>/dev/null &&
++            kill -KILL "$child" 2>/dev/null || true
++        wait "$child" 2>/dev/null || true
++    }
++
+     restore_drastic_runtime() {
+-        if [ -n "$runner_pid" ] && kill -0 "$runner_pid" 2>/dev/null; then
+-            kill -TERM "$runner_pid" 2>/dev/null || true
+-            runner_wait=0
+-            while kill -0 "$runner_pid" 2>/dev/null &&
+-                [ "$runner_wait" -lt 20 ]; do
+-                "$BB" usleep 100000
+-                runner_wait=$((runner_wait + 1))
+-            done
+-            kill -0 "$runner_pid" 2>/dev/null &&
+-                kill -KILL "$runner_pid" 2>/dev/null || true
+-            wait "$runner_pid" 2>/dev/null || true
+-        fi
++        stop_drastic_child "$drastic_pid"
++        drastic_pid=""
++        stop_drastic_child "$runner_pid"
+         runner_pid=""
+         "$BB" rm -f /dev/shm/NDS_SHM /tmp/NDS_SHM
+         for mount_target in $drastic_mounts; do
+@@ -476,10 +482,15 @@
+             cpu_snapshot_active=0
+         fi
+     }
++    exit_drastic() {
++        # The DRM broker can forward TERM again while the launcher unwinds.
++        trap '' HUP INT TERM
++        exit "$1"
++    }
+     trap restore_drastic_runtime EXIT
+-    trap 'exit 129' HUP
+-    trap 'exit 130' INT
+-    trap 'exit 143' TERM
++    trap 'exit_drastic 129' HUP
++    trap 'exit_drastic 130' INT
++    trap 'exit_drastic 143' TERM
+
+     "$BB" mkdir -p /dev/shm
+     if ! "$BB" grep -qs ' /dev/shm ' /proc/mounts; then
+@@ -547,7 +558,7 @@
+         SDL_VIDEODRIVER=kmsdrm \
+         SDL_VIDEO_KMSDRM_DEVICE_INDEX=0 \
+         NDS_DEBUG_LEVEL="$drastic_debug_level" \
+-            "$runner"
++            exec "$runner"
+     ) >>"$log" 2>&1 &
+     runner_pid=$!
+     runner_ready=0
+@@ -591,20 +602,24 @@
+         export ALSA_PLUGIN_DIR="$PLUMOS_ROOT/lib/alsa-lib-armhf"
+         export AUDIODEV="$alsa_device"
+         if [ "$setarch_mode" = setarch ]; then
+-            "$BB" setarch linux32 -R \
++            exec "$BB" setarch linux32 -R \
+                 "$loader" \
+                 --preload "$runtime/lib/libdrastic_mmap_compat.so" \
+                 --library-path "$runtime/lib:$runtime/runtime/lib32" \
+                 "$drastic" "$content"
+         else
+-            "$BB" linux32 -R \
++            exec "$BB" linux32 -R \
+                 "$loader" \
+                 --preload "$runtime/lib/libdrastic_mmap_compat.so" \
+                 --library-path "$runtime/lib:$runtime/runtime/lib32" \
+                 "$drastic" "$content"
+         fi
+-    ) >>"$log" 2>&1
++    ) >>"$log" 2>&1 &
++    drastic_pid=$!
++    # A signal can interrupt wait so the EXIT trap can clean up the mounts.
++    wait "$drastic_pid"
+     rc=$?
++    drastic_pid=""
+     set -e
+     printf 'drastic_exit=rc-%s\n' "$rc" >>"$log"
+     restore_drastic_runtime

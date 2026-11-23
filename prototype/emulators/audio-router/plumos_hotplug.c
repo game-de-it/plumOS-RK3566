@@ -238,6 +238,7 @@ static int find_usb_card(void)
 static void write_route_status(int card, int is_usb, int uses_plug)
 {
     const char *status = "/run/plumos-353m/audio/output.status";
+    const char *config = getenv("ALSA_CONFIG_PATH");
     char temporary[PATH_MAX];
     char card_id[64] = "unknown";
     FILE *fp;
@@ -254,9 +255,10 @@ static void write_route_status(int card, int is_usb, int uses_plug)
             "card_id=%s\n"
             "physical_pcm=%s:%d,0\n"
             "pcm=plumos_output\n"
-            "alsa_config_path=/run/plumos-353m/audio/asound.conf\n",
+            "alsa_config_path=%s\n",
             is_usb ? "usb_dac" : "internal_stereo", card, card_id,
-            uses_plug ? "plughw" : "hw", card);
+            uses_plug ? "plughw" : "hw", card,
+            config && *config ? config : "/run/plumos-353m/audio/asound.conf");
     if (fclose(fp) == 0)
         rename(temporary, status);
     else

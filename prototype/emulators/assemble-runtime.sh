@@ -19,11 +19,11 @@ mkdir "$runtime"
 for component in "${components[@]}"; do
     cp -R "$bubble/output/$component/plumos/." "$runtime/"
 done
-# PCSX's SDL 1.2 shim loads the JELOS KMSDRM SDL2 used to validate this panel.
+# Keep the SDL 1.2 shim and native KMSDRM apps on the same GLES-only SDL2.
 pcsx_sdl2="$runtime/emulator/standalone/pcsx_rearmed/lib/libSDL2-2.0.so.0"
 test -f "$pcsx_sdl2"
 rm "$pcsx_sdl2"
-ln -s /usr/lib/libSDL2-2.0.so.0 "$pcsx_sdl2"
+ln -s ../../../../apps/pyxel/lib/libSDL2-2.0.so.0 "$pcsx_sdl2"
 frontend=$bubble/package/frontend-bubble/plumos/bin
 install -m 755 "$frontend"/{plumos-retroarch-launch,plumos-retroarch-menu-launch,plumos-retroarch-config-merge,plumos-volume-control,plumos-cpu-control} "$runtime/bin/"
 python3 "$scripts/set-volume-curve.py" "$runtime/bin/plumos-volume-control"

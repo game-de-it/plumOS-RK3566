@@ -1,0 +1,21 @@
+--- a/src/frontend/plumos_controller_ui.c
++++ b/src/frontend/plumos_controller_ui.c
+@@ -16318,6 +16318,18 @@
+       snprintf(ui->status, sizeof(ui->status), "input open failed: %s", strerror(errno));
+     }
+   }
++  if (ui->power_overlay) {
++    if (event_fd < 0) {
++      fprintf(stderr, "power overlay: gamepad is unavailable\n");
++      return 1;
++    }
++    // Consume menu input while the stopped game's evdev queue is unread.
++    if (ioctl(event_fd, EVIOCGRAB, 1) < 0) {
++      fprintf(stderr, "power overlay: gamepad grab failed: %s\n", strerror(errno));
++      close(event_fd);
++      return 1;
++    }
++  }
+   ui->input_event_fd = event_fd;
+   if (ui->power_event_path[0] &&
+       (!event_path || !event_path[0] || !same_path(event_path, ui->power_event_path))) {
