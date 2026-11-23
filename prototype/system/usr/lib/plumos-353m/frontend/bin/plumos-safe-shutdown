@@ -56,12 +56,27 @@ if [ "$target" = sleep ]; then
         [ "$wakeup_sec" -ge 1 ] && [ "$wakeup_sec" -le 3600 ] || usage
     fi
     [ -w /sys/power/state ] && grep -qw "$sleep_backend" /sys/power/state || exit 1
+    if [ "$sleep_backend" = mem ] && ! grep -q '\[s2idle\]' /sys/power/mem_sleep; then
+        echo 'plumOS RG353M: mem sleep requires the JELOS s2idle mode' >&2
+        exit 1
+    fi
     if [ "$dry_run" = yes ]; then
         printf 'result=dry-run service=plumos-init action=sleep backend=%s\n' "$sleep_backend"
         exit 0
     fi
     root=${PLUMOS_ROOT:-/storage/plumos-rk3566/frontend}
     network=$root/bin/plumos-network-control
+    log=$root/logs/power-action.log
+    mkdir -p "${log%/*}"
+    printf 'sleep=begin backend=%s mem_sleep=%s ac=%s time=%s\n' "$sleep_backend" \
+        "$(cat /sys/power/mem_sleep 2>/dev/null || echo unknown)" \
+        "$(cat /sys/class/power_supply/ac/online 2>/dev/null || echo unknown)" \
+        "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >>"$log"
+    adb_restore=no
+    if [ -e /dev/plumos-native-init ] &&
+        [ -n "$(cat /sys/kernel/config/usb_gadget/plumos353m/UDC 2>/dev/null)" ]; then
+        adb_restore=yes
+    fi
     wifi_restore=no
     if [ -d /sys/class/net/wlan0 ] &&
         ! grep -Eq '"wifi_enabled"[[:space:]]*:[[:space:]]*(false|0)' \
@@ -79,13 +94,19 @@ if [ "$target" = sleep ]; then
             [ "$wifi_restore" != yes ] || "$network" --wifi on || :
             exit 1
         fi
+        printf 'sleep=wakealarm-armed seconds=%s\n' "$wakeup_sec" >>"$log"
     fi
     sync
+    printf 'sleep=enter backend=%s time=%s\n' "$sleep_backend" \
+        "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >>"$log"
     if ! printf '%s\n' "$sleep_backend" > /sys/power/state; then
         [ -z "$wakeup_sec" ] || printf '0\n' > /sys/class/rtc/rtc0/wakealarm || :
         [ "$wifi_restore" != yes ] || "$network" --wifi on || :
+        printf 'sleep=entry-failed backend=%s\n' "$sleep_backend" >>"$log"
         exit 1
     fi
+    printf 'sleep=resumed backend=%s time=%s\n' "$sleep_backend" \
+        "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >>"$log"
     [ -z "$wakeup_sec" ] || printf '0\n' > /sys/class/rtc/rtc0/wakealarm || :
     case "$brightness" in ''|*[!0-9]*) ;; *) "$root/bin/plumos-display-control" apply "$brightness" || : ;; esac
     case "$volume" in ''|*[!0-9]*) ;; *) "$root/bin/plumos-volume-control" apply "$volume" || : ;; esac
@@ -93,6 +114,11 @@ if [ "$target" = sleep ]; then
         ( "$network" --wifi on
           "$root/bin/plumos-network-services" start-enabled ) \
             >>"$runtime/sleep-network.log" 2>&1 &
+    fi
+    if [ "$adb_restore" = yes ]; then
+        : > "$runtime/adb-rebind-request"
+        kill -USR1 1
+        printf 'sleep=adb-rebind-requested\n' >>"$log"
     fi
     printf 'result=resumed action=sleep backend=%s\n' "$sleep_backend"
     exit 0

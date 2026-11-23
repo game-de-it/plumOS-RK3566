@@ -26,6 +26,16 @@ printf '%s\n' "$$" > "$runtime/pid1"
 cut -d ' ' -f 1 /proc/uptime > "$runtime/pid1-uptime"
 printf 'plumOS init: PID %s; inherited boot arguments: %s\n' "$$" "$*"
 
+# JELOS 20240206 configures RG353M's mem suspend to use s2idle. Without
+# this board quirk the vendor kernel selects deep, which did not resume on
+# this device under USB power even with an RTC wakealarm.
+if grep -qw s2idle /sys/power/mem_sleep &&
+    printf 's2idle\n' > /sys/power/mem_sleep; then
+    echo "plumOS init: JELOS RG353M mem sleep mode $(cat /sys/power/mem_sleep)"
+else
+    echo 'plumOS init: could not select RG353M mem sleep mode'
+fi
+
 frontend=
 adb_pid=
 audio_pid=
@@ -254,6 +264,17 @@ fi
 
 while :; do
     power_action
+    if [ -e "$runtime/adb-rebind-request" ]; then
+        rm -f "$runtime/adb-rebind-request"
+        if [ -n "$adb_pid" ]; then
+            echo 'plumOS init: restarting ADB gadget after sleep'
+            kill "$adb_pid" 2>/dev/null || :
+            wait "$adb_pid" 2>/dev/null || :
+            adb_pid=
+            "$payload/start-adb" &
+            adb_pid=$!
+        fi
+    fi
     if [ -n "$adb_pid" ] && ! kill -0 "$adb_pid" 2>/dev/null; then
         wait "$adb_pid" 2>/dev/null || :
         sleep 1
