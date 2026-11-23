@@ -7,6 +7,7 @@ storage=/storage/plumos-rk3566
 system_state=$storage/system
 : > /dev/plumos-native-init
 sd2_service=$payload/manage-sd2
+quiesce=$payload/runtime-quiesce
 export PLUMOS_ROOT=$storage/frontend
 export XDG_RUNTIME_DIR=$runtime
 export PLUMOS_RUNTIME_ROOT=$runtime PLUMOS_SDCARD_ROOT=/storage/user
@@ -33,11 +34,29 @@ attempt=0
 provisioned=no
 
 power_action() {
-    local action network
+    local action network marker user_marker network_stopped marker_result handoff
     action=$(cat "$runtime/power-request" 2>/dev/null) || return 0
     rm -f "$runtime/power-request"
     case "$action" in reboot|poweroff) ;; *) return 0 ;; esac
     echo "plumOS init: requested $action"
+    marker=$storage/provision/clean-shutdown
+    user_marker=/storage/user/.plumos-clean-shutdown
+    network_stopped=no
+    marker_result=ok
+    # The power overlay commits its request before releasing the renderer.
+    # Give it a bounded handoff window so it is not itself a storage blocker.
+    handoff=0
+    while [ -d "$runtime/power-menu-overlay.lock" ] && [ "$handoff" -lt 30 ]; do
+        sleep 0.1
+        handoff=$((handoff + 1))
+    done
+    # A game can outlive the frontend process that launched it. Stop its
+    # foreground group before unmounting the ROM and save partitions.
+    if [ -x "$quiesce" ] &&
+        ! "$quiesce" terminate-active "$runtime/frontend/foreground.pgid"; then
+        echo 'plumOS init: foreground process could not stop; power action cancelled'
+        return 0
+    fi
     if [ -n "$frontend" ]; then
         kill "$frontend" 2>/dev/null || :
         for second in 1 2 3; do
@@ -54,17 +73,10 @@ power_action() {
         wait "$volume_keys_pid" 2>/dev/null || :
         volume_keys_pid=
     fi
-    if [ -x "$PLUMOS_ROOT/bin/plumos-network-services" ]; then
-        "$PLUMOS_ROOT/bin/plumos-network-services" quiesce
-        rm -f "$runtime/network-boot-started"
-    fi
-    network=$PLUMOS_ROOT/bin/plumos-network-control
-    if [ -x "$network" ]; then
-        "$network" --wifi off || echo 'plumOS init: Wi-Fi shutdown failed'
-    fi
     sync
-    if grep -qs " $PLUMOS_ROOT overlay " /proc/mounts && ! umount "$PLUMOS_ROOT"; then
-        echo 'plumOS init: could not unmount the runtime; power action cancelled'
+    if [ -x "$quiesce" ] &&
+        ! "$quiesce" terminate-storage /storage/user /run/media/sd2; then
+        echo 'plumOS init: user storage writer could not stop; power action cancelled'
         return 0
     fi
     if [ -x "$sd2_service" ] && ! "$sd2_service" stop; then
@@ -72,34 +84,120 @@ power_action() {
         "$sd2_service" start || :
         return 0
     fi
+    # The two markers are valid only after both filesystems have been made
+    # read-only. A failed transaction removes them before resuming the UI.
+    if grep -qs ' /storage/user ' /proc/mounts; then
+        touch "$marker" "$user_marker" || marker_result=failed
+    else
+        # The first provisioning reboot has not created or mounted p5 yet.
+        touch "$marker" || marker_result=failed
+    fi
+    if [ "$marker_result" = failed ]; then
+        rm -f "$marker" "$user_marker"
+        "$sd2_service" start || :
+        echo 'plumOS init: clean-shutdown markers unavailable; power action cancelled'
+        return 0
+    fi
+    sync
     if grep -qs ' /storage/user ' /proc/mounts; then
         if ! mount -o remount,ro /storage/user; then
             echo 'plumOS init: could not remount user storage; power action cancelled'
+            rm -f "$marker" "$user_marker"
             "$sd2_service" start || :
             return 0
         fi
     fi
+    if [ -x "$PLUMOS_ROOT/bin/plumos-network-services" ]; then
+        "$PLUMOS_ROOT/bin/plumos-network-services" quiesce
+        network_stopped=yes
+        rm -f "$runtime/network-boot-started"
+    fi
+    network=$PLUMOS_ROOT/bin/plumos-network-control
+    if [ -x "$network" ]; then
+        "$network" --wifi off || echo 'plumOS init: Wi-Fi shutdown failed'
+        network_stopped=yes
+    fi
+    if grep -qs " $PLUMOS_ROOT overlay " /proc/mounts && ! umount "$PLUMOS_ROOT"; then
+        echo 'plumOS init: could not unmount the runtime; power action cancelled'
+        power_rollback "$marker" "$user_marker" "$network_stopped"
+        return 0
+    fi
+    if [ -x "$quiesce" ] && ! "$quiesce" terminate-storage /storage; then
+        echo 'plumOS init: runtime writer could not stop; power action cancelled'
+        power_rollback "$marker" "$user_marker" "$network_stopped"
+        return 0
+    fi
     if ! mount -o remount,ro /storage; then
         echo 'plumOS init: could not remount runtime storage; power action cancelled'
-        if grep -qs ' /storage/user ' /proc/mounts; then mount -o remount,rw /storage/user; fi
-        "$sd2_service" start || :
+        power_rollback "$marker" "$user_marker" "$network_stopped"
         return 0
     fi
     sync
+    echo 'plumOS init: clean-shutdown proof committed'
     # Power operations from an ADB shell may retain a cwd on /storage.
     # Keep the transport alive until the filesystems are synchronized.
     "$payload/power" "$action"
     # A failed reboot syscall must leave PID 1 and the recovery transport alive.
-    mount -o remount,rw /storage
-    if grep -qs ' /storage/user ' /proc/mounts; then mount -o remount,rw /storage/user; fi
-    "$sd2_service" start || :
+    power_rollback "$marker" "$user_marker" "$network_stopped"
     echo 'plumOS init: power syscall failed'
+}
+
+power_rollback() {
+    local marker user_marker network_stopped
+    marker=$1 user_marker=$2 network_stopped=$3
+    mount -o remount,rw /storage || :
+    if grep -qs ' /storage/user ' /proc/mounts; then mount -o remount,rw /storage/user || :; fi
+    rm -f "$marker" "$user_marker"
+    "$sd2_service" start || :
+    if [ "$network_stopped" = yes ]; then
+        "$payload/mount-frontend" || :
+        ( "$PLUMOS_ROOT/bin/plumos-network-control" --boot
+          "$PLUMOS_ROOT/bin/plumos-network-services" start-enabled ) &
+    fi
+}
+
+input_event_for_name() {
+    local event
+    for event in /sys/class/input/event*; do
+        [ "$(cat "$event/device/name" 2>/dev/null)" = "$1" ] || continue
+        printf '/dev/input/%s\n' "${event##*/}"
+        return 0
+    done
+    return 1
+}
+
+start_recovery_network() {
+    [ ! -e "$runtime/recovery-network-started" ] || return 0
+    : > "$runtime/recovery-network-started"
+    # This path is owned by PID 1, even when the FE launcher never starts.
+    (
+        "$payload/mount-frontend" || exit 0
+        [ -x "$PLUMOS_ROOT/bin/plumos-network-control" ] || exit 0
+        "$PLUMOS_ROOT/bin/plumos-network-control" --boot || :
+        if [ -x "$PLUMOS_ROOT/bin/plumos-network-services" ]; then
+            "$PLUMOS_ROOT/bin/plumos-network-services" start-enabled || :
+        fi
+        echo 'plumOS init: recovery network attempt finished'
+    ) >>"$runtime/recovery-network.log" 2>&1 &
+}
+
+capture_recovery_snapshot() {
+    mkdir -p "$storage/logs" || return 0
+    {
+        echo "reason=$1"
+        cat /proc/cmdline
+        cat /proc/mounts
+        ip -4 addr show || :
+        ps w || :
+        dmesg | tail -120 || :
+    } > "$storage/logs/boot-recovery.log" 2>&1 || :
 }
 
 mark_ready() {
     local hash
     [ ! -e "$runtime/boot-ready" ] || return 0
-    [ -n "$frontend" ] && kill -0 "$frontend" 2>/dev/null &&
+    [ "$provisioned" = yes ] && [ -n "$frontend" ] &&
+        kill -0 "$frontend" 2>/dev/null &&
         [ -s /tmp/plumos-fe-ready ] || return 0
     [ -z "$adb_pid" ] ||
         [ "$(cat /sys/kernel/config/usb_gadget/plumos353m/UDC 2>/dev/null)" = fcc00000.dwc3 ] || return 0
@@ -141,7 +239,16 @@ fi
 if [ "$provisioned" = no ]; then
     echo 'plumOS init: storage is unavailable; ADB recovery remains active'
     if [ -z "$adb_pid" ]; then "$payload/start-adb" & adb_pid=$!; fi
+    capture_recovery_snapshot storage-unavailable
+    start_recovery_network
 elif [ -x "$sd2_service" ]; then
+    if [ -e "$storage/provision/clean-shutdown" ] &&
+        [ -e /storage/user/.plumos-clean-shutdown ]; then
+        echo 'plumOS init: previous shutdown was clean'
+    else
+        echo 'plumOS init: previous clean-shutdown proof unavailable'
+    fi
+    rm -f "$storage/provision/clean-shutdown" /storage/user/.plumos-clean-shutdown
     "$sd2_service" start || echo 'plumOS init: SD2 setup or library scan failed'
 fi
 
@@ -153,13 +260,22 @@ while :; do
         "$payload/start-adb" &
         adb_pid=$!
     fi
+    if [ -n "$audio_pid" ] && ! kill -0 "$audio_pid" 2>/dev/null; then
+        wait "$audio_pid" 2>/dev/null || :
+        echo 'plumOS init: audio route monitor exited; restarting'
+        audio_pid=
+        sleep 1
+    fi
     if [ -n "$frontend" ] && ! kill -0 "$frontend" 2>/dev/null; then
         wait "$frontend"
         echo "plumOS init: frontend exited status=$?"
         frontend=
+        rm -f /tmp/plumos-fe-ready
         if [ "$attempt" -eq 5 ]; then
             echo 'plumOS init: frontend restart limit; enabling ADB recovery'
             if [ -z "$adb_pid" ]; then "$payload/start-adb" & adb_pid=$!; fi
+            capture_recovery_snapshot frontend-restart-limit
+            start_recovery_network
         fi
         sleep 1
     fi
@@ -168,6 +284,7 @@ while :; do
         audio_pid=$!
     fi
     if [ "$provisioned" = yes ] && [ -z "$frontend" ] && [ "$attempt" -lt 5 ]; then
+        rm -f /tmp/plumos-fe-ready
         "$payload/start-frontend" &
         frontend=$!
         attempt=$((attempt + 1))
@@ -177,7 +294,10 @@ while :; do
         volume_keys_pid=
     fi
     if [ -z "$volume_keys_pid" ] && [ -s /tmp/plumos-fe-ready ]; then
-        "$payload/frontend/bin/plumos-volume-keys" --volume-only &
+        PLUMOS_INPUT_EVENT=$(input_event_for_name retrogame_joypad || :)
+        PLUMOS_POWER_INPUT_EVENT=$(input_event_for_name 'rk805 pwrkey' || :)
+        export PLUMOS_INPUT_EVENT PLUMOS_POWER_INPUT_EVENT
+        "$payload/frontend/bin/plumos-volume-keys" &
         volume_keys_pid=$!
     fi
     mark_ready

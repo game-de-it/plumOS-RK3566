@@ -53,9 +53,12 @@ done
 
 frontend=$work/output/frontend/bubble/plumos
 for tool in curl plumos-ggfe plumos-ggfe-launch plumos-thumbnail-scraper \
-    plumos-sd2-repair plumos-fsck-fat; do
+    plumos-sd2-repair plumos-fsck-fat plumos-drm-master plumos-drm-broker-run; do
     install -m 755 "$frontend/bin/$tool" "$target/bin/"
 done
+mkdir -p "$target/frontend/lib"
+install -m 755 "$frontend/frontend/lib/libplumos-drm-share.so" \
+    "$target/frontend/lib/"
 cp -R "$frontend/"{scraper,storage-tools} "$target/"
 mkdir -p "$target/apps/ggfe" "$target/share/doc"
 cp -R "$frontend/frontend/lib" "$target/apps/ggfe/"

@@ -27,6 +27,23 @@ export PLUMOS_INPUT_TRACE_PATH="$PLUMOS_RUNTIME_ROOT/input-events.log"
 export PLUMOS_ACTION_TRACE_PATH="$PLUMOS_RUNTIME_ROOT/frontend-actions.log"
 
 "$payload/mount-frontend"
+# Check the effective runtime after the mutable layer is mounted. A broken
+# upper layer must fail into PID 1's ADB recovery rather than start a partial
+# frontend and mark a trial SYSTEM healthy.
+for required in \
+    bin/plumos-controller-ui \
+    bin/plumos-library-scan \
+    bin/plumos-system-update \
+    bin/plumos-retroarch-launch \
+    config/frontend/menus.json \
+    config/frontend/systems.json \
+    fonts/default.otf \
+    VERSION COMPAT_VENDOR RUNTIME_ABI; do
+    if [ ! -s "$PLUMOS_ROOT/$required" ]; then
+        echo "plumOS: required runtime file missing: $required" >&2
+        exit 1
+    fi
+done
 for name in frontend system; do
     settings="$PLUMOS_ROOT/config/$name/settings.json"
     if [ ! -e "$settings" ]; then

@@ -57,7 +57,7 @@ mkdir -p "$payload/frontend/bin"
 frontend=$stage/source/package/frontend-bubble/plumos
 cp -R "$frontend"/{config,factory-defaults,fonts,share,themes} "$payload/frontend/"
 install -m 755 "$stage/compiled/"{plumos-controller-ui,plumos-library-scan,plumos-text-ui,plumos-frontend} "$payload/frontend/bin/"
-install -m 755 "$prototype/system/usr/lib/plumos-353m/"{start-frontend,start-adb,mount-frontend} "$payload/"
+install -m 755 "$prototype/system/usr/lib/plumos-353m/"{start-frontend,start-adb,mount-frontend,runtime-quiesce} "$payload/"
 install -m 755 "$prototype/boot-system/manage-sd2" "$payload/"
 install -m 755 "$frontend/bin/"{plumos-bubble-mount-sd2,plumos-library-index-media,plumos-factory-reset,plumos-time-sync,plumos-display-control} \
     "$payload/frontend/bin/"
@@ -65,6 +65,7 @@ install -m 755 "$frontend/bin/plumos-storage-health" "$payload/frontend/bin/plum
 install -m 755 "$stage/source/package/network-services-bubble/plumos/bin/plumos-network-services" \
     "$payload/frontend/bin/"
 install -m 755 "$prototype/system/usr/lib/plumos-353m/frontend/bin/plumos-safe-shutdown" "$payload/frontend/bin/"
+install -m 755 "$prototype/system/usr/lib/plumos-353m/frontend/bin/plumos-power-menu-overlay" "$payload/frontend/bin/"
 install -m 755 "$adbd" "$payload/adbd"
 cp -R "$runtime/." "$payload/frontend/"
 install -m755 "$prototype/emulators/plumos-rk3566-audio-route" "$payload/frontend/bin/"
