@@ -11,6 +11,15 @@ stock=$(cd "$(dirname "$1")" && pwd)/$(basename "$1")
 bubble=$2
 adbd=$3
 runtime=$(cd "$5" && pwd)
+python3 - "$runtime/bin/plumos-retroarch-launch" <<'PY_DRM_AUDIO'
+from pathlib import Path
+import sys
+
+launcher = Path(sys.argv[1]).read_text()
+drm = launcher.split('video_driver = "drm"', 1)[1].split('esac', 1)[0]
+assert 'video_threaded = "true"' in drm
+assert 'video_threaded = "false"' not in drm
+PY_DRM_AUDIO
 mkdir -p "$4"
 out=$(cd "$4" && pwd)
 revision=ec81d42c0c2c39e7a32973bfe4df9b3027512a5d
@@ -127,9 +136,8 @@ import sys
 path = Path(sys.argv[1])
 catalog = json.loads(path.read_text())
 systems = {system["id"]: system for system in catalog["systems"]}
-for system_id in ("nes", "gb", "gbc", "gba"):
-    systems[system_id]["default_cpu_policy"] = "schedutil"
-systems["gba"]["default_launch_profile"] = "retroarch:mgba"
+# DRM presentation runs on its own thread (see assemble-runtime.sh), so the
+# low-load routes can keep Bubble's ondemand policy and gpSP default.
 systems["pyxel"]["default_cpu_policy"] = "performance"
 j2me = systems["j2me"]
 assert j2me["launch_profiles"] == ["retroarch:squirreljme"]

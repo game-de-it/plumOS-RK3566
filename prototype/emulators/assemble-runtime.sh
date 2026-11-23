@@ -54,10 +54,12 @@ s = launcher.read_text()
 needle = """            printf '%s\\n' 'video_context_driver = ""'
             printf '%s\\n' 'video_threaded = "true"'"""
 assert s.count(needle) == 1
-s = s.replace(needle, needle.replace('video_threaded = "true"', 'video_threaded = "false"'))
+# Bubble uses a video thread to keep DRM page-flip waits off the
+# emulation/audio producer. Preserve that setting on RK3566 as well.
 needle = '    *:flycast:*|*:flycast_xtreme:*|*:km_duckswanstation_xtreme_amped:*|'
 assert s.count(needle) == 1
 gl_routes = [
+    "gpsp",
     "mednafen_pce",
     "fbneo",
     "mednafen_vb",

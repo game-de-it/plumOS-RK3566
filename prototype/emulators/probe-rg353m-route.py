@@ -187,7 +187,10 @@ try:
     with wrapper.open("wb") as stream:
         if record.get("frontend_launch") and record["rom"]:
             launch_command = [str(root / "bin/plumos-text-ui"), "launch", record["system"],
-                              record["rom"], "--profile", record["profile"], "--execute"]
+                              record["rom"]]
+            if not record.get("frontend_default"):
+                launch_command += ["--profile", record["profile"]]
+            launch_command += ["--execute"]
         else:
             launch_command = [env["PLUMOS_BUSYBOX"], "sh", str(root / "bin" / launcher), *argv]
         proc = subprocess.Popen(launch_command,
