@@ -16,6 +16,7 @@ git -C "$source" archive "$revision" | tar -xf - -C "$destination"
 git -C "$source" show -s --format=%ct "$revision" > "$destination/source-date-epoch"
 cp "$scripts/rg353m-retroarch-drm.patch" "$destination/patches/retroarch/021-rg353m-drm.patch"
 cp "$scripts/rg353m-picoarch-audio.patch" "$destination/package/picoarch-bubble/patches/rg353m-audio.patch"
+cp "$scripts/rg353m-picoarch-evdev.patch" "$destination/package/picoarch-bubble/patches/rg353m-evdev.patch"
 cp "$scripts/rg353m-drastic-input.patch" "$destination/package/standalone-bubble/patches/drastic/rg353m-input.patch"
 cp "$scripts/rg353m-openbor-input.patch" "$destination/package/standalone-bubble/patches/openbor/rg353m-input.patch"
 patch -s -d "$destination" -p1 < "$scripts/rg353m-standalone.patch"
@@ -50,7 +51,12 @@ replace("configs/retroarch/autoconfig/udev/gkd-bubble-retrogame-joypad.cfg",
 replace("scripts/build-picoarch-bubble.sh",
         'git -C "$SRC" apply "$PLUMOS_BUBBLE_PICOARCH_FRAME_PROBE_PATCH"',
         'git -C "$SRC" apply "$PLUMOS_BUBBLE_PICOARCH_FRAME_PROBE_PATCH"\n'
-        'git -C "$SRC" apply /work/package/picoarch-bubble/patches/rg353m-audio.patch', 1)
+        'git -C "$SRC" apply /work/package/picoarch-bubble/patches/rg353m-audio.patch\n'
+        'git -C "$SRC" apply /work/package/picoarch-bubble/patches/rg353m-evdev.patch', 1)
+replace("scripts/build-picoarch-bubble.sh",
+        'bubble-evdev-hotplug:$BUBBLE_EVDEV_HOTPLUG_PATCH_SHA256 ',
+        'bubble-evdev-hotplug:$BUBBLE_EVDEV_HOTPLUG_PATCH_SHA256 '
+        'rg353m-evdev:$(sha256sum "$ROOT_DIR/package/picoarch-bubble/patches/rg353m-evdev.patch" | cut -d " " -f 1) ', 1)
 replace("scripts/build-pyxel-bubble.sh", "guide:b17", "guide:b10", 1)
 replace("scripts/build-portmaster-bubble.sh",
         'ZIP_VERSION="3.0-13"', 'ZIP_VERSION="3.0-13+deb12u1"', 1)

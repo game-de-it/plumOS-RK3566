@@ -1,0 +1,88 @@
+diff --git a/libpicofe/linux/in_evdev.c b/libpicofe/linux/in_evdev.c
+--- a/libpicofe/linux/in_evdev.c
++++ b/libpicofe/linux/in_evdev.c
+@@ -9,6 +9,8 @@
+  * See the COPYING file in the top-level directory.
+  */
+ 
++#define _GNU_SOURCE
++#include <glob.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+@@ -156,43 +158,48 @@
+ };
+ 
+ 
++static int in_evdev_path_compare(const void *a, const void *b)
++{
++	return strverscmp(*(const char *const *)a, *(const char *const *)b);
++}
++
+ static void in_evdev_probe(const in_drv_t *drv)
+ {
+-	long keybits[KEY_CNT / sizeof(long) / 8];
+-	long absbits[(ABS_MAX+1) / sizeof(long) / 8];
+-	int i;
+-
+-	// the kernel might support and return less keys then we know about,
+-	// so make sure the buffers are clear.
+-	memset(keybits, 0, sizeof(keybits));
+-	memset(absbits, 0, sizeof(absbits));
+-
+-	for (i = 0;; i++)
++	glob_t devices = {0};
++	size_t i;
++
++	/* Removing a USB device can leave gaps in the evdev numbering. */
++	if (glob("/dev/input/event[0-9]*", GLOB_NOSORT, NULL, &devices) != 0) {
++		globfree(&devices);
++		return;
++	}
++	qsort(devices.gl_pathv, devices.gl_pathc, sizeof(*devices.gl_pathv),
++	      in_evdev_path_compare);
++
++	for (i = 0; i < devices.gl_pathc; i++)
+ 	{
++		long keybits[KEY_CNT / sizeof(long) / 8] = {0};
++		long absbits[(ABS_MAX+1) / sizeof(long) / 8] = {0};
+ 		int support = 0, count = 0;
+ 		int u, ret, fd, kc_first = KEY_MAX, kc_last = 0, have_abs = 0;
+ 		in_evdev_t *dev;
+ 		char name[64];
+ 
+-		snprintf(name, sizeof(name), "/dev/input/event%d", i);
+-		fd = open(name, O_RDONLY|O_NONBLOCK);
+-		if (fd == -1) {
+-			if (errno == EACCES)
+-				continue;	/* maybe we can access next one */
+-			break;
+-		}
++		fd = open(devices.gl_pathv[i], O_RDONLY|O_NONBLOCK);
++		if (fd == -1)
++			continue;
+ 
+ 		/* check supported events */
+ 		ret = ioctl(fd, EVIOCGBIT(0, sizeof(support)), &support);
+ 		if (ret == -1) {
+-			printf("in_evdev: ioctl failed on %s\n", name);
++			printf("in_evdev: ioctl failed on %s\n", devices.gl_pathv[i]);
+ 			goto skip;
+ 		}
+ 
+ 		if (support & (1 << EV_KEY)) {
+ 			ret = ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(keybits)), keybits);
+ 			if (ret == -1) {
+-				printf("in_evdev: ioctl failed on %s\n", name);
++				printf("in_evdev: ioctl failed on %s\n", devices.gl_pathv[i]);
+ 				goto skip;
+ 			}
+ 
+@@ -292,6 +299,7 @@
+ skip:
+ 		close(fd);
+ 	}
++	globfree(&devices);
+ }
+ 
+ static void in_evdev_free(void *drv_data)

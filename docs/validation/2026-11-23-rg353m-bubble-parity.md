@@ -159,6 +159,45 @@ working `mem` SYSTEM remains on the SD as a recovery candidate.
 Bubble history: [DRM master handoff](https://github.com/game-de-it/plumOS-Bubble/commit/4005c3f56994f9cf7279800038283c81dab27903),
 [foreground plane handling](https://github.com/game-de-it/plumOS-Bubble/commit/f682c814374010d9c13eea487685c98b29113a9b).
 
+### Input and display after game resume
+
+The user reported that the D-pad and A/B did not respond after resume. At
+the time, PicoArch was running NES/FCEUmm. The kernel exposed the built-in
+`retrogame_joypad` at `/dev/input/event5`, with no `/dev/input/event2`. The
+PicoArch startup log and file descriptors showed that its evdev probe had
+stopped at the first missing number before opening the joypad. The patch
+scans the input nodes that exist, in numeric order, and skips nodes that
+disappear before they can be opened. With the patch installed over ADB,
+PicoArch opened `event5` and the user confirmed D-pad and A/B operation
+before and after Sleep. PicoArch PID 23983 and its ALSA playback survived
+the test.
+
+RetroArch/QuickNES had a separate display failure. The overlay hid the
+game plane but could not restore it by using the LCD dimensions in place
+of the game's actual 627×480 source and destination rectangles. Enabling
+the DRM atomic client capability exposed the plane geometry. Restoring it
+fixed the immediate handoff, but a complete Sleep cycle still lost the game
+plane when the kernel restored the display. The power menu now keeps its
+renderer open during Sleep. It restores the saved plane after the kernel
+resumes, then releases DRM and continues the game process.
+
+With ADB supplying power (`ac/online=1`), the repaired RetroArch route
+entered `mem` through the in-game menu and woke by RTC. The log showed
+successful plane restore after resume. RetroArch PID 7108 kept `event5`
+open and the game plane continued rotating through framebuffer IDs 137,
+139 and 141 at the original position. Injected FN opened RGUI and two
+successive SELECT+START presses closed RetroArch cleanly and returned to
+Bubble. The existing `quit_press_twice=true` setting requires both presses.
+
+The final inline Sleep path also passed an RTC run on PicoArch PID 11215.
+It retained the joypad descriptor, resumed PCM playback, and accepted an
+injected FN/menu Exit sequence after wake. The final Docker SYSTEM
+`fc01b5ed99c5745be0ee701e1f4ceed7e1c5c52e477e34d382187d61a1daba02`
+contains the same two binaries and overlay script tested live. It was
+verified against the source artifacts and trial-booted over ADB. Bubble,
+Wi-Fi, and ADB came up, and `boot-system keep` set the verified SYSTEM as
+the default. The trial did not require rewriting the SD image.
+
 The JELOS source is
 [`Anbernic RG353M/030-suspend_mode`](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/packages/hardware/quirks/devices/Anbernic%20RG353M/030-suspend_mode),
 with the state selection in

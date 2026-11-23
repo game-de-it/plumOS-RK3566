@@ -1,0 +1,106 @@
+--- a/src/frontend/plumos_fbdev_renderer.h
++++ b/src/frontend/plumos_fbdev_renderer.h
+@@ -277,8 +277,14 @@
+   }
+   for (index = 0; index < resources->count_planes; index++) {
+     drmModePlane *plane = drmModeGetPlane(r->drm_fd, resources->planes[index]);
++    static const char *const geometry_names[] = {
++      "CRTC_X", "CRTC_Y", "CRTC_W", "CRTC_H",
++      "SRC_X", "SRC_Y", "SRC_W", "SRC_H"
++    };
++    uint64_t geometry[sizeof(geometry_names) / sizeof(geometry_names[0])];
+     uint64_t plane_type = UINT64_MAX;
+     struct plumos_fbdev_drm_plane_state *saved;
++    size_t property_index;
+ 
+     if (!plane) {
+       continue;
+@@ -298,38 +304,32 @@
+       plumos_fbdev_drm_restore_planes(r);
+       return 0;
+     }
++    for (property_index = 0;
++         property_index < sizeof(geometry) / sizeof(geometry[0]);
++         property_index++) {
++      if (!plumos_fbdev_drm_plane_property(r->drm_fd, plane->plane_id,
++                                          geometry_names[property_index],
++                                          &geometry[property_index])) {
++        snprintf(error, error_size, "DRM plane %u has no %s",
++                 plane->plane_id, geometry_names[property_index]);
++        drmModeFreePlane(plane);
++        drmModeFreePlaneResources(resources);
++        plumos_fbdev_drm_restore_planes(r);
++        return 0;
++      }
++    }
+     saved = &r->drm_saved_planes[r->drm_saved_plane_count];
+     saved->plane_id = plane->plane_id;
+     saved->crtc_id = plane->crtc_id;
+     saved->fb_id = plane->fb_id;
+-    saved->crtc_x = plane->crtc_x;
+-    saved->crtc_y = plane->crtc_y;
+-    if (plumos_fbdev_drm_plane_property(r->drm_fd, plane->plane_id,
+-                                        "CRTC_W", &plane_type)) {
+-      saved->crtc_w = (uint32_t)plane_type;
+-    } else {
+-      saved->crtc_w = r->drm_mode.hdisplay;
+-    }
+-    if (plumos_fbdev_drm_plane_property(r->drm_fd, plane->plane_id,
+-                                        "CRTC_H", &plane_type)) {
+-      saved->crtc_h = (uint32_t)plane_type;
+-    } else {
+-      saved->crtc_h = r->drm_mode.vdisplay;
+-    }
+-    saved->src_x = plane->x;
+-    saved->src_y = plane->y;
+-    if (plumos_fbdev_drm_plane_property(r->drm_fd, plane->plane_id,
+-                                        "SRC_W", &plane_type)) {
+-      saved->src_w = (uint32_t)plane_type;
+-    } else {
+-      saved->src_w = (uint32_t)r->drm_mode.hdisplay << 16;
+-    }
+-    if (plumos_fbdev_drm_plane_property(r->drm_fd, plane->plane_id,
+-                                        "SRC_H", &plane_type)) {
+-      saved->src_h = (uint32_t)plane_type;
+-    } else {
+-      saved->src_h = (uint32_t)r->drm_mode.vdisplay << 16;
+-    }
++    saved->crtc_x = (int32_t)geometry[0];
++    saved->crtc_y = (int32_t)geometry[1];
++    saved->crtc_w = (uint32_t)geometry[2];
++    saved->crtc_h = (uint32_t)geometry[3];
++    saved->src_x = (uint32_t)geometry[4];
++    saved->src_y = (uint32_t)geometry[5];
++    saved->src_w = (uint32_t)geometry[6];
++    saved->src_h = (uint32_t)geometry[7];
+     if (drmModeSetPlane(r->drm_fd, plane->plane_id, 0, 0, 0,
+                         0, 0, 0, 0, 0, 0, 0, 0) != 0) {
+       snprintf(error, error_size, "DRM disable plane %u: %s",
+@@ -449,6 +449,8 @@
+     return 0;
+   }
+   (void)drmSetClientCap(r->drm_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
++  /* Object properties such as SRC_W are hidden on non-atomic clients. */
++  (void)drmSetClientCap(r->drm_fd, DRM_CLIENT_CAP_ATOMIC, 1);
+   resources = drmModeGetResources(r->drm_fd);
+   if (!resources) {
+     snprintf(error, error_size, "DRM get resources: %s", strerror(errno));
+--- a/src/frontend/plumos_controller_ui.c
++++ b/src/frontend/plumos_controller_ui.c
+@@ -14761,6 +14761,16 @@
+         return;
+       }
+       if (ui->power_overlay) {
++        if (strcmp(entry->id, "sleep") == 0 &&
++            getenv("PLUMOS_POWER_OVERLAY_INLINE_SLEEP")) {
++          /* Keep the display open so shutdown restores the game's
++           * saved DRM planes after the kernel has resumed. */
++          int resumed = run_power_action(ui, entry->id, 0);
++          (void)write_power_overlay_selection(ui,
++              resumed ? "sleep-complete" : "sleep-failed");
++          ui->exit_requested = 1;
++          return;
++        }
+         if (write_power_overlay_selection(ui, entry->id)) {
+           ui->exit_requested = 1;
+         }
