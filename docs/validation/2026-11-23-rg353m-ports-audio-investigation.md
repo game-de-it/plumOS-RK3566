@@ -20,4 +20,4 @@ SD2の`Apotris.aarch64`を公式v4.1.0へ差し替えた。元のv4.2.0本体は
 
 既存のUSB DAC実機結果ではRetroArch gpSP、PicoArch gpSP、単体OpenBORが`RUNNING`かつPCMポインタ進行を記録済み。OpenBORの一度の開き直しは利用者の聴感で音切れなし。別のFE試験ではNeoGeo、PICO-8、NGPC、GBC、ColecoVision、PC Engine、MSX、Atari 7800のRetroArchコア全てでPCMが`RUNNING`かつ進行した。PortMaster、RA、PicoArch、単体エミュレータの実機ランチャーを監査し、いずれも管理対象ALSA設定を参照していた。PyxelのDocker組み立て元だけ旧`/run/plumos/audio/asound.conf`を既定値にしていたため、`prototype/emulators/assemble-runtime.sh`でRK実行時ルートに修正した（コミット`1280926`）。実機にあるPyxelランチャーは既に修正済みの経路だった。
 
-繰り返し起動診断でPID 1のFE再起動上限に達したため、診断後に`/usr/lib/plumos-353m/start-frontend`からFEを手動起動し、`plumos-controller-ui`のPIDと`/tmp/plumos-fe-ready`を確認した。ADBの`reboot`とシェルの`reboot`は稼働時間をリセットせず、実際には再起動しなかった。現在FEは手動起動状態であり、次回の通常起動でPID 1管理への復帰を確認する。
+繰り返し起動診断でPID 1のFE再起動上限に達したため、診断後に`/usr/lib/plumos-353m/start-frontend`からFEを手動起動した。ADBの`reboot`とシェルの`reboot`は稼働時間をリセットしなかった。起動コードを確認し、手動FEを終了して`plumos-safe-shutdown --reboot`でPID 1へ正式な電源要求を送った。再起動後の稼働時間は20秒、PID 1配下のFE PID 332が起動し、`/tmp/plumos-fe-ready`、ADB、SD2の`/storage/user/Roms`マウント、USB DAC card 0を確認した。ゲーム本体とセーブのハッシュも再起動前と一致した。
