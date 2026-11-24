@@ -1,0 +1,85 @@
+--- a/sdl2/src/video/nds/nds_video.c
++++ b/sdl2/src/video/nds/nds_video.c
+@@ -3455,12 +3455,12 @@
+         trace("shared memory needs to be allocated firstly\n");
+     }
+     else {
+-        myvideo.shm.buf->valid = 1;
+         myvideo.shm.buf->cmd = SHM_CMD_QUIT;
++        __atomic_store_n(&myvideo.shm.buf->valid, 1, __ATOMIC_RELEASE);
+         trace("send SHM_CMD_QUIT\n");
+
+ #if !defined(UT)
+-        while (myvideo.shm.buf->valid) {
++        while (__atomic_load_n(&myvideo.shm.buf->valid, __ATOMIC_ACQUIRE)) {
+             usleep(10);
+         }
+ #endif
+@@ -4259,13 +4259,10 @@
+         myconfig.layout.swin.alpha
+     );
+
+-    myvideo.shm.buf->valid = 1;
+-    __clear_cache(
+-        (uint8_t *)myvideo.shm.buf,
+-        (uint8_t *)myvideo.shm.buf + sizeof(shm_buf_t)
+-    );
+-
+-    while (myvideo.shm.buf->valid) {
++    /* Publish data to the renderer with a release store. */
++    __atomic_store_n(&myvideo.shm.buf->valid, 1, __ATOMIC_RELEASE);
++
++    while (__atomic_load_n(&myvideo.shm.buf->valid, __ATOMIC_ACQUIRE)) {
+         usleep(10);
+     }
+ #endif
+@@ -5293,9 +5290,8 @@
+     myvideo.shm.buf->cmd = SHM_CMD_FLIP;
+     trace("send SHM_CMD_FLIP\n");
+
+-    myvideo.shm.buf->valid = 1;
+-    __clear_cache((uint8_t *)myvideo.shm.buf, (uint8_t *)myvideo.shm.buf + sizeof(shm_buf_t));
+-    while (myvideo.shm.buf->valid) {
++    __atomic_store_n(&myvideo.shm.buf->valid, 1, __ATOMIC_RELEASE);
++    while (__atomic_load_n(&myvideo.shm.buf->valid, __ATOMIC_ACQUIRE)) {
+         usleep(10);
+     }
+ #endif
+--- a/runner/runner.c
++++ b/runner/runner.c
+@@ -278,7 +278,7 @@
+
+     running = 1;
+     while (running) {
+-        if (myrunner.shm.buf->valid == 0) {
++        if (!__atomic_load_n(&myrunner.shm.buf->valid, __ATOMIC_ACQUIRE)) {
+             usleep(10);
+             continue;
+         }
+@@ -390,6 +390,9 @@
+             }
+             break;
+         case SHM_CMD_FLIP:
++            /* FLIP has no shared payload. Let emulation advance during the
++             * blocking KMS page flip. The next command waits in the slot. */
++            __atomic_store_n(&myrunner.shm.buf->valid, 0, __ATOMIC_RELEASE);
+             frame_cnt += 1;
+             trace("recv SHM_CMD_FLIP\n");
+             if (frame_cnt <= 3) {
+@@ -422,13 +425,14 @@
+             glVertexAttribPointer(myrunner.gles.vert.tex_coord, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), &bg_vertices[3]);
+             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, vert_indices);
+
+-            break;
++            /* Do not acknowledge a new command submitted during SwapWindow. */
++            continue;
+         case SHM_CMD_QUIT:
+             running = 0;
+             trace("recv SHM_CMD_QUIT\n");
+             break;
+         }
+-        myrunner.shm.buf->valid = 0;
++        __atomic_store_n(&myrunner.shm.buf->valid, 0, __ATOMIC_RELEASE);
+     }
+
+     trace("free resources\n");

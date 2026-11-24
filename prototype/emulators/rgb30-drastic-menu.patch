@@ -1,0 +1,36 @@
+--- a/sdl2/src/video/nds/nds_event.c
++++ b/sdl2/src/video/nds/nds_event.c
+@@ -995,5 +995,33 @@
+ static int update_key_bit(uint32_t c, uint32_t v)
+ {
++#if defined(GKD_MINIPLUS)
++    if (SDL_getenv("PLUMOS_DRASTIC_RGB30_CHORD") &&
++        (c == myevent.keypad.select || c == myevent.keypad.start)) {
++        static unsigned int held;
++        static int chord_consumed;
++        unsigned int key = c == myevent.keypad.select ? 1 : 2;
++
++        if (v > 1) {
++            return 0;
++        }
++        held = v ? (held | key) : (held & ~key);
++        if (held == 3 && !chord_consumed) {
++            chord_consumed = 1;
++            /* Consume the chord before the SDL2 settings hotkey can run. */
++            set_key_bit(KEY_BIT_SELECT, 0);
++            set_key_bit(KEY_BIT_START, 0);
++            if (!myvideo.menu.sdl2.enable && !myvideo.menu.drastic.enable) {
++                set_key_bit(KEY_BIT_DRASTIC, 1);
++            }
++        }
++        if (chord_consumed) {
++            if (!held) {
++                chord_consumed = 0;
++            }
++            return 0;
++        }
++    }
++#endif
+     trace("call %s(c=%d, v=%d)\n", __func__, c, v);
+
+     if (c == myevent.keypad.up) {
