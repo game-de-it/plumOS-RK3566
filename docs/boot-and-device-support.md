@@ -7,12 +7,13 @@
 | メーカー | 機種 | 現行イメージでの状況 |
 | --- | --- | --- |
 | Anbernic | RG353M | 実機で起動、フロントエンド、ADBを確認済み |
-| Anbernic | RG353P、RG353V、RG503 | 機種別DTBを同梱。plumOSでの実機起動は未確認 |
+| Anbernic | RG353V | 共通SDでplumOS init、FE、p5、USB ADBを確認。修正版SYSTEMでSD2とROM・BIOSの公開を確認 |
+| Anbernic | RG353P、RG503 | 機種別DTBを同梱。plumOSでの実機起動は未確認 |
 | Powkiddy | RGB30 r1・r2 | 同一SDでDTBの自動切り替え、plumOS init、FE、p5、USB ADBを両機で確認。r2ではSD2も確認 |
 | Powkiddy | RK2023、RGB10 Max 3 | 機種別DTBを同梱。plumOSでの実機起動は未確認 |
 | Anbernic | RG353VS | JELOS 20240206の対応表に掲載。専用名のDTBは未収録で、plumOSでの実機起動は未確認 |
 
-次の試験はRG353PまたはRG353Vから始めると、RG353Mに近い機種で既存の設定を確認できる。TF1での起動、DTBの選択結果、初回セットアップ、内蔵画面、入力、音声、USB ADB、TF2を機種ごとに確認する。
+RG353Vでは同じ共通SDを使って起動とSD2を確認した。USBケーブルを接続したままの電源投入については実機ログに記録した。[RG353Vの共通SD起動とSD2](validation/2026-11-25-rg353v-sd2.md)
 
 フロントエンドの製品名は `plumOS-RK3566`、設定に表示する機種欄は `RK3566`。同じイメージで使う共通の表示名で、実際に選ばれた機種は `/proc/device-tree/model` で確認できる。
 
