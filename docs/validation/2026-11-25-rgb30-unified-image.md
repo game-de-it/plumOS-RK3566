@@ -17,6 +17,14 @@ I²Cの追加処理はレジスターの読み取りだけを行います。r2�
 - 実際の選択関数をI²Cのモックで実行し、TCS452x、FAN53555、ID不一致、バスやチップの応答なし、RGB30以外の6機種のファイル名を検証した。
 - 出荷時イメージのp1前後と副GPTを元のJELOS再ビルド版と照合した。FATとext4の検査、GPTの検査に合格した。FATから読み出したr2用DTBのSHA-256は実機で使用中のr2用DTBと一致した。
 - SDの複製を使い、初回セットアップでのp5作成と再起動後の継続、既存データの維持、SYSTEMの試行と組み込みSYSTEMへの復旧を確認した。
-- 既存SDで稼働しているRGB30r2では、実際にFAN53555を `0-0040` で認識し、CPU 4コアと `cpufreq-dt` が稼働している。統合IMGを使ったr1・r2の実機検証はこれから行う。
+- 既存SDで稼働していたRGB30r2では、FAN53555を `0-0040` で認識し、CPU 4コアと `cpufreq-dt` が稼働した。
 
 同梱SYSTEMのSHA-256は `6f4fcb9c34fc4477fbeb74a18e93cb2a202c06c679b05de8790ef411c6cf8d05`。出力は `output/rgb30-validation/unified/plumOS-RK3566.img.gz` で、圧縮ファイルのSHA-256は `8a1bf8bad82d4d9f4db0d17cfb98d8f6ed1023ddce11f2f27994abb9921c236e`。
+
+## RGB30r1の実機試験
+
+利用者が共通IMGのSDで起動した。USB ADBからSDのp1と `/flash/SYSTEM` のSHA-256を照合し、共通IMGの内容と一致した。実行中のデバイスツリーは `tcs4525@1c` で、互換名は `tcs,tcs452x`。I²Cの `0-001c` にドライバーがバインドされ、CPUは4コアすべてがオンライン、`cpufreq-dt` と `ondemand` で408 MHz〜1.992 GHzの設定を確認した。
+
+plumOSのinit、720×720の内蔵DSI、Bubbleプロセス、USB ADBを確認した。初回セットアップの完了マーカーがあり、p5は `/storage/user` にFAT32で読み書きマウントされていた。
+
+この採取ではLinuxに渡ったDTBを確認した。r1用DTBは識別不能時にも使うため、U-BootのI²C読み取り結果の判定には、同じSDをr2に移してFAN53555用DTBが選ばれることを確認する。
