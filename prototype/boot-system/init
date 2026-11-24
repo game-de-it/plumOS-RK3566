@@ -26,6 +26,14 @@ printf '%s\n' "$$" > "$runtime/pid1"
 cut -d ' ' -f 1 /proc/uptime > "$runtime/pid1-uptime"
 printf 'plumOS init: PID %s; inherited boot arguments: %s\n' "$$" "$*"
 
+for online in /sys/devices/system/cpu/cpu[0-9]*/online; do
+    [ -w "$online" ] && [ "$(cat "$online")" = 0 ] || continue
+    if ! printf '1\n' >"$online"; then
+        echo "plumOS init: could not bring ${online%/online} online"
+    fi
+done
+printf 'plumOS init: online CPUs %s\n' "$(cat /sys/devices/system/cpu/online)"
+
 # JELOS 20240206 configures RG353M's mem suspend to use s2idle. Without
 # this board quirk the vendor kernel selects deep, which did not resume on
 # this device under USB power even with an RTC wakealarm.

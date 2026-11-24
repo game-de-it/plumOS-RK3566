@@ -210,3 +210,15 @@ ARMHF版DraSticの `update_frame` は直近19フレームの実時間を、60 Hz
 | 物理PCMの再生待ち、中央値 | 3090フレーム、約70 ms | 6410フレーム、約145 ms |
 
 別の8秒間に主スレッドのシステムコールを約3 ms間隔で標本採取した。Bubbleでは時刻待ちを観測し、ALSA PCMに対する `poll` は標本に現れなかった。RGB30では内蔵PCMへの20 msタイムアウト付き `poll` が276標本に現れた。これは滞在中の標本数で、呼び出し回数ではない。RGB30のホットプラグ経路は物理PCMからの書き込み可能通知を待つため、この待ちが短い速度計測区間に加わる。CPUクロックとフレームスキップ設定にも差があるため、音声経路だけを入れ替えた場合の改善幅は未計測。両実機の設定と起動中のゲームは維持した。
+
+### RGB30r2のCPU電源とOSのCPU制御
+
+実機に入っていたJELOSのRGB30 DTBは、CPU電源をI²C0の `0x1c` にあるTCS452xとして指定していた。実機では `0x1c` が応答せず、`0x40` からID `0x88` とリビジョン `0x01` を読み取れた。CPU電源が登録されず `cpufreq-dt` のプローブが保留されていた。ROCKNIX 20240411のRGB30r2用DTBも `0x40` のFAN53555を指定している。[ROCKNIXのRGB30r2パッチ](https://github.com/ROCKNIX/distribution/blob/20240411/projects/Rockchip/patches/linux/RK3566/030-rgb30r2.patch)
+
+RGB30r2用のビルドではRGB30のDTB内にあるCPUレギュレーターのアドレスと互換性を変更し、実機のFAN53555が表現できる電圧範囲に合わせた。既存のCPU OPP、カーネルとextlinux設定を維持した。DockerのSD生成では `PLUMOS_RGB30_CPU_REGULATOR=fan53555` でRGB30r2用を選べる。従来のTCS452xは既定で、r2用イメージでも元のDTBをブートパーティションに保存する。r2用SD生成でFATとext4の検査、GPTとブートローダー領域の照合を通した。
+
+旧SYSTEMのままDTBを差し替えた実機でFAN53555 Option 8 Rev 1が認識され、`policy0` がCPU0〜CPU3を管理した。その状態でDraSticを起動すると、移植元SDL2の初期設定の処理がCPU2・CPU3をオフラインにすることをカーネルログで確認した。RK3566ではDraStic側のコア数変更を無効化し、設定画面からも該当項目を外した。plumOSのPID 1で起動時にコアをオンラインにし、FE起動時にはBubbleと同じく動的な `ondemand` を既定にする。
+
+最終SYSTEM `f76e1c72bfe3202213140f914d7a7f9f37e26c23315823f0fe47a173bafc8499` を既存SDへ差分適用した。4コア共通のポリシーで `powersave` の408 MHzと `performance` の1,992 MHzを実測し、`schedutil` への切り替えと `ondemand` への復帰を確認した。FEのシステム別設定からDraSticを `schedutil`、QuickNESを `conservative` で起動すると、いずれも実行中は4コアがオンラインで、終了後は `ondemand` に戻った。利用者のDraSticセーブのハッシュは試験前後で一致し、フレームスキップは無効のままだった。
+
+最終SYSTEMを既定に設定した後の通常再起動でも、FAN53555、CPU0〜CPU3、`cpufreq-dt`、`ondemand`、FE、ADBを確認した。実機試験はRGB30r2で実施した。

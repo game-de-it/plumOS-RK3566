@@ -82,3 +82,7 @@ RetroArch・PicoArch・Standaloneを組み込むDocker手順と実機結果は[R
 FEの再試行と電源要求の処理は、Bubble `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` のSystem側 `/init` を参照しています。USB ADBを並列に起動し、入力デバイスはsysfsからも検出できます。既存のライブラリキャッシュがある場合はFE表示前の全走査を省きます。[BubbleのSystem側init](https://github.com/game-de-it/plumOS-Bubble/blob/ec81d42c0c2c39e7a32973bfe4df9b3027512a5d/rootfs/bubble-frontend/init)
 
 Docker環境では `./prototype/build-frontend-docker.sh BUILD_WORK JELOS_SYSTEM` を使います。固定したBubbleコミットの `docker/bubble-tools/Dockerfile` からARM64ビルド環境を作り、JELOSの共有ライブラリにリンクしてFEをビルドします。出力は既存と同じ `BUILD_WORK/compiled` に生成されます。
+
+## RGB30のCPUレギュレーター
+
+SDイメージの既定はJELOSのTCS452x（I²C `0x1c`）を使用します。RGB30r2のFAN53555（I²C `0x40`）を搭載した基板用に生成する場合は、`PLUMOS_RGB30_CPU_REGULATOR=fan53555` を付けて `build-bubble-sd.sh` を実行します。変更対象はRGB30のDTB内のCPUレギュレーターです。元のDTBはブートパーティションの `plumos-board/rk3566-rgb30-tcs452x.dtb` に保存されます。

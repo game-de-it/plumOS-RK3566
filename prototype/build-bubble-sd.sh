@@ -15,6 +15,11 @@ output=$(absolute_file "$4")
 out_dir=$(dirname "$output")
 name=$(basename "$output")
 image=plumos-rk3566-bubble-tools:ec81d42
+rgb30_regulator=${PLUMOS_RGB30_CPU_REGULATOR:-tcs452x}
+case "$rgb30_regulator" in
+    tcs452x|fan53555) ;;
+    *) echo "Unknown RGB30 CPU regulator: $rgb30_regulator" >&2; exit 2 ;;
+esac
 test "$(shasum -a 256 "$source" | cut -d ' ' -f 1)" = 281bf1c1faf7f4c9d044f59677075fbb9af99d2a8d01f873c23c13587668c73f
 test -f "$system"
 for frame in boot-splash provision-start provision-error; do
@@ -27,9 +32,10 @@ for file in "$output" "$output.partial" "$output.gz" "$output.gz.partial"; do te
 
 docker run --rm -i --privileged --user 0 --platform linux/arm64 \
     -v "$source:/stock:ro" -v "$system:/system:ro" -v "$splash:/splash:ro" \
-    -v "$prototype:/prototype:ro" -v "$out_dir:/output" "$image" bash -s -- "$name" <<'BUILD'
+    -v "$prototype:/prototype:ro" -v "$out_dir:/output" "$image" bash -s -- "$name" "$rgb30_regulator" <<'BUILD'
 set -euo pipefail
 image=/output/$1
+rgb30_regulator=$2
 partial=$image.partial
 work=$(mktemp -d)
 loop=
@@ -40,6 +46,11 @@ cleanup() {
     if [ -n "$loop" ]; then losetup -d "$loop"; fi
 }
 trap cleanup EXIT
+
+if [ "$rgb30_regulator" = fan53555 ] && ! command -v dtc >/dev/null; then
+    apt-get update
+    apt-get install -y --no-install-recommends device-tree-compiler
+fi
 
 cc -static -Os -s -Wall -Wextra -Werror /prototype/boot-splash.c -o "$work/boot-splash"
 unsquashfs -cat /system usr/lib/plumos-353m/native-system
@@ -72,6 +83,12 @@ mount "$work/p4" "$work/storage"
     cmp "$work/boot-splash" plumos-splash/boot-splash
     cmp /splash/boot-splash.xrgb plumos-splash/boot-splash.xrgb
     sha256sum -c "$work/boot.sha256"
+    if [ "$rgb30_regulator" = fan53555 ]; then
+        mkdir plumos-board
+        cp rk3566-rgb30-linux.dtb plumos-board/rk3566-rgb30-tcs452x.dtb
+        /prototype/prepare-rgb30-cpu-dtb.sh plumos-board/rk3566-rgb30-tcs452x.dtb rk3566-rgb30-linux.dtb
+        sed 's|  rk3566-rgb30-linux.dtb$|  plumos-board/rk3566-rgb30-tcs452x.dtb|' "$work/boot.sha256" | sha256sum -c -
+    fi
     cmp /system SYSTEM
     # Replacing the FAT file can leave original SYSTEM bytes in unused clusters.
     free_kib=$(df -Pk . | awk 'NR==2 {print $4}')

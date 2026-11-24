@@ -1,0 +1,74 @@
+--- a/sdl2/src/video/nds/nds_video.c
++++ b/sdl2/src/video/nds/nds_video.c
+@@ -379,7 +379,7 @@
+ }
+ #endif
+
+-#if defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(GKD_MINIPLUS) || defined(TRIMUI_BRICK) || defined(UT)
++#if defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(TRIMUI_BRICK) || defined(UT)
+ static int get_cpu_core_state(int idx)
+ {
+     FILE *fd = NULL;
+@@ -6724,7 +6724,7 @@
+     myvideo.layout.mask.max_cnt = get_mask_cnt();
+ #endif
+
+-#if defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(GKD_MINIPLUS) || defined(TRIMUI_BRICK)
++#if defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(TRIMUI_BRICK)
+     if (myconfig.cpu_core <= 0) {
+         myconfig.cpu_core = INIT_CPU_CORE;
+     }
+@@ -7159,7 +7159,7 @@
+ typedef enum {
+     MENU_LANG = 0,
+
+-#if defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(GKD_MINIPLUS) || defined(TRIMUI_BRICK)
++#if defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(TRIMUI_BRICK)
+     MENU_CPU,
+ #endif
+
+@@ -7210,7 +7210,7 @@
+ static const char *MENU_LIST_STR[] = {
+     "LANGUAGE",
+
+-#if defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(GKD_MINIPLUS) || defined(TRIMUI_BRICK)
++#if defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(TRIMUI_BRICK)
+     "CPU CORE",
+ #endif
+
+@@ -7762,7 +7762,7 @@
+             lang_prev();
+         }
+         break;
+-#if defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(GKD_MINIPLUS) || defined(TRIMUI_BRICK)
++#if defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(TRIMUI_BRICK)
+     case MENU_CPU:
+         if (right_key) {
+             if (myconfig.cpu_core < MAX_CPU_CORE) {
+@@ -8116,7 +8116,7 @@
+         break;
+ #endif
+
+-#if defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(GKD_MINIPLUS) || defined(TRIMUI_BRICK)
++#if defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(TRIMUI_BRICK)
+     case MENU_CPU:
+         sprintf(buf, "%d", myconfig.cpu_core);
+         break;
+@@ -8258,7 +8258,7 @@
+     static int cur_sel = 0;
+     static int pre_fast = 0;
+     static int pre_lang = 0;
+-#if defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(GKD_MINIPLUS) || defined(TRIMUI_BRICK)
++#if defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(TRIMUI_BRICK)
+     static int pre_cpu_core = 0;
+ #endif
+
+@@ -8308,7 +8308,7 @@
+             pre_fast = myconfig.fast_forward;
+         }
+
+-#if defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(GKD_MINIPLUS) || defined(TRIMUI_BRICK)
++#if defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(TRIMUI_BRICK)
+         if (pre_cpu_core != myconfig.cpu_core) {
+             set_cpu_core(myconfig.cpu_core);
+             pre_cpu_core = myconfig.cpu_core;
