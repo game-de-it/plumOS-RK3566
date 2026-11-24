@@ -222,3 +222,5 @@ RGB30r2用のビルドではRGB30のDTB内にあるCPUレギュレーターの�
 最終SYSTEM `f76e1c72bfe3202213140f914d7a7f9f37e26c23315823f0fe47a173bafc8499` を既存SDへ差分適用した。4コア共通のポリシーで `powersave` の408 MHzと `performance` の1,992 MHzを実測し、`schedutil` への切り替えと `ondemand` への復帰を確認した。FEのシステム別設定からDraSticを `schedutil`、QuickNESを `conservative` で起動すると、いずれも実行中は4コアがオンラインで、終了後は `ondemand` に戻った。利用者のDraSticセーブのハッシュは試験前後で一致し、フレームスキップは無効のままだった。
 
 最終SYSTEMを既定に設定した後の通常再起動でも、FAN53555、CPU0〜CPU3、`cpufreq-dt`、`ondemand`、FE、ADBを確認した。実機試験はRGB30r2で実施した。
+
+修正後のRGB30r2で、利用者がDraSticの動作が落ち着き、速度表示が100%付近を維持することを確認した。
