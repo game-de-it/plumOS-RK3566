@@ -1,0 +1,15 @@
+--- a/src/frontend/plumos_fbdev_renderer.h
++++ b/src/frontend/plumos_fbdev_renderer.h
+@@ -3475,6 +3475,12 @@ static void plumos_fbdev_gallery_slot(
+     center_h = max_center_h;
+     center_w = center_h * 4 / 3;
+   }
++  if (screen_h >= 640 && screen_h >= screen_w) {
++    /* Match the 640x480 layout's card bottom relative to the shelf backdrop. */
++    enum { reference_height = 480, reference_card_bottom = 354 };
++    center_y = screen_h * reference_card_bottom / reference_height - center_h;
++  }
++
+   side_w = center_w * 2 / 3;
+   side_h = center_h * 2 / 3;
+   center_x = (screen_w - center_w) / 2;
