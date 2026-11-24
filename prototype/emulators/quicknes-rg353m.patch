@@ -79,18 +79,20 @@ index fecc597..3f0986e 100644
 
  // in the most obscure place in case crappy linker is used
 diff --git a/nes_emu/Nes_Cart.cpp b/nes_emu/Nes_Cart.cpp
-index 5a1ccde..9c100f4 100644
+index 5a1ccde..aeafb6d 100644
 --- a/nes_emu/Nes_Cart.cpp
 +++ b/nes_emu/Nes_Cart.cpp
-@@ -2,6 +2,7 @@
+@@ -2,7 +2,9 @@
  // Nes_Emu 0.7.0. http://www.slack.net/~ant/
 
  #include "Nes_Cart.h"
 +#include "blargg_endian.h"
 
++#include <limits.h>
  #include <stdlib.h>
  #include <string.h>
-@@ -46,6 +47,8 @@ void Nes_Cart::clear()
+
+@@ -46,6 +48,8 @@ void Nes_Cart::clear()
  	prg_size_ = 0;
  	chr_size_ = 0;
  	mapper = 0;
@@ -99,7 +101,7 @@ index 5a1ccde..9c100f4 100644
  }
 
  long Nes_Cart::round_to_bank_size( long n )
-@@ -87,31 +90,81 @@ struct ines_header_t {
+@@ -87,33 +91,118 @@ struct ines_header_t {
  	uint8_t prg_count; // number of 16K PRG banks
  	uint8_t chr_count; // number of 8K CHR banks
  	uint8_t flags;     // MMMM FTBV Mapper low, Four-screen, Trainer, Battery, V mirror
@@ -110,6 +112,28 @@ index 5a1ccde..9c100f4 100644
  };
  BOOST_STATIC_ASSERT( sizeof (ines_header_t) == 16 );
 
++static bool decode_rom_size( unsigned lsb, unsigned msb, unsigned unit,
++		uint64_t available, uint64_t& bytes )
++{
++	if ( msb != 0x0f )
++	{
++		bytes = ((msb << 8) | lsb) * uint64_t( unit );
++		return bytes <= available;
++	}
++
++	unsigned const multiplier = (lsb & 3) * 2 + 1;
++	uint64_t const power = uint64_t( 1 ) << (lsb >> 2);
++	if ( power > available / multiplier )
++		return false;
++	bytes = power * multiplier;
++	return true;
++}
++
++static bool supported_prg_ram_size( unsigned size )
++{
++	return !size || size == 0x800 || size == 0x1000 || size == 0x2000;
++}
++
 +static unsigned nes2_ram_size( unsigned shift )
 +{
 +	return shift ? 64U << shift : 0;
@@ -155,32 +179,41 @@ index 5a1ccde..9c100f4 100644
 +	// Byte 15 is a valid expansion-device field in NES 2.0. Apply the
 +	// dirty-header heuristic only to legacy iNES.
 +	bool const nes2 = (h.flags2 & 0x0c) == 0x08;
-+	if ( nes2 )
-+	{
-+		if ( (h.extra [0] & 0x0f) || h.extra [1] )
-+			return "Unsupported NES 2.0 extended mapper or ROM size";
-+	}
-+	else if ( h.extra [7] )
++	if ( nes2 && (h.extra [0] & 0x0f) )
++		return "Unsupported NES 2.0 extended mapper";
++	if ( !nes2 && h.extra [7] )
  		h.flags2 = 0;
 -	
 +
-+	long const prg_bytes = h.prg_count * 16 * 1024L;
-+	long const chr_bytes = h.chr_count * 8 * 1024L;
-+	int const trainer_size = (h.flags & 0x04) ? 512 : 0;
++	unsigned const prg_msb = nes2 ? h.extra [1] & 0x0f : 0;
++	unsigned const chr_msb = nes2 ? h.extra [1] >> 4 : 0;
++	unsigned const trainer_size = (h.flags & 0x04) ? 512 : 0;
++	uint64_t prg_bytes, chr_bytes;
++	if ( trainer_size > rom_bytes ||
++			!decode_rom_size( h.prg_count, prg_msb, 0x4000, rom_bytes - trainer_size, prg_bytes ) ||
++			!decode_rom_size( h.chr_count, chr_msb, 0x2000, rom_bytes - trainer_size - prg_bytes, chr_bytes ) )
++		return "Truncated NES ROM data";
 +	if ( !prg_bytes )
 +		return "NES ROM has no PRG data";
-+	if ( static_cast<uint64_t>( prg_bytes + chr_bytes + trainer_size ) > rom_bytes )
-+		return "Truncated NES ROM data";
++
++	// The CPU can mirror a small power-of-two chip over its bank window.
++	// Larger PRG ROMs and the CHR cache need whole 16/8 KiB banks.
++	bool const small_prg = prg_bytes >= 0x800 && prg_bytes < 0x4000 &&
++			!(prg_bytes & (prg_bytes - 1));
++	if ( (prg_bytes % 0x4000 && !small_prg) || chr_bytes % 0x2000 ||
++			prg_bytes > INT_MAX - bank_size - 2 || chr_bytes > (INT_MAX - bank_size) / 2 )
++		return "Unsupported NES ROM bank size";
 +
  	set_mapper( h.flags, h.flags2 );
 +	submapper_ = nes2 ? h.extra [0] >> 4 : 0;
 +	prg_ram_size_ = nes2 ?
 +			nes2_ram_size( h.extra [2] & 0x0f ) + nes2_ram_size( h.extra [2] >> 4 ) :
 +			(has_battery_ram() ? 0x2000 : 0);
-+	if ( mapper_code() == 210 && (submapper_ > 2 ||
-+			(prg_ram_size_ && prg_ram_size_ != 0x800 &&
-+			prg_ram_size_ != 0x1000 && prg_ram_size_ != 0x2000)) )
-+		return "Unsupported Namco 175/340 cartridge configuration";
++	if ( mapper_code() == 210 && submapper_ > 2 )
++		return "Unsupported Namco 175/340 submapper";
++	if ( (mapper_code() == 0 || mapper_code() == 210) &&
++			!supported_prg_ram_size( prg_ram_size_ ) )
++		return "Unsupported NES PRG RAM size";
 +	if ( trainer_size )
 +		RETURN_ERR( in->skip( trainer_size ) );
  	
@@ -193,7 +226,13 @@ index 5a1ccde..9c100f4 100644
 +	RETURN_ERR( resize_chr( chr_bytes ) );
  	
  	RETURN_ERR( in->read( prg(), prg_size() ) );
++	// The CPU can fetch operands past the end of a mapped page.
++	// In a mirrored small ROM the next two bytes are the start of the chip.
++	if ( prg_bytes <= 0x4000 )
++		memcpy( prg() + prg_bytes, prg(), 2 );
  	RETURN_ERR( in->read( chr(), chr_size() ) );
+ 	
+ 	return 0;
 diff --git a/nes_emu/Nes_Cart.h b/nes_emu/Nes_Cart.h
 index 18417ca..f950a39 100644
 --- a/nes_emu/Nes_Cart.h
@@ -261,8 +300,72 @@ index 72771fa..7ad4d3d 100644
  	nes_time_t clock() const { return clock_; }
  	void add_mapper_intercept( nes_addr_t start, unsigned size, bool read, bool write );
  	
+diff --git a/nes_emu/Nes_Mapper.cpp b/nes_emu/Nes_Mapper.cpp
+index 038aee5..98b577d 100644
+--- a/nes_emu/Nes_Mapper.cpp
++++ b/nes_emu/Nes_Mapper.cpp
+@@ -119,16 +119,24 @@ void Nes_Mapper::set_treble( blip_eq_t const& ) { }
+
+ void Nes_Mapper::set_prg_bank( nes_addr_t addr, bank_size_t bs, int bank )
+ {
+-	int bank_size = 1 << bs;
+-	
+-	int bank_count = cart_->prg_size() >> bs;
+-	if ( bank < 0 )
+-		bank += bank_count;
+-	
+-	if ( bank >= bank_count )
+-		bank %= bank_count;
+-	
+-	emu().map_code( addr, bank_size, cart_->prg() + (bank << bs) );
++	int const bank_size = 1 << bs;
++	long const rom_size = cart_->prg_size();
++	int const bank_count = rom_size >> bs;
++	if ( bank_count )
++	{
++		if ( bank < 0 || bank >= bank_count )
++		{
++			bank %= bank_count;
++			if ( bank < 0 )
++				bank += bank_count;
++		}
++		emu().map_code( addr, bank_size, cart_->prg() + (bank << bs) );
++	}
++	else
++	{
++		for ( int offset = 0; offset < bank_size; offset += Nes_Cpu::page_size )
++			emu().map_code( addr + offset, Nes_Cpu::page_size, cart_->prg() + offset % rom_size );
++	}
+ 	
+ 	if ( unsigned (addr - 0x6000) < 0x2000 )
+ 		emu().enable_prg_6000();
+@@ -152,12 +160,22 @@ void Nes_Mapper::mirror_manual( int page0, int page1, int page2, int page3 )
+ 	emu().ppu.set_nt_banks( page0, page1, page2, page3 );
+ }
+
+-#ifndef NDEBUG
+ int Nes_Mapper::handle_bus_conflict( nes_addr_t addr, int data )
+ {
++	// These discrete boards explicitly request AND-type conflicts in NES 2.0.
++	if ( addr >= 0x8000 && cart_->submapper() == 2 )
++	{
++		switch ( cart_->mapper_code() )
++		{
++			case 2:
++			case 3:
++			case 7:
++			case 11:
++				return data & *emu().get_code( addr );
++		}
++	}
+ 	return data;
+ }
+-#endif
+
+ // Mapper registration
+
 diff --git a/nes_emu/Nes_Mapper.h b/nes_emu/Nes_Mapper.h
-index bb1f3d1..35d1540 100644
+index bb1f3d1..82ffc9c 100644
 --- a/nes_emu/Nes_Mapper.h
 +++ b/nes_emu/Nes_Mapper.h
 @@ -88,8 +88,8 @@ protected:
@@ -276,7 +379,30 @@ index bb1f3d1..35d1540 100644
  	
  	// Cause CPU writes within given address range to call mapper's write() function.
  	// Might map a larger address range, which the mapper can ignore and pass to
-@@ -225,9 +225,9 @@ inline void Nes_Mapper::intercept_writes( nes_addr_t addr, unsigned size )
+@@ -142,10 +142,7 @@ protected:
+ 	// have changed (no performance impact if called even when time didn't change).
+ 	void irq_changed();
+ 	
+-	// Handle data written to mapper that doesn't handle bus conflict arising due to
+-	// PRG also reading data. Returns data that mapper should act as if were
+-	// written. Currently always returns 'data' and just checks that data written is
+-	// the same as byte in PRG at same address and writes debug message if it doesn't.
++	// Return the value seen by a mapper register during a PRG-ROM bus conflict.
+ 	int handle_bus_conflict( nes_addr_t addr, int data );
+ 	
+ 	// Reference to emulator that uses this mapper.
+@@ -196,10 +193,6 @@ struct register_mapper {
+ 	static Nes_Mapper* create() { return new T; }
+ };
+
+-#ifdef NDEBUG
+-inline int Nes_Mapper::handle_bus_conflict( nes_addr_t addr, int data ) { return data; }
+-#endif
+-
+ inline void Nes_Mapper::mirror_horiz(  int p ) { mirror_manual( p, p, p ^ 1, p ^ 1 ); }
+ inline void Nes_Mapper::mirror_vert(   int p ) { mirror_manual( p, p ^ 1, p, p ^ 1 ); }
+ inline void Nes_Mapper::mirror_single( int p ) { mirror_manual( p, p, p, p ); }
+@@ -225,9 +218,9 @@ inline void Nes_Mapper::intercept_writes( nes_addr_t addr, unsigned size )
  	emu().add_mapper_intercept( addr, size, false, true );
  }
 
@@ -327,6 +453,21 @@ index 1a27218..45b21a6 100644
  	}
  	else if ( addr < 0x3f00 )
  	{
+diff --git a/nes_emu/misc_mappers.cpp b/nes_emu/misc_mappers.cpp
+index a5aa52b..4e3c195 100644
+--- a/nes_emu/misc_mappers.cpp
++++ b/nes_emu/misc_mappers.cpp
+@@ -87,8 +87,9 @@ public:
+ 		write( 0, 0, b );
+ 	}
+ 	
+-	virtual void write( nes_time_t, nes_addr_t, int data )
++	virtual void write( nes_time_t, nes_addr_t addr, int data )
+ 	{
++		data = handle_bus_conflict( addr, data );
+ 		int changed = bank ^ data;
+ 		bank = data;
+ 		
 diff --git a/nes_emu/nes_cpu_io.h b/nes_emu/nes_cpu_io.h
 index bf02c9e..78b926b 100644
 --- a/nes_emu/nes_cpu_io.h
@@ -349,3 +490,32 @@ index bf02c9e..78b926b 100644
  		return;
  	}
  	
+diff --git a/nes_emu/nes_mappers.cpp b/nes_emu/nes_mappers.cpp
+index f58c5dc..d102b9d 100644
+--- a/nes_emu/nes_mappers.cpp
++++ b/nes_emu/nes_mappers.cpp
+@@ -24,7 +24,12 @@ class Mapper_Nrom : public Nes_Mapper {
+ public:
+ 	Mapper_Nrom() { }
+ 	
+-	virtual void apply_mapping() { }
++	virtual void apply_mapping()
++	{
++		unsigned const ram_size = cart().prg_ram_size();
++		if ( ram_size )
++			enable_sram( true, false, ram_size );
++	}
+ 	
+ 	virtual void write( nes_time_t, nes_addr_t, int )
+ 	{
+@@ -76,8 +81,9 @@ public:
+ 		write( 0, 0, b );
+ 	}
+ 	
+-	virtual void write( nes_time_t, nes_addr_t, int data )
++	virtual void write( nes_time_t, nes_addr_t addr, int data )
+ 	{
++		data = handle_bus_conflict( addr, data );
+ 		int changed = bank ^ data;
+ 		bank = data;
+ 		
