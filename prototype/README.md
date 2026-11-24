@@ -83,6 +83,16 @@ FEの再試行と電源要求の処理は、Bubble `ec81d42c0c2c39e7a32973bfe4df
 
 Docker環境では `./prototype/build-frontend-docker.sh BUILD_WORK JELOS_SYSTEM` を使います。固定したBubbleコミットの `docker/bubble-tools/Dockerfile` からARM64ビルド環境を作り、JELOSの共有ライブラリにリンクしてFEをビルドします。出力は既存と同じ `BUILD_WORK/compiled` に生成されます。
 
-## RGB30のCPUレギュレーター
+## 複数機種向けのSDイメージ
 
-SDイメージの既定はJELOSのTCS452x（I²C `0x1c`）を使用します。RGB30r2のFAN53555（I²C `0x40`）を搭載した基板用に生成する場合は、`PLUMOS_RGB30_CPU_REGULATOR=fan53555` を付けて `build-bubble-sd.sh` を実行します。変更対象はRGB30のDTB内のCPUレギュレーターです。元のDTBはブートパーティションの `plumos-board/rk3566-rgb30-tcs452x.dtb` に保存されます。
+既定のSDイメージには7機種分のJELOS DTBと、RGB30r2用のDTBを収録します。U-BootはJELOSの機種判定でRGB30が選ばれたときだけ、I²CでCPUレギュレーターを識別します。TCS452x（`0x1c`）では既存のRGB30 DTBを、FAN53555（`0x40`）ではr2用DTBを読み込みます。
+
+リポジトリのルートで、実機起動確認済みのJELOS再ビルド版、完成済みの `SYSTEM`、起動画像3種を収めたディレクトリを指定します。`RK3568_BL31_ELF` はrkbin内の `bin/rk35/rk3568_bl31_v1.42.elf` です。[JELOSソースと対応するリビジョン](../docs/jelos-20240206-source.md) · [SDイメージの検証記録](../docs/validation/2026-11-25-rgb30-unified-image.md)
+
+```sh
+./prototype/build-rk3566-uboot.sh JELOS_UBOOT_CHECKOUT RK3568_BL31_ELF u-boot.itb
+./prototype/build-bubble-sd.sh JELOS_IMG BUILT_SYSTEM BOOT_SPLASH_DIR plumOS-RK3566.img u-boot.itb
+./prototype/verify-bubble-sd.sh plumOS-RK3566.img
+```
+
+基板の切り分けには `PLUMOS_RGB30_CPU_REGULATOR=tcs452x` または `fan53555` で固定できます。この場合は5番目の引数を省略し、元のU-Bootを使います。FAN53555固定時には元のRGB30 DTBが `plumos-board/rk3566-rgb30-tcs452x.dtb` に保存されます。

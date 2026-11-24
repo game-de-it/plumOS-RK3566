@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-if [ "$#" -ne 4 ]; then
-    echo "Usage: $0 STOCK_JELOS_IMG BUILT_SYSTEM BOOT_SPLASH_DIRECTORY OUTPUT.img" >&2
+if [ "$#" -lt 4 ] || [ "$#" -gt 5 ]; then
+    echo "Usage: $0 STOCK_JELOS_IMG BUILT_SYSTEM BOOT_SPLASH_DIRECTORY OUTPUT.img [UBOOT.itb]" >&2
     exit 2
 fi
 
@@ -15,9 +15,21 @@ output=$(absolute_file "$4")
 out_dir=$(dirname "$output")
 name=$(basename "$output")
 image=plumos-rk3566-bubble-tools:ec81d42
-rgb30_regulator=${PLUMOS_RGB30_CPU_REGULATOR:-tcs452x}
+rgb30_regulator=${PLUMOS_RGB30_CPU_REGULATOR:-auto}
+fit_mount=()
 case "$rgb30_regulator" in
-    tcs452x|fan53555) ;;
+    auto)
+        if [ "$#" -ne 5 ]; then
+            echo "Auto mode requires the FIT from build-rk3566-uboot.sh as argument 5." >&2
+            exit 2
+        fi
+        fit=$(absolute_file "$5")
+        test -s "$fit"
+        fit_mount=(-v "$fit:/uboot.itb:ro")
+        ;;
+    tcs452x|fan53555)
+        test "$#" -eq 4
+        ;;
     *) echo "Unknown RGB30 CPU regulator: $rgb30_regulator" >&2; exit 2 ;;
 esac
 test "$(shasum -a 256 "$source" | cut -d ' ' -f 1)" = 281bf1c1faf7f4c9d044f59677075fbb9af99d2a8d01f873c23c13587668c73f
@@ -32,6 +44,7 @@ for file in "$output" "$output.partial" "$output.gz" "$output.gz.partial"; do te
 
 docker run --rm -i --privileged --user 0 --platform linux/arm64 \
     -v "$source:/stock:ro" -v "$system:/system:ro" -v "$splash:/splash:ro" \
+    ${fit_mount[@]+"${fit_mount[@]}"} \
     -v "$prototype:/prototype:ro" -v "$out_dir:/output" "$image" bash -s -- "$name" "$rgb30_regulator" <<'BUILD'
 set -euo pipefail
 image=/output/$1
@@ -47,7 +60,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-if [ "$rgb30_regulator" = fan53555 ] && ! command -v dtc >/dev/null; then
+if [ "$rgb30_regulator" != tcs452x ] && ! command -v dtc >/dev/null; then
     apt-get update
     apt-get install -y --no-install-recommends device-tree-compiler
 fi
@@ -83,7 +96,9 @@ mount "$work/p4" "$work/storage"
     cmp "$work/boot-splash" plumos-splash/boot-splash
     cmp /splash/boot-splash.xrgb plumos-splash/boot-splash.xrgb
     sha256sum -c "$work/boot.sha256"
-    if [ "$rgb30_regulator" = fan53555 ]; then
+    if [ "$rgb30_regulator" = auto ]; then
+        /prototype/prepare-rgb30-cpu-dtb.sh rk3566-rgb30-linux.dtb rk3566-rgb30r2-linux.dtb
+    elif [ "$rgb30_regulator" = fan53555 ]; then
         mkdir plumos-board
         cp rk3566-rgb30-linux.dtb plumos-board/rk3566-rgb30-tcs452x.dtb
         /prototype/prepare-rgb30-cpu-dtb.sh plumos-board/rk3566-rgb30-tcs452x.dtb rk3566-rgb30-linux.dtb
@@ -121,24 +136,48 @@ fsck.vfat -n "$work/p3"
 losetup -d "$loop"
 loop=
 
-sfdisk --verify "$partial"
-python3 - "$partial" <<'PY'
+python3 - "$partial" "$rgb30_regulator" <<'PY'
 from pathlib import Path
 import struct
 import sys
 
-with open('/stock', 'rb') as original, Path(sys.argv[1]).open('rb') as candidate:
-    assert original.read(16777216) == candidate.read(16777216)
-    for file in (original, candidate):
-        file.seek(512)
-    primary = candidate.read(512)
-    original_primary = original.read(512)
-    assert primary == original_primary
+sector = 512
+boot_end = 16 * 1024 * 1024
+with open('/stock', 'rb') as original, Path(sys.argv[1]).open('r+b') as candidate:
+    if sys.argv[2] == 'auto':
+        fit = Path('/uboot.itb').read_bytes()
+        original.seek(sector)
+        header = original.read(sector)
+        entries, _, size = struct.unpack_from('<QII', header, 72)
+        original.seek(entries * sector)
+        partition = original.read(size)
+        first, last = struct.unpack_from('<QQ', partition, 32)
+        assert (first, last) == (16384, 24575)
+        assert partition[56:].decode('utf-16le').rstrip('\0') == 'uboot'
+        assert fit.startswith(bytes.fromhex('d00dfeed'))
+        assert b'rk3566-rgb30r2-linux.dtb\0' in fit
+        offset, length = first * sector, (last - first + 1) * sector
+        assert 0 < len(fit) <= length
+        candidate.seek(offset)
+        replacement = fit.ljust(length, b'\0')
+        candidate.write(replacement)
+        candidate.seek(0)
+        original.seek(0)
+        assert original.read(offset) == candidate.read(offset)
+        assert candidate.read(length) == replacement
+        original.seek(offset + length)
+        assert original.read(boot_end - offset - length) == candidate.read(boot_end - offset - length)
+    else:
+        assert original.read(boot_end) == candidate.read(boot_end)
+
+    original.seek(sector)
+    primary = original.read(sector)
     backup = struct.unpack_from('<Q', primary, 32)[0]
     for file in (original, candidate):
-        file.seek((backup - 32) * 512)
+        file.seek((backup - 32) * sector)
     assert original.read() == candidate.read()
 PY
+sfdisk --verify "$partial"
 mv -T "$partial" "$image"
 gzip -n -1 -c "$image" > "$image.gz.partial"
 gzip -t "$image.gz.partial"
