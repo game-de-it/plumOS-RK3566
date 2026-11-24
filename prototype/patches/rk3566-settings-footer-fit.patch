@@ -1,0 +1,22 @@
+--- a/src/frontend/plumos_fbdev_renderer.h
++++ b/src/frontend/plumos_fbdev_renderer.h
+@@ -4092,11 +4092,17 @@
+                                   wifi_password, 2, 1,
+                                   p->selection_foreground, w - 8);
+     } else if (footer1 && footer1[0]) {
+-      plumos_fbdev_draw_text_font(r, 14, h - 56, footer1, 2,
++      int scale = plumos_fbdev_text_width_font(r, footer1, 2,
++                                                 wifi_connect_page) <= w - 22
++                      ? 2 : 1;
++      plumos_fbdev_draw_text_font(r, 14, h - 56, footer1, scale,
+                                   wifi_connect_page, p->muted, w - 8);
+     }
+     if (footer2 && footer2[0]) {
+-      plumos_fbdev_draw_text_font(r, 14, h - 34, footer2, 2,
++      int scale = plumos_fbdev_text_width_font(r, footer2, 2,
++                                                 wifi_connect_page) <= w - 22
++                      ? 2 : 1;
++      plumos_fbdev_draw_text_font(r, 14, h - 34, footer2, scale,
+                                   wifi_connect_page, p->muted, w - 8);
+     }
+   }

@@ -13,6 +13,8 @@ target=$5
 mkdir "$work"
 git -C "$bubble" archive "$revision" scripts docker/bubble-tools src \
     package/frontend-bubble LICENSE | tar -xf - -C "$work"
+prototype=$(cd "$(dirname "$0")" && pwd)
+patch -d "$work" -p1 < "$prototype/patches/rk3566-ggfe-panel-fit.patch"
 export SOURCE_DATE_EPOCH
 SOURCE_DATE_EPOCH=$(git -C "$bubble" show -s --format=%ct "$revision")
 export PLUMOS_BUBBLE_APPS_IMAGE=$image PLUMOS_BUBBLE_TOOLS_IMAGE=$image
@@ -97,7 +99,7 @@ text = text.replace(anchor, anchor + '''
       if [ -z "$href" ] && ! thumb_index_valid "$worker_thumb_index"; then
         # When the index endpoint is unavailable, use the canonical DAT title.
         # fetch_thumbnail_png still verifies the response as a PNG.
-        href="$(/usr/bin/python3 -c 'from sys import argv; from urllib.parse import quote; print(quote(argv[1] + ".png", safe=""))' "$canonical" || true)"
+        href="$(PLUMOS_ROOT="$PLUMOS_ROOT" "$PLUMOS_ROOT/bin/plumos-python-bubble" -c 'from sys import argv; from urllib.parse import quote; print(quote(argv[1] + ".png", safe=""))' "$canonical" || true)"
       fi''')
 scraper.write_text(text)
 PY

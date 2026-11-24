@@ -1,0 +1,142 @@
+--- a/src/frontend/plumos_ggfe.c
++++ b/src/frontend/plumos_ggfe.c
+@@ -220,7 +220,8 @@
+   const unsigned char *background;
+   unsigned char *panel;
+   long panel_stride;
+-  int panel_bpp;
++  int panel_width, panel_height;
++  const int *panel_src_x;
+   uint32_t panel_r_shift, panel_g_shift, panel_b_shift, panel_alpha;
+ };
+
+@@ -269,7 +270,7 @@
+  */
+ static void ggfe_run_stripes(struct ggfe_pool *p) {
+   for (;;) {
+-    int stripe, y0, y1;
++    int stripe, height, y0, y1;
+     if (p->started > 0) {
+       pthread_mutex_lock(&p->lock);
+       stripe = p->next_stripe++;
+@@ -282,8 +283,9 @@
+     if (stripe >= GGFE_STRIPES) {
+       return;
+     }
+-    y0 = p->target->height * stripe / GGFE_STRIPES;
+-    y1 = p->target->height * (stripe + 1) / GGFE_STRIPES;
++    height = p->job == GGFE_JOB_BLIT ? p->panel_height : p->target->height;
++    y0 = height * stripe / GGFE_STRIPES;
++    y1 = height * (stripe + 1) / GGFE_STRIPES;
+     switch (p->job) {
+       case GGFE_JOB_RASTER:
+         cart3d_draw_list_band(p->target, p->draws, p->draw_count, p->zwrite,
+@@ -299,17 +301,24 @@
+       case GGFE_JOB_BLIT: {
+         int x, y;
+         for (y = y0; y < y1; y++) {
+-          const unsigned char *in =
+-              p->target->rgb + (size_t)y * p->target->width * 3;
+-          if (p->panel_bpp == 4) {
+-            uint32_t *out =
+-                (uint32_t *)(p->panel + (size_t)y * (size_t)p->panel_stride);
+-            for (x = 0; x < p->target->width; x++) {
+-              out[x] = ((uint32_t)in[0] << p->panel_r_shift) |
+-                       ((uint32_t)in[1] << p->panel_g_shift) |
+-                       ((uint32_t)in[2] << p->panel_b_shift) | p->panel_alpha;
+-              in += 3;
++          int src_y = y * p->target->height / p->panel_height;
++          const unsigned char *row =
++              p->target->rgb + (size_t)src_y * p->target->width * 3;
++          uint32_t *out =
++              (uint32_t *)(p->panel + (size_t)y * (size_t)p->panel_stride);
++          if (p->panel_width == p->target->width) {
++            for (x = 0; x < p->panel_width; x++, row += 3) {
++              out[x] = ((uint32_t)row[0] << p->panel_r_shift) |
++                       ((uint32_t)row[1] << p->panel_g_shift) |
++                       ((uint32_t)row[2] << p->panel_b_shift) | p->panel_alpha;
+             }
++            continue;
++          }
++          for (x = 0; x < p->panel_width; x++) {
++            const unsigned char *in = row + (size_t)p->panel_src_x[x] * 3;
++            out[x] = ((uint32_t)in[0] << p->panel_r_shift) |
++                     ((uint32_t)in[1] << p->panel_g_shift) |
++                     ((uint32_t)in[2] << p->panel_b_shift) | p->panel_alpha;
+           }
+         }
+         break;
+@@ -2345,17 +2354,51 @@
+                             struct plumos_fbdev_renderer *r,
+                             struct cart3d_target *t) {
+   int x, y;
++  int panel_width = (int)r->var.xres;
++  int panel_height = (int)r->var.yres;
++  int width = panel_width;
++  int height = width * t->height / t->width;
++  int left, top;
++  uint32_t black = plumos_fbdev_pack_color(r, 0, 0, 0);
+   int fast = (r->bytes_per_pixel == 4 && !r->rotation_180 &&
+               r->var.red.length == 8 && r->var.green.length == 8 &&
+-              r->var.blue.length == 8 && (int)r->var.xres == GGFE_W &&
+-              (int)r->var.yres == GGFE_H);
++              r->var.blue.length == 8);
++
++  if (height > panel_height) {
++    height = panel_height;
++    width = height * t->width / t->height;
++  }
++  if (width <= 0 || height <= 0) {
++    return;
++  }
++  left = (panel_width - width) / 2;
++  top = (panel_height - height) / 2;
++  if (height < panel_height) {
++    plumos_fbdev_fill_rect(r, 0, 0, panel_width, top, black);
++    plumos_fbdev_fill_rect(r, 0, top + height, panel_width,
++                          panel_height - top - height, black);
++  }
++  if (width < panel_width) {
++    plumos_fbdev_fill_rect(r, 0, top, left, height, black);
++    plumos_fbdev_fill_rect(r, left + width, top,
++                          panel_width - left - width, height, black);
++  }
+
+   if (fast) {
++    int src_x[width];
++    if (width != t->width) {
++      for (x = 0; x < width; x++) {
++        src_x[x] = x * t->width / width;
++      }
++    }
++    pool->panel_src_x = src_x;
+     pool->job = GGFE_JOB_BLIT;
+     pool->target = t;
+     pool->panel = r->shadow ? r->shadow : r->mem + r->active_offset;
+     pool->panel_stride = (long)r->fix.line_length;
+-    pool->panel_bpp = 4;
++    pool->panel += (size_t)top * pool->panel_stride + (size_t)left * 4;
++    pool->panel_width = width;
++    pool->panel_height = height;
+     pool->panel_r_shift = r->var.red.offset;
+     pool->panel_g_shift = r->var.green.offset;
+     pool->panel_b_shift = r->var.blue.offset;
+@@ -2367,12 +2410,13 @@
+     ggfe_pool_run(pool);
+     return;
+   }
+-  for (y = 0; y < GGFE_H; y++) {
+-    const unsigned char *in = t->rgb + (size_t)y * GGFE_W * 3;
+-    for (x = 0; x < GGFE_W; x++) {
+-      plumos_fbdev_put_pixel(r, x, y,
++  for (y = 0; y < height; y++) {
++    const unsigned char *row =
++        t->rgb + (size_t)(y * t->height / height) * t->width * 3;
++    for (x = 0; x < width; x++) {
++      const unsigned char *in = row + (size_t)(x * t->width / width) * 3;
++      plumos_fbdev_put_pixel(r, left + x, top + y,
+                              plumos_fbdev_pack_color(r, in[0], in[1], in[2]));
+-      in += 3;
+     }
+   }
+ }

@@ -16,7 +16,7 @@ atari2600	retroarch:stella2014	ATARI/2600/3DTicTacToe.bin	frames_observed		58.46
 atari5200	retroarch:a5200	ATARI/5200/Millipede.a52	frames_observed		58.64	RUNNING	True	1	720x720+0+0,720x540+0+90	frames_observed
 atari5200	retroarch:atari800	ATARI/5200/Millipede.a52	frames_observed		52.92	RUNNING	True	1	720x720+0+0,720x540+0+90	frames_observed
 atari7800	retroarch:prosystem	ATARI/7800/Asteroids (1987) (Atari).a78	frames_observed		58.6	RUNNING	True	1	720x720+0+0,720x540+0+90	frames_observed
-atari800	retroarch:atari800	ATARI/800/ATARIBAS.ROM	frames_observed		59.19	PREPARED	False	1	720x720+0+0,720x540+0+90	frames_observed
+atari800	retroarch:atari800	ATARI/800/Yoomp.xfd	frames_observed		40.99	RUNNING	True	1	720x720+0+0,720x540+0+90	frames_observed
 atarist	retroarch:hatari	_etc/atarist/Lattice C (19xx)(Hisoft).st	frames_observed		40.17	RUNNING	True	1	720x720+0+0,720x540+0+90	frames_observed
 bk	retroarch:bk		unavailable	no_compatible_sample_in_rom2						unavailable
 c64	retroarch:frodo	_etc/c64/inbread_c64_disk_2022/c64mini/inbread.d64	frames_observed		37.65	RUNNING	True	1	720x720+0+0,720x540+0+90	frames_observed

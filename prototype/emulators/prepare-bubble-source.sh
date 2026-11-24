@@ -22,6 +22,7 @@ cp "$scripts/rg353m-drastic-input.patch" "$destination/package/standalone-bubble
 cp "$scripts/rk3566-drastic-display.patch" "$destination/package/standalone-bubble/patches/drastic/rk3566-display.patch"
 cp "$scripts/rg353m-openbor-input.patch" "$destination/package/standalone-bubble/patches/openbor/rg353m-input.patch"
 cp "$scripts/quicknes-rg353m.patch" "$destination/patches/libretro-cores-bubble/"
+cp "$scripts/atari800-caverns-cartridge.patch" "$destination/patches/libretro-cores-bubble/"
 patch -s -d "$destination" -p1 < "$scripts/rg353m-standalone.patch"
 patch -s -d "$destination" -p1 < "$scripts/rg353m-drastic-cleanup.patch"
 python3 - "$destination" <<'PY'
@@ -104,8 +105,13 @@ replace(openbor_patch, '+\tsavedata.stretch = 1;\n',
         '+\t                  mode.w != mode.h;\n', 1)
 replace("scripts/build-libretro-cores-bubble.sh",
         '    build_dir="$work_dir"\n',
-        '    if [ "$id" = "quicknes" ]; then\n'
-        '        git -C "$work_dir" apply "$ROOT_DIR/patches/libretro-cores-bubble/quicknes-rg353m.patch"\n'
+        '    case "$id" in\n'
+        '        quicknes) core_patch=quicknes-rg353m.patch ;;\n'
+        '        atari800) core_patch=atari800-caverns-cartridge.patch ;;\n'
+        '        *) core_patch= ;;\n'
+        '    esac\n'
+        '    if [ -n "$core_patch" ]; then\n'
+        '        git -C "$work_dir" apply "$ROOT_DIR/patches/libretro-cores-bubble/$core_patch"\n'
         '    fi\n'
         '    build_dir="$work_dir"\n', 1)
 replace("scripts/build-bubble-quicknes.sh",
@@ -118,8 +124,13 @@ replace("scripts/build-bubble-quicknes.sh",
         '  "source_commit": "$ref",\n',
         '  "source_commit": "$ref",\n  "patch_sha256": "$patch_sha256",\n', 1)
 replace("scripts/lib/bubble-libretro-package-metadata.sh",
+        '        bluemsx) printf \'%s\\n\' bluemsx-cbios-safe-default-v3 ;;',
+        '        atari800) printf \'%s\\n\' atari800-cart-crc-v1 ;;\n'
+        '        bluemsx) printf \'%s\\n\' bluemsx-cbios-safe-default-v3 ;;', 1)
+replace("scripts/lib/bubble-libretro-package-metadata.sh",
         '        bluemsx) patch=bluemsx-cbios-safe-default.patch ;;',
         '        quicknes) patch=quicknes-rg353m.patch ;;\n'
+        '        atari800) patch=atari800-caverns-cartridge.patch ;;\n'
         '        bluemsx) patch=bluemsx-cbios-safe-default.patch ;;', 1)
 standalone = "scripts/build-standalone-bubble.sh"
 replace(standalone, '"input": "/dev/input/event2",',

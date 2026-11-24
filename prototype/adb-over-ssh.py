@@ -6,7 +6,7 @@ import asyncio
 from contextlib import suppress
 from pathlib import Path
 import shlex
-import subprocess
+import sys
 
 
 START_ADBD = r'''
@@ -72,10 +72,37 @@ async def forward(ssh, reader, writer):
         await process.wait()
 
 
-async def serve(ssh, port):
-    async with await asyncio.start_server(
-        lambda reader, writer: forward(ssh, reader, writer), "127.0.0.1", port
-    ) as server:
+async def ensure_ipv6(ssh, module):
+    check = await asyncio.create_subprocess_exec(*ssh, "test -d /sys/module/ipv6")
+    status = await check.wait()
+    if status == 0:
+        return True
+    if status != 1:
+        return False
+    if module is None:
+        print("ADB requires IPv6. Supply --ipv6-module for this kernel.", file=sys.stderr)
+        return False
+    load = await asyncio.create_subprocess_exec(
+        *ssh, LOAD_IPV6, stdin=asyncio.subprocess.PIPE,
+    )
+    await load.communicate(module)
+    return load.returncode == 0
+
+
+async def serve(ssh, port, module):
+    module_lock = asyncio.Lock()
+
+    async def connect(reader, writer):
+        # A device reboot unloads the module while the host listener survives.
+        async with module_lock:
+            ready = await ensure_ipv6(ssh, module)
+        if ready:
+            await forward(ssh, reader, writer)
+        else:
+            writer.close()
+            await writer.wait_closed()
+
+    async with await asyncio.start_server(connect, "127.0.0.1", port) as server:
         print(f"ADB listener on 127.0.0.1:{port}", flush=True)
         await server.serve_forever()
 
@@ -93,12 +120,9 @@ def main():
     if args.identity is not None:
         ssh.extend(["-o", "IdentitiesOnly=yes", "-i", str(args.identity)])
     ssh.extend(["--", args.target])
-    if subprocess.run([*ssh, "test -d /sys/module/ipv6"]).returncode != 0:
-        if args.ipv6_module is None:
-            parser.error("SSH access and a loaded IPv6 module or --ipv6-module are required")
-        subprocess.run([*ssh, LOAD_IPV6], input=args.ipv6_module.read_bytes(), check=True)
+    module = args.ipv6_module.read_bytes() if args.ipv6_module else None
     try:
-        asyncio.run(serve(ssh, args.port))
+        asyncio.run(serve(ssh, args.port, module))
     except KeyboardInterrupt:
         pass
 
