@@ -83,8 +83,8 @@ for soname in libasound.so.2 libboost_atomic.so.1.74.0 libboost_chrono.so.1.74.0
     libboost_date_time.so.1.74.0 libboost_filesystem.so.1.74.0 libboost_locale.so.1.74.0 \
     libboost_system.so.1.74.0 libboost_thread.so.1.74.0 libcurl.so.4 libdrm.so.2 \
     libexpat.so.1 libfmt.so.9 libfreetype.so.6 libgbm.so.1 libgif.so.7 libglib-2.0.so.0 \
-    libgomp.so.1 libjpeg.so.62 libluajit-5.1.so.2 libmodplug.so.1 libnsl.so.2 libopenal.so.1 \
-    libpng16.so.16 libSDL-1.2.so.0 libSDL2-2.0.so.0 libSDL2_gfx-1.0.so.0 \
+    libgomp.so.1 libgthread-2.0.so.0 libjpeg.so.62 libluajit-5.1.so.2 libmodplug.so.1 \
+    libnsl.so.2 libopenal.so.1 libpng16.so.16 librt.so.1 libSDL-1.2.so.0 libSDL2-2.0.so.0 libSDL2_gfx-1.0.so.0 \
     libSDL2_image-2.0.so.0 libSDL2_ttf-2.0.so.0 libsndfile.so.1 libspeexdsp.so.1 \
     libsqlite3.so.0 libstdc++.so.6 libudev.so.1 libxmp.so.4; do
     library=/usr/lib/aarch64-linux-gnu/$soname
@@ -144,6 +144,20 @@ test -x "$root/usr/lib/systemd/systemd"
 chroot "$root" /bin/sh -n /usr/lib/plumos-353m/init
 chroot "$root" /usr/lib/plumos-353m/frontend/bin/plumos-controller-ui --help >/dev/null
 chroot "$root" /usr/lib/plumos-353m/frontend/bin/plumos-library-scan --help >/dev/null
+# The pygame wheel dynamically links mixer dependencies even with SDL's ALSA
+# backend. Test with the deployed loader and search paths inside the SYSTEM.
+app_root=/usr/lib/plumos-353m/frontend
+chroot "$root" /bin/busybox env PLUMOS_ROOT="$app_root" \
+    PLUMOS_PYTHON_EXTRA_PATH="$app_root/apps/pyxel/site" \
+    PLUMOS_BUBBLE_PYTHON_EXTRA_LIBRARY_PATH="$app_root/emulator/lib" \
+    SDL_AUDIODRIVER=dummy PYGAME_HIDE_SUPPORT_PROMPT=1 \
+    /bin/sh "$app_root/bin/plumos-python-bubble" -c '
+import pygame.mixer
+pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=8192)
+assert pygame.mixer.get_init() == (44100, -16, 2), pygame.mixer.get_init()
+pygame.mixer.quit()
+print("pygame.mixer: 44100 Hz, signed 16-bit, stereo")
+'
 chroot "$root" /usr/bin/wpa_supplicant -v >/dev/null
 chroot "$root" /usr/bin/smbd --version >/dev/null
 network_applets=$(chroot "$root" /usr/lib/plumos-353m/frontend/network-services/bin/busybox --list)
