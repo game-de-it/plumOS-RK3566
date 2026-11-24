@@ -1,0 +1,354 @@
+--- a/src/services/plumos_bubble_volume_keys.c
++++ b/src/services/plumos_bubble_volume_keys.c
+@@ -217,7 +217,7 @@
+   return result;
+ }
+
+-static int run_volume_helper(const char *action) {
++static int run_control_helper(const char *name, const char *action) {
+   const char *root = getenv("PLUMOS_ROOT");
+   char helper[512];
+   pid_t child;
+@@ -226,7 +226,7 @@
+   if (!root || !root[0]) {
+     root = "/storage/plumos";
+   }
+-  if (snprintf(helper, sizeof(helper), "%s/bin/plumos-volume-control", root) >=
++  if (snprintf(helper, sizeof(helper), "%s/bin/%s", root, name) >=
+       (int)sizeof(helper)) {
+     return -ENAMETOOLONG;
+   }
+@@ -251,11 +251,31 @@
+
+ static int apply_direction(int direction) {
+   const char *action = direction > 0 ? "runtime-up" : "runtime-down";
+-  int result = run_volume_helper(action);
++  int result = run_control_helper("plumos-volume-control", action);
+
+   fprintf(stderr, "volume-keys: action=volume direction=%s rc=%d\n",
+           direction > 0 ? "up" : "down", result);
+   return result;
++}
++
++/* The daemon listens alongside the FE or game without grabbing the gamepad. */
++static int read_brightness_keys(int fd, int *start_held) {
++  struct input_event event;
++  ssize_t bytes;
++
++  while ((bytes = read(fd, &event, sizeof(event))) == (ssize_t)sizeof(event)) {
++    if (event.type == EV_SYN && event.code == SYN_DROPPED) {
++      *start_held = 0;
++    } else if (event.type == EV_KEY && event.code == BTN_START) {
++      *start_held = event.value != 0;
++    } else if (*start_held && event.type == EV_KEY && event.value == 1 &&
++               (event.code == BTN_DPAD_LEFT || event.code == BTN_DPAD_RIGHT)) {
++      const char *action = event.code == BTN_DPAD_RIGHT ? "up" : "down";
++      int result = run_control_helper("plumos-display-control", action);
++      fprintf(stderr, "brightness-keys: action=%s rc=%d\n", action, result);
++    }
++  }
++  return bytes < 0 && (errno == EAGAIN || errno == EINTR);
+ }
+
+ static void usage(const char *argv0) {
+@@ -268,10 +288,12 @@
+   const char *runtime_root = getenv("PLUMOS_RUNTIME_ROOT");
+   const char *configured_event = getenv("PLUMOS_VOLUME_INPUT_EVENT");
+   const char *configured_power_event = getenv("PLUMOS_POWER_INPUT_EVENT");
++  const char *configured_pad = getenv("PLUMOS_INPUT_EVENT");
+   char run_dir[512];
+   char lock_path[512];
+   long long next_volume_reopen = 0;
+   long long next_power_reopen = 0;
++  long long next_pad_reopen = 0;
+   long long repeat_due = 0;
+   long long persist_due = 0;
+   long long power_debounce_until = 0;
+@@ -279,6 +301,8 @@
+   int persist_pending = 0;
+   int event_fd = -1;
+   int power_event_fd = -1;
++  int pad_fd = -1;
++  int start_held = 0;
+   int volume_done = 0;
+   int power_done = 0;
+   int once = 0;
+@@ -328,7 +352,7 @@
+   signal(SIGTERM, stop_running);
+   setvbuf(stderr, NULL, _IOLBF, 0);
+   fprintf(stderr, "volume-keys: start owner=plumos\n");
+-  (void)run_volume_helper("apply");
++  (void)run_control_helper("plumos-volume-control", "apply");
+
+   if (once) {
+     volume_done = !configured_event || !configured_event[0];
+@@ -336,7 +360,7 @@
+   }
+
+   while (running) {
+-    struct pollfd poll_fds[2];
++    struct pollfd poll_fds[3];
+     long long now = monotonic_ms();
+     int ready;
+
+@@ -358,13 +382,19 @@
+     if (once && volume_done && power_done) {
+       break;
+     }
++    if (!once && !power_done && pad_fd < 0 && now >= next_pad_reopen) {
++      pad_fd = open_input_event(configured_pad, "retrogame_joypad",
++                                "brightness-keys");
++      next_pad_reopen = now + REOPEN_INTERVAL_MS;
++    }
+     poll_fds[0].fd = event_fd;
+     poll_fds[0].events = POLLIN;
+     poll_fds[0].revents = 0;
+     poll_fds[1].fd = power_event_fd;
+     poll_fds[1].events = POLLIN;
+     poll_fds[1].revents = 0;
+-    ready = poll(poll_fds, 2, 100);
++    poll_fds[2] = (struct pollfd){.fd = pad_fd, .events = POLLIN};
++    ready = poll(poll_fds, 3, 100);
+     now = monotonic_ms();
+     if (ready < 0 && errno != EINTR) {
+       fprintf(stderr, "volume-keys: poll failed errno=%d\n", errno);
+@@ -422,6 +452,7 @@
+           if (event.type == EV_KEY && event.code == KEY_POWER &&
+               event.value == 1 && now >= power_debounce_until) {
+             power_debounce_until = now + POWER_DEBOUNCE_MS;
++            start_held = 0;
+             (void)open_power_menu();
+           }
+           continue;
+@@ -440,6 +471,12 @@
+         }
+         break;
+       }
++    }
++    if (ready > 0 && pad_fd >= 0 && poll_fds[2].revents &&
++        !read_brightness_keys(pad_fd, &start_held)) {
++      close(pad_fd);
++      pad_fd = -1;
++      start_held = 0;
+     }
+     now = monotonic_ms();
+     if (held_direction && repeat_due > 0 && now >= repeat_due) {
+@@ -450,7 +487,7 @@
+       repeat_due = now + REPEAT_INTERVAL_MS;
+     }
+     if (persist_pending && persist_due > 0 && now >= persist_due) {
+-      int result = run_volume_helper("persist-runtime");
++      int result = run_control_helper("plumos-volume-control", "persist-runtime");
+       fprintf(stderr, "volume-keys: persist=volume rc=%d\n", result);
+       if (result == 0) {
+         persist_pending = 0;
+@@ -461,7 +498,7 @@
+   }
+
+   if (persist_pending) {
+-    int result = run_volume_helper("persist-runtime");
++    int result = run_control_helper("plumos-volume-control", "persist-runtime");
+     fprintf(stderr, "volume-keys: persist=volume rc=%d shutdown=1\n", result);
+   }
+   if (event_fd >= 0) {
+@@ -469,6 +506,9 @@
+   }
+   if (power_event_fd >= 0) {
+     close(power_event_fd);
++  }
++  if (pad_fd >= 0) {
++    close(pad_fd);
+   }
+   close(lock_fd);
+   fprintf(stderr, "volume-keys: stopped\n");
+--- a/package/frontend-bubble/plumos/bin/plumos-display-control
++++ b/package/frontend-bubble/plumos/bin/plumos-display-control
+@@ -45,28 +45,40 @@
+     case "$value" in ''|*[!0-9]*) read_saved ;; *) normalize "$value" ;; esac
+ }
+
+-write_runtime() {
++write_runtime() (
+     value=$(normalize "$1") || return 2
+     next=$RUNTIME_STATE.next.$$
+     printf '%s\n' "$value" >"$next" && mv -f "$next" "$RUNTIME_STATE" || {
+         rm -f "$next"
+         return 1
+     }
+-}
++)
+
+-write_saved() {
++write_saved() (
+     value=$(normalize "$1") || return 2
+     mkdir -p "${SYSTEM_SETTINGS%/*}" || return 1
+     next=$SYSTEM_SETTINGS.next.$$
++    trap 'rm -f "$next"' EXIT
+     if [ -r "$SYSTEM_SETTINGS" ] &&
+         grep -q '"brightness"[[:space:]]*:' "$SYSTEM_SETTINGS" 2>/dev/null; then
+         sed 's/"brightness"[[:space:]]*:[[:space:]]*[0-9][0-9]*/"brightness": '"$value"'/' \
+             "$SYSTEM_SETTINGS" >"$next" || return 1
++    elif [ -s "$SYSTEM_SETTINGS" ]; then
++        awk -v brightness="$value" '
++            { json = json $0 "\n" }
++            END {
++                sub(/[[:space:]]*$/, "", json)
++                if (json !~ /^[[:space:]]*[{]/ || json !~ /[}]$/) exit 1
++                sub(/[[:space:]]*[}]$/, "", json)
++                separator = json ~ /[{][[:space:]]*$/ ? "" : ","
++                printf "%s%s\n  \"brightness\": %s\n}\n", json, separator, brightness
++            }
++        ' "$SYSTEM_SETTINGS" >"$next" || return 1
+     else
+         printf '{\n  "version": 1,\n  "brightness": %s\n}\n' "$value" >"$next" || return 1
+     fi
+     mv -f "$next" "$SYSTEM_SETTINGS"
+-}
++)
+
+ raw_for_level() {
+     case "$(normalize "$1")" in
+@@ -109,12 +121,21 @@
+ }
+
+ change_saved() {
+-    current=$(read_saved)
++    current=$(read_runtime)
+     next=$((current + $1))
+     [ "$next" -ge 1 ] || next=1
+     [ "$next" -le "$LEVEL_MAX" ] || next=$LEVEL_MAX
+-    write_saved "$next" && apply_level "$next"
++    apply_level "$next" && write_saved "$next"
+ }
++
++# Share the settings lock with Bubble and the volume controls.
++case ${1:-} in
++    apply|up|down|runtime-up|runtime-down|persist-runtime)
++        mkdir -p "${SYSTEM_SETTINGS%/*}" || exit 1
++        exec 9>"$SYSTEM_SETTINGS.lock" || exit 1
++        flock -x 9 || exit 1
++        ;;
++esac
+
+ case ${1:-} in
+     apply) apply_level "${2:-$(read_runtime)}" ;;
+--- a/src/frontend/plumos_controller_ui.c
++++ b/src/frontend/plumos_controller_ui.c
+@@ -784,6 +784,8 @@
+   char power_event_path[PATH_MAX];
+   int input_event_fd;
+   int power_event_fd;
++  int brightness_start_pending;
++  int brightness_chord_used;
+   long long ignore_input_until_ms;
+   enum ui_action repeat_action;
+   unsigned int repeat_key_code;
+@@ -13958,6 +13960,17 @@
+   if (runtime_device_is_rg353m() && strcmp(id, "system_volume") == 0) {
+     return change_system_volume(ui, direction);
+   }
++  if (runtime_device_is_rg353m() && strcmp(id, "system_brightness") == 0) {
++    if (!run_display_control_command(direction > 0 ? "up" : "down", 0, 0)) {
++      set_status(ui, "brightness apply failed");
++      return 0;
++    }
++    update_settings_entries_after_save(ui);
++    settings_start_arrow_blink(ui, direction);
++    snprintf(ui->status, sizeof(ui->status), "Brightness %ld/20",
++             ui->device.brightness);
++    return 1;
++  }
+   value = strtol(display_value ? display_value : "0", NULL, 10);
+   if (strcmp(id, "rom_scan_slow_threshold_ms") == 0) {
+     step = 100;
+@@ -16013,6 +16026,29 @@
+   }
+   while (read(fd, &ev, sizeof(ev)) == (ssize_t)sizeof(ev)) {
+     trace_input_event(&ev, power_only);
++    if (!power_only && !ui->power_overlay && runtime_device_is_rg353m()) {
++      if (ev.type == EV_SYN && ev.code == SYN_DROPPED) {
++        ui->brightness_start_pending = 0;
++        ui->brightness_chord_used = 0;
++      }
++      if (ev.type == EV_KEY && ev.code == BTN_START) {
++        if (ev.value == 1) {
++          ui->brightness_start_pending = 1;
++          ui->brightness_chord_used = 0;
++        } else if (ev.value == 0) {
++          if (ui->brightness_start_pending && !ui->brightness_chord_used) {
++            *action = ACTION_START;
++          }
++          ui->brightness_start_pending = 0;
++        }
++        continue;
++      }
++      if (ev.type == EV_KEY && ev.value != 0 && ui->brightness_start_pending &&
++          (ev.code == BTN_DPAD_LEFT || ev.code == BTN_DPAD_RIGHT)) {
++        ui->brightness_chord_used = 1;
++        continue;
++      }
++    }
+     if (ev.type == EV_KEY) {
+       enum ui_action event_action;
+       if (power_only && ev.code != KEY_POWER) {
+@@ -16091,6 +16127,8 @@
+   if (!ui) {
+     return;
+   }
++  ui->brightness_start_pending = 0;
++  ui->brightness_chord_used = 0;
+   fd = ui->input_event_fd;
+   if (fd < 0) {
+     ui->ignore_input_until_ms = current_time_ms() + 750;
+@@ -16151,9 +16189,14 @@
+   return ui->render_failed ? 0 : 1;
+ }
+
+-static void refresh_rg353m_volume(struct ui_state *ui) {
++static void refresh_rg353m_av_settings(struct ui_state *ui) {
+   struct setting_entry *entry;
+   long volume;
++  char path[PATH_MAX];
++  char value[32];
++  long brightness;
++  int redraw = 0;
++  size_t i;
+
+   if (!runtime_device_is_rg353m() || ui->screen != SCREEN_SETTINGS ||
+       ui->settings_category != SETTINGS_CATEGORY_SYSTEM ||
+@@ -16168,6 +16211,26 @@
+   if (volume != ui->device.volume) {
+     ui->device.volume = volume;
+     snprintf(entry->value, sizeof(entry->value), "%ld", volume);
++    redraw = 1;
++  }
++  if (getenv("PLUMOS_RUNTIME_ROOT") &&
++      join_path(path, sizeof(path), getenv("PLUMOS_RUNTIME_ROOT"),
++                "display/brightness") &&
++      read_first_line_file(path, value, sizeof(value))) {
++    brightness = strtol(value, NULL, 10);
++    if (brightness >= 1 && brightness <= 20 && brightness != ui->device.brightness) {
++      ui->device.brightness = brightness;
++      for (i = 0; i < ui->setting_count; ++i) {
++        entry = &ui->setting_entries[i];
++        if (strcmp(entry->id, "system_brightness") == 0) {
++          snprintf(entry->value, sizeof(entry->value), "%ld", brightness);
++          redraw = 1;
++          break;
++        }
++      }
++    }
++  }
++  if (redraw) {
+     render_ui(ui);
+   }
+ }
+@@ -16372,7 +16435,7 @@
+     }
+     now_ms = current_time_ms();
+     (void)run_scheduled_mmf_brightness_reapply(ui, now_ms);
+-    refresh_rg353m_volume(ui);
++    refresh_rg353m_av_settings(ui);
+     if (poll_rom_scan_refresh(ui)) {
+       render_ui(ui);
+       if (ui_needs_periodic_refresh(ui)) {
