@@ -90,6 +90,13 @@ elif [ -x "$CPU_CONTROL" ] &&'''))
 
 scraper = root / 'bin/plumos-thumbnail-scraper'
 text = scraper.read_text()
+lookup = '''lookup_thumb_href() {
+  index="$1"
+  name="$2"
+'''
+assert text.count(lookup) == 1
+# An empty pathname makes BusyBox awk read the worker's ROM queue from stdin.
+text = text.replace(lookup, lookup + '  [ -s "$index" ] || return 1\n')
 required = '[ -z "$worker_dat_index" ] || [ -z "$worker_thumb_index" ] || [ -z "$worker_thumb_base" ]'
 assert text.count(required) == 1
 text = text.replace(required, '[ -z "$worker_dat_index" ] || [ -z "$worker_thumb_base" ]')
