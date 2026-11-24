@@ -9,11 +9,15 @@ DRMのフレームバッファから画像を取得し、表示矩形と合わ�
 | 経路 | RGB30での表示 |
 | --- | --- |
 | RetroArch / QuickNES | NESの描画面は720×551、上端84 px。コアのアスペクトとクロップを反映した上下中央配置。 |
+| RetroArch / Gambatte | GBの10:9を720×648で表示。上下36 pxずつの余白。 |
+| RetroArch / gpSP | GBAの3:2で上下中央に表示。 |
+| RetroArch / Genesis Plus GX | Game GearのLCDプリセットは640×480。上下120 px、左右40 pxずつの余白。 |
 | PicoArch / QuickNES | 4:3の720×540、上端90 px。旧版は640×480を左上に配置していた。 |
 | PicoArch / gpSP | GBAの3:2の画面を720×480で中央に配置。上下の余白は120 px前後。 |
 | DraStic | 4:3の720×540、上端90 px。旧版は640×480を左下に配置していた。SDLの実表示サイズに合わせてGLESビューポートを設定した。 |
 | PPSSPP | PSPの480×272の比率で720×408相当に配置。上下約156 pxの余白。 |
 | Pyxel / Finardry | 画面の比率を維持して720×675で中央に配置。表示先の解像度はfbdevから取得する。 |
+| RetroArch / FreeJ2ME-Plus | `Cento.jar` を540×720で表示。左右90 pxずつの余白。 |
 | Ports / Playload | 個別のゲームランタイムが720×720を取得。文字と操作ガイドを確認した。 |
 
 RetroArch、PicoArch、Pyxelは、RGB30でCPUガバナーの `policy0` が公開されない場合も起動できるようにした。利用可能な機種では従来のガバナー設定と復帰を行う。旧試験でSD上に置いたRetroArchランチャーとPicoArchバイナリは、SHA-256が一致するものを初回マウント時に退避した。既存SDの更新でも、SYSTEMの収録物を使うことを実機で確認した。
@@ -23,5 +27,18 @@ RetroArch、PicoArch、Pyxelは、RGB30でCPUガバナーの `policy0` が公開
 既存のUSBケーブルを接続した状態で、RGB30の充電器検出は `DCP=1`、`SDP=0`、UDCは `not attached`。ADB gadgetとFunctionFSは起動していた。gadgetの再起動とソフトウェアでのUSBロール変更後も同じ状態だった。MacからUSB ADBを開くには、データ接続として列挙される必要がある。
 
 Wi-FiのSSHを使い、別のネットワーク名前空間でADBをループバックに限定して起動した。MacのループバックからSSH経由で接続し、`adb shell` と `push`、`pull`、転送ファイルのSHA-256を確認した。USBの抜き差しやSDイメージの再書き込みを伴わず、SYSTEMの更新と実機検証に使った。
+
+`prototype/adb-over-ssh.py` は、この経路をSSHで認証済みのMacから開く。ADBプロセスは接続ごとに独立し、USB FunctionFSと実機のストレージマウントから分離する。`adb push` と `adb pull` は `/run` などの一時領域を使用し、実機のマウントを参照するシェルコマンドは `busybox nsenter -t 1 -m -n` で実行する。RGB30でSSH接続、ADB通信、ファイル往復と切断を確認した。
+
+SSHのホスト名を `rgb30` として登録済みの場合の操作。
+
+```sh
+python3 prototype/adb-over-ssh.py root@rgb30
+# 別のターミナルで実行
+adb connect 127.0.0.1:15555
+adb -s 127.0.0.1:15555 shell busybox nsenter -t 1 -m -n /bin/sh
+```
+
+IPv6モジュールが未ロードの起動では、同じJELOSカーネルのSYSTEMに含まれる `ipv6.ko` を `--ipv6-module` に渡す。試験ではモジュールをロードした後も `wlan0` のIPv6は無効で、名前空間内のループバックのみでADBが待ち受けた。
 
 内蔵スピーカーのALSA出力を測定した。USB DACは接続されておらず、実機の音と出力切替は未測定。
