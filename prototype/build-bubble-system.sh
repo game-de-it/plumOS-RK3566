@@ -37,7 +37,7 @@ git -C "$bubble" archive "$revision" src/frontend src/services/plumos_bubble_vol
     package/network-services-bubble/plumos/bin/plumos-network-services \
     scripts/generate-bubble-runtime-coverage.py scripts/build-bubble-update-package.py \
     scripts/build-network-busybox-bubble.sh \
-    rootfs/bubble-minimal/usr/share/udhcpc/default.script LICENSE |
+    rootfs/bubble-minimal/usr/share/udhcpc/default.script rootfs/bubble-minimal/etc/shadow LICENSE |
     tar -xf - -C "$stage/source"
 if ! docker image inspect "$image" >/dev/null 2>&1; then
     git -C "$bubble" show "$revision:docker/bubble-tools/Dockerfile" |
@@ -209,6 +209,7 @@ chmod 644 /out/bubble-userland.squashfs.partial
 mv /out/bubble-userland.squashfs.partial /out/bubble-userland.squashfs
 BUILD
 
-"$prototype/build-runtime-system.sh" "$stock" "$layer" "$out/SYSTEM"
+"$prototype/build-runtime-system.sh" "$stock" "$layer" "$out/SYSTEM" \
+    "$stage/source/rootfs/bubble-minimal/etc/shadow"
 
 (cd "$out" && shasum -a 256 SYSTEM bubble-userland.squashfs > SHA256SUMS)

@@ -1,8 +1,8 @@
 #!/bin/bash
 # Assemble the device userspace independently of the boot image.
 set -euo pipefail
-if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 KERNEL_SUPPORT_SYSTEM PLUMOS_LAYER OUTPUT_SYSTEM" >&2
+if [ "$#" -ne 4 ]; then
+    echo "Usage: $0 KERNEL_SUPPORT_SYSTEM PLUMOS_LAYER OUTPUT_SYSTEM BUBBLE_SHADOW" >&2
     exit 2
 fi
 
@@ -11,14 +11,17 @@ support=$(cd "$(dirname "$1")" && pwd)/$(basename "$1")
 layer=$(cd "$2" && pwd)
 out=$(cd "$(dirname "$3")" && pwd)
 name=$(basename "$3")
+shadow=$(cd "$(dirname "$4")" && pwd)/$(basename "$4")
 test -s "$support"
+test -s "$shadow"
 test -x "$layer/usr/lib/plumos-353m/start-frontend"
 test ! -e "$out/$name"
 test ! -e "$out/$name.partial"
 image=plumos-rk3566-runtime-tools:ec81d42
 docker build --platform linux/arm64 -t "$image" - < "$prototype/runtime-tools.Dockerfile"
 docker run --rm -i --platform linux/arm64 \
-    -v "$support:/support:ro" -v "$layer:/layer:ro" -v "$prototype:/prototype:ro" \
+    -v "$support:/support:ro" -v "$shadow:/bubble-shadow:ro" \
+    -v "$layer:/layer:ro" -v "$prototype:/prototype:ro" \
     -v "$out:/out" "$image" bash -s -- "$name" <<'BUILD'
 set -euo pipefail
 root=$(mktemp -d)
@@ -94,6 +97,11 @@ done
 cp -a /usr/share/alsa /usr/share/zoneinfo "$root/usr/share/"
 install -D -m644 /etc/ssl/certs/ca-certificates.crt "$root/etc/ssl/certs/ca-certificates.crt"
 printf 'root:x:0:0:root:/storage:/bin/sh\n' > "$root/etc/passwd"
+install -m600 /dev/null "$root/etc/shadow"
+# Keep the same root credential as the pinned Bubble SYSTEM build.
+awk -F: '$1 == "root" {print}' /bubble-shadow > "$root/etc/shadow"
+test "$(wc -l < "$root/etc/shadow")" -eq 1
+cut -d: -f2 "$root/etc/shadow" | grep -Eq '^\$6\$[./a-zA-Z0-9-]{1,16}\$[./a-zA-Z0-9]{86}$'
 printf 'root:x:0:\naudio:x:29:\ninput:x:104:\nvideo:x:44:\n' > "$root/etc/group"
 printf 'hosts: files dns\n' > "$root/etc/nsswitch.conf"
 printf '127.0.0.1 localhost\n' > "$root/etc/hosts"
@@ -123,6 +131,9 @@ install -m644 /prototype/system/etc/issue "$root/etc/issue"
 payload=$root/usr/lib/plumos-353m
 install -m755 /prototype/boot-system/init "$payload/init"
 cc -static -O2 -Wall -Wextra -o "$payload/power" /prototype/boot-system/power.c
+cc -static -O2 -Wall -Wextra -o "$payload/rgb30-menu-chord" /prototype/emulators/rgb30-menu-chord.c
+python3 /prototype/emulators/configure-rgb30-menu-chords.py "$payload/frontend"
+python3 /prototype/configure-ssh-auth.py "$payload/frontend"
 # The preserved initramfs requires this pathname at check and switch_root.
 ln -s ../plumos-353m/init "$root/usr/lib/systemd/systemd"
 ln -s /usr/lib/plumos-353m/init "$root/sbin/init"

@@ -229,9 +229,17 @@ try:
     out["softvol"] = match[1] if match else None
     if (record.get("check_fn", True) and proc.poll() is None and out["drm_open"]
             and not record["profile"].startswith("pyxel:")):
-        press_joypad_key(316)
+        model = Path("/proc/device-tree/model").read_bytes().rstrip(b"\0\n")
+        menu_keys = (316,)
+        if model == b"Powkiddy RGB30":
+            if record["profile"].startswith("retroarch:"):
+                menu_keys = (314, 304)  # SELECT + B
+            else:
+                menu_keys = (314, 315)  # SELECT + START
+        press_joypad_key(*menu_keys)
         out["menu"] = wait_sample(1.25)
-        press_joypad_key(304 if record["profile"] == "standalone:drastic" else 316)
+        close_keys = (304,) if record["profile"] == "standalone:drastic" else menu_keys
+        press_joypad_key(*close_keys)
         out["resumed"] = wait_sample(1.25)
     if diagnostic_frames and proc.poll() is None:
         try:
