@@ -78,4 +78,12 @@ adb -s 127.0.0.1:15555 shell busybox nsenter -t 1 -m -n /bin/sh
 
 USB側では、接続したままDWC3のランタイム電源を一時的に有効化し、コントローラーが `device` モードで動作する状態でUSB gadgetの論理切断と再接続を実施した。復帰後も `DCP=1`、UDCは `not attached`、MacのUSBツリーにRGB30は現れなかった。試験後はランタイム電源の設定を元へ戻した。
 
-内蔵スピーカーのALSA出力を測定した。USB DACは接続されておらず、実機の音と出力切替は未測定。
+エミュレータ表の音声欄は、RK817へのPCM転送を測定したもの。USB DACの実機の音と出力切替は未測定。
+
+## RGB30の内蔵スピーカー無音
+
+無音の報告時、実機は自動出力を選択し、ヘッドホン未接続、音量は20段階中20だった。PCMは進んでいたが、RK817の `Playback Path` は `SPK` だった。JELOS 20240206の機種設定に従い、RGB30の内蔵スピーカーに `HP`、ヘッドホンに `SPK` を割り当てた。RGB30とRG353Mについて、自動判定と明示指定を合わせて9ケースのルーティングを確認した。[JELOSのRGB30機種設定](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/packages/hardware/quirks/devices/Powkiddy%20RGB30/050-audio_path#L5-L9)
+
+実機の経路を切り替えてFEからGB版『Aretha』を起動した。音量20%で内蔵スピーカーからゲーム音が聞こえることをユーザーが確認した。この試験ではPCMのハードウェアポインターも進行した。
+
+ARM64 Dockerで生成したSYSTEM `68b32b11fbe94b4672533cc95108de9ad6e3d8ebe5e0bf57a86674119c80e8ea` を既存SDへ差分適用し、試験起動後に既定へ設定した。起動時に `HP` が選ばれ、FEから『悪魔城伝説』を起動してRK817のPCMが `RUNNING` で進行した。ゲーム中に実機の音量ボタンが使う `gpio-keys` へ上下の入力を送り、音量値は4→5→4、左右のソフトウェア音量は143→146→143と変化した。試験後は20%でゲームを再生したままにした。

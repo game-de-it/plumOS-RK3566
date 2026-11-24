@@ -6,24 +6,34 @@ runtime=${PLUMOS_RUNTIME_ROOT:-/run/plumos-353m}
 state=$runtime/audio/codec-route
 root=${PLUMOS_ROOT:-/storage/plumos-rk3566/frontend}
 settings=${PLUMOS_SYSTEM_SETTINGS_JSON:-$root/config/system/settings.json}
+speaker_path=SPK
+headphone_path=HP
+headphone_no_mic_path=HP_NO_MIC
+
+# The RGB30 wiring uses the RK817 headphone DAC path for its speakers.
+if [ "$(tr -d '\000' </proc/device-tree/model 2>/dev/null || :)" = 'Powkiddy RGB30' ]; then
+    speaker_path=HP
+    headphone_path=SPK
+    headphone_no_mic_path=SPK
+fi
 
 route() {
     local headset card previous output
     card=rockchiprk817co
     [ -e /proc/asound/"$card" ] || return 1
-    headset=SPK
+    headset=$speaker_path
     for connector in /sys/class/extcon/extcon*; do
         [ "$(cat "$connector/name" 2>/dev/null)" = rk-headset ] || continue
         if grep -qx HEADPHONE=1 "$connector/state"; then
-            headset=HP_NO_MIC
-            if grep -qx MICROPHONE=1 "$connector/state"; then headset=HP; fi
+            headset=$headphone_no_mic_path
+            if grep -qx MICROPHONE=1 "$connector/state"; then headset=$headphone_path; fi
         fi
         break
     done
     output=$(sed -n 's/.*"audio_output"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$settings" 2>/dev/null | head -n 1)
     case "$output" in
-        speaker) headset=SPK ;;
-        headphone) [ "$headset" != SPK ] || headset=HP_NO_MIC ;;
+        speaker) headset=$speaker_path ;;
+        headphone) [ "$headset" != "$speaker_path" ] || headset=$headphone_no_mic_path ;;
     esac
     previous=$(cat "$state" 2>/dev/null || :)
     [ "$headset" != "$previous" ] || return 0
