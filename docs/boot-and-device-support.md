@@ -13,7 +13,7 @@
 | Powkiddy | RK2023、RGB10 Max 3 | 機種別DTBを同梱。plumOSでの実機起動は未確認 |
 | Anbernic | RG353VS | JELOS 20240206の対応表に掲載。専用名のDTBは未収録で、plumOSでの実機起動は未確認 |
 
-RG353Vでは同じ共通SDを使って起動とSD2を確認した。USBケーブルを接続したままの電源投入については実機ログに記録した。[RG353Vの共通SD起動とSD2](validation/2026-11-25-rg353v-sd2.md)
+RG353Vでは共通SDの起動とSD2を確認した。修正版IMGでは、USBを接続したままの再起動とシャットダウン後の電源投入、起動後のUSB ADBも確認した。[RG353Vの共通SD起動とSD2](validation/2026-11-25-rg353v-sd2.md) · [USB接続中の電源投入](validation/2026-11-25-rg353v-usb-cold-boot.md)
 
 フロントエンドの製品名は `plumOS-RK3566`、設定に表示する機種欄は `RK3566`。同じイメージで使う共通の表示名で、実際に選ばれた機種は `/proc/device-tree/model` で確認できる。
 

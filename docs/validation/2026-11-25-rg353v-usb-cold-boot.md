@@ -12,4 +12,10 @@ JELOSのRG353V用DTBは `rockchip,uboot-charge-on = 1` も指定している。J
 
 試験用のU-Bootは、RG353Vで通常の電源投入時にRK817が電源ボタンを示したとき、給電中でも充電画面の待機へ入らずLinuxに進む。給電だけの起動、明示的な充電モード、低電圧時の充電処理は既存の経路を使う。FITを検査し、変更はU-Boot本体に収まり、BL31の6セグメントと制御用DTBは一致した。試験IMGのDocker検証で、FAT、ext4、GPT、p5の作成と更新・復旧を確認した。
 
-試験IMGは `output/rg353v-validation/usb-cold-boot/plumOS-RK3566.img.gz`。圧縮ファイルのSHA-256は `f49823028cda68d73a94308397b20a6c9878cec2990cc0b5427a00a5b2cf9c3a`。USBを接続した状態でのコールドブートは実機試験待ち。
+試験IMGは `output/rg353v-validation/usb-cold-boot/plumOS-RK3566.img.gz`。圧縮ファイルのSHA-256は `f49823028cda68d73a94308397b20a6c9878cec2990cc0b5427a00a5b2cf9c3a`。
+
+## 修正版IMGの実機確認
+
+利用者が試験IMGを別のSDに書き込み、RG353VでUSBを挿したまま再起動と、シャットダウン後の電源投入に成功した。直後のUSB ADBで、起動中のSDのp1および `/flash/SYSTEM` のSHA-256が試験IMGと一致することを確認した。SYSTEMはIMG同梱版が実行され、カーネル、RG353V用DTB、extlinux設定は修正前と一致した。RK817の電源投入理由は電源ボタンを示す `0x80`、電源レール保存領域は `0x00/0x00` だった。
+
+UDCは `configured` で、plumOS init、Bubble、CPU 4コア、640×480の内蔵画面を確認した。p5とSD2は読み書き可能で、SD2のROM・BIOSはBubbleの利用者ディレクトリに公開されていた。この採取は稼働中の状態を読み取った。
