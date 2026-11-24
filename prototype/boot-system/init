@@ -75,6 +75,16 @@ clear_pmic_saved_rails() {
     printf 'plumOS init: cleared %s RK817 saved rail state (%s/%s)\n' "$model" "$save0" "$save1"
 }
 
+release_portmaster_mounts() {
+    local tracking_file
+    # An interrupted port or app can leave its bind mounts after the last
+    # process using them has exited. Reuse PortMaster's target validation.
+    for tracking_file in /run/plumos/portmaster/port.mounts /run/plumos/portmaster/state.mounts; do
+        [ -f "$tracking_file" ] || continue
+        "$PLUMOS_ROOT/bin/plumos-portmaster-mount-cleanup" "$tracking_file" || return 1
+    done
+}
+
 power_action() {
     local action network marker user_marker network_stopped marker_result handoff
     action=$(cat "$runtime/power-request" 2>/dev/null) || return 0
@@ -167,6 +177,7 @@ power_action() {
         # A service can still be exiting, with its executable or a mapped
         # library on the runtime overlay after all of its files were closed.
         if { [ -x "$quiesce" ] && ! "$quiesce" terminate-storage "$PLUMOS_ROOT"; } ||
+            ! release_portmaster_mounts ||
             ! umount "$PLUMOS_ROOT"; then
             echo 'plumOS init: could not unmount the runtime; power action cancelled'
             power_rollback "$marker" "$user_marker" "$network_stopped"

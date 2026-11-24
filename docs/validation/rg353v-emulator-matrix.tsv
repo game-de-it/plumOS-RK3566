@@ -1,0 +1,197 @@
+system	profile	test_content	outcome	reason	fps	alsa_states	alsa_pcm_progress	audio_output	aspect_config_index	crtc_rectangles	first_outcome
+2048	retroarch:2048	Built-in/2048.desktop	frames_observed		59.76	PREPARED	False	internal_stereo	22	640x480+0+0,389x480+126+0	frames_observed
+3do	retroarch:opera	_etc/3do/biofury.iso	frames_observed		56.48	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+amiga	retroarch:km_puae_xtreme_amped	_etc/amiga/3rd Day - The Ripper (19xx)(Action Force).adf	frames_observed		49.23	RUNNING	True	internal_stereo	22	640x480+0+0	frames_observed
+amiga	retroarch:puae	_etc/amiga/3rd Day - The Ripper (19xx)(Action Force).adf	frames_observed		48.53	RUNNING	True	internal_stereo	22	640x480+0+0	frames_observed
+amiga	retroarch:puae2021	_etc/amiga/3rd Day - The Ripper (19xx)(Action Force).adf	frames_observed		38.86	RUNNING	True	internal_stereo	22	640x480+0+0,627x480+7+0	frames_observed
+amiga	retroarch:uae4arm	_etc/amiga/3rd Day - The Ripper (19xx)(Action Force).adf	frames_observed		40.65	RUNNING	True	internal_stereo	22	640x480+0+0,627x480+7+0	frames_observed
+arcade	retroarch:fbalpha2012	fbneo/imgfight.zip	frames_observed		50.76	RUNNING	True	internal_stereo	22	640x480+0+0,360x480+140+0	frames_observed
+arcade	retroarch:fbneo	fbneo/imgfight.zip	frames_observed		53.3	RUNNING	True	internal_stereo	22	640x480+0+0	frames_observed
+arcade	retroarch:km_mame2003_xtreme	mame/striderj.zip	frames_observed		28.98	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+arcade	retroarch:mame2000	mame/striderj.zip	frames_observed		58.0	RUNNING	True	internal_stereo	22	640x480+0+0	frames_observed
+arcade	retroarch:mame2003_plus	mame/striderj.zip	frames_observed		57.93	RUNNING	True	internal_stereo	22	640x480+0+0	frames_observed
+arcade	retroarch:mba_mini	mame/striderj.zip	frames_observed		55.65	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+arduboy	retroarch:arduous		unavailable	no_compatible_sample_in_rom2							unavailable
+atari2600	retroarch:stella2014	ATARI/2600/3DTicTacToe.bin	frames_observed		56.62	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+atari5200	retroarch:a5200	ATARI/5200/Millipede.a52	frames_observed		53.65	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+atari5200	retroarch:atari800	ATARI/5200/Millipede.a52	frames_observed		51.77	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+atari7800	retroarch:prosystem	ATARI/7800/Asteroids (1987) (Atari).a78	frames_observed		56.63	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+atari800	retroarch:atari800	ATARI/800/Yoomp.xfd	frames_observed		34.6	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+atarist	retroarch:hatari	_etc/atarist/Lattice C (19xx)(Hisoft).st	frames_observed		37.14	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+bk	retroarch:bk		unavailable	no_compatible_sample_in_rom2							unavailable
+c64	retroarch:frodo	_etc/c64/inbread_c64_disk_2022/c64mini/inbread.d64	frames_observed		32.76	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+c64	retroarch:vice_x64	_etc/c64/inbread_c64_disk_2022/c64mini/inbread.d64	frames_observed		44.24	RUNNING	True	internal_stereo	22	640x480+0+0,635x480+3+0	frames_observed
+cannonball	retroarch:cannonball	_etc/cannonball/outrun-roms-master/epr-10187.88	frames_observed		58.8	RUNNING	True	internal_stereo	22	640x480+0+0,640x360+0+60	frames_observed
+cavestory	retroarch:nxengine	_etc/cavestory/doukutsu/Doukutsu.exe	frames_observed		58.53	RUNNING	True	internal_stereo	22	640x480+0+0,480x480+80+0	frames_observed
+chailove	retroarch:chailove	_etc/chailove/FloppyBird.chailove	frames_observed		59.05	RUNNING	True	internal_stereo	22	640x480+0+0,480x480+80+0	frames_observed
+channelf	retroarch:freechaf	_etc/channelf/tents_CF.bin	frames_observed		56.74	RUNNING	True	internal_stereo	22	640x480+0+0,640x402+0+39	frames_observed
+colecovision	retroarch:bluemsx	_etc/coleco/Dam Busters, The (USA).col	frames_observed		50.27	RUNNING	True	internal_stereo	22	640x480+0+0,544x480+48+0	frames_observed
+cpc	retroarch:cap32	_etc/amstradcpc/Abyssal (2022)(Cabbage Corp).sna	frames_observed		38.43	RUNNING	True	internal_stereo	22	640x480+0+0,640x453+0+13	frames_observed
+cpc	retroarch:crocods	_etc/amstradcpc/Abyssal (2022)(Cabbage Corp).sna	frames_observed		45.74	RUNNING	True	internal_stereo	22	640x480+0+0,640x400+0+40	frames_observed
+cps1	retroarch:fbalpha2012	mame/varthj.zip	frames_observed		58.04	RUNNING	True	internal_stereo	22	640x480+0+0,360x480+140+0	frames_observed
+cps1	retroarch:fbalpha2012_cps1	mame/ffight.zip	frames_observed		54.2	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+cps1	retroarch:fbneo	mame/varthj.zip	frames_observed		58.85	RUNNING	True	internal_stereo	22	640x480+0+0	frames_observed
+cps2	retroarch:fbalpha2012	mame/ssf2u.zip	frames_observed		57.7	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+cps2	retroarch:fbalpha2012_cps2	mame/batcir.zip	frames_observed		57.17	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+cps2	retroarch:fbneo	mame/ssf2tu.zip	frames_observed		58.74	RUNNING	True	internal_stereo	22	640x480+0+0	frames_observed
+cps3	retroarch:fbalpha2012	mame/sfiii3nr1.zip	frames_observed		57.73	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+cps3	retroarch:fbalpha2012_cps3	mame/sfiii3nr1.zip	frames_observed		57.65	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+cps3	retroarch:fbneo	mame/sfiii3nr1.zip	frames_observed		58.51	RUNNING	True	internal_stereo	22	640x480+0+0	frames_observed
+daphne	retroarch:daphne		unavailable	no_compatible_sample_in_rom2							unavailable
+dinothawr	retroarch:dinothawr	_etc/dinothawr/dinothawr/dinothawr.game	frames_observed		57.44	RUNNING	True	internal_stereo	22	640x480+0+0,640x400+0+40	frames_observed
+doom	retroarch:prboom	_etc/doom/freedoom-0.13.0/freedoom2.wad	frames_observed		54.35	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+dos	retroarch:dosbox_pure	pc/DOSBOX_ALIENBREED.ZIP	frames_observed		34.74	RUNNING	True	internal_stereo	22	640x480+0+0,640x400+0+40	frames_observed
+dos	retroarch:dosbox_pure_0.9.7	pc/DOSBOX_ALIENBREED.ZIP	frames_observed		37.8	RUNNING	True	internal_stereo	22	640x480+0+0,640x400+0+40	frames_observed
+dreamcast	retroarch:flycast	dreamcast/Crazy Taxi (Japan).chd	frames_observed		55.96	RUNNING	True	internal_stereo	22	640x480+0+0	frames_observed
+dreamcast	retroarch:flycast_xtreme	dreamcast/Crazy Taxi (Japan).chd	frames_observed		56.24	RUNNING	True	internal_stereo	22	640x480+0+0	frames_observed
+easyrpg	retroarch:easyrpg	_etc/EASYRPG/TurnedIntoAGirl/RPG_RT.ldb	frames_observed		57.95	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+fbneo	retroarch:fbneo	fbneo/imgfight.zip	frames_observed		53.41	RUNNING	True	internal_stereo	22	640x480+0+0	frames_observed
+fds	picoarch:fceumm	_etc/fds/勇士の紋章　ディープダンジョンII.fds.zip	frames_observed		58.56	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+fds	picoarch:nestopia	_etc/fds/勇士の紋章　ディープダンジョンII.fds.zip	frames_observed		58.85	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+fds	retroarch:fceumm	_etc/fds/勇士の紋章　ディープダンジョンII.fds.zip	frames_observed		57.51	RUNNING	True	internal_stereo	22	640x480+0+0,627x480+7+0	frames_observed
+fds	retroarch:nestopia	_etc/fds/勇士の紋章　ディープダンジョンII.fds.zip	frames_observed		57.05	RUNNING	True	internal_stereo	22	640x480+0+0,627x480+7+0	frames_observed
+flashback	retroarch:reminiscence		unavailable	no_compatible_sample_in_rom2							unavailable
+gameandwatch	retroarch:gw	_etc/gameandwatch/Tennis Menace.zip	frames_observed		58.86	RUNNING	True	internal_stereo	22	640x480+0+0,351x480+144+0	frames_observed
+gamegear	picoarch:gearsystem	gamegear/Columns [V1.0].gg	frames_observed		58.56	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+gamegear	picoarch:genesis_plus_gx	gamegear/Columns [V1.0].gg	frames_observed		58.02	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+gamegear	picoarch:picodrive	gamegear/Columns [V1.0].gg	frames_observed		58.04	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+gamegear	retroarch:gearsystem	gamegear/Columns [V1.0].gg	frames_observed		58.09	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+gamegear	retroarch:genesis_plus_gx	gamegear/Columns [V1.0].gg	frames_observed		56.78	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+gamegear	retroarch:picodrive	gamegear/Columns [V1.0].gg	frames_observed		57.62	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+gb	picoarch:gambatte	gb/Dr. Mario [V1.0].gb	frames_observed		58.75	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+gb	picoarch:gearboy	gb/Dr. Mario [V1.0].gb	frames_observed		59.12	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+gb	picoarch:vbam	gb/Dr. Mario [V1.0].gb	frames_observed		58.87	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+gb	retroarch:gambatte	gb/Dr. Mario [V1.0].gb	frames_observed		57.26	RUNNING	True	internal_stereo		640x480+0+0,533x480+53+0	frames_observed
+gb	retroarch:gearboy	gb/Dr. Mario [V1.0].gb	frames_observed		57.63	RUNNING	True	internal_stereo		640x480+0+0,533x480+53+0	frames_observed
+gb	retroarch:mgba	gb/Dr. Mario [V1.0].gb	frames_observed		56.65	RUNNING	True	internal_stereo		640x480+0+0,533x480+53+0	frames_observed
+gb	retroarch:tgbdual	gb/Dr. Mario [V1.0].gb	frames_observed		52.21	RUNNING	True	internal_stereo		640x480+0+0,533x480+53+0	frames_observed
+gb	retroarch:vbam	gb/Dr. Mario [V1.0].gb	frames_observed		48.86	RUNNING	True	internal_stereo		640x480+0+0,533x480+53+0	frames_observed
+gba	picoarch:gpsp	gba/Densetsu no Stafy (Japan).gba	frames_observed		59.19	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+gba	picoarch:mgba	gba/Densetsu no Stafy (Japan).gba	frames_observed		58.05	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+gba	retroarch:gpsp	gba/Densetsu no Stafy (Japan).gba	frames_observed		59.32	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+gba	retroarch:mednafen_gba	gba/Densetsu no Stafy (Japan).gba	frames_observed		58.34	RUNNING	True	internal_stereo		640x480+0+0,640x427+0+27	frames_observed
+gba	retroarch:meteor	gba/Densetsu no Stafy (Japan).gba	frames_observed		59.01	RUNNING	True	internal_stereo		640x480+0+0,640x427+0+27	frames_observed
+gba	retroarch:mgba	gba/Densetsu no Stafy (Japan).gba	frames_observed		58.34	RUNNING	True	internal_stereo		640x480+0+0,640x427+0+27	frames_observed
+gba	retroarch:vba_next	gba/Densetsu no Stafy (Japan).gba	frames_observed		58.54	RUNNING	True	internal_stereo		640x480+0+0,640x427+0+27	frames_observed
+gbc	picoarch:gambatte	gbc/Horde DX (USA).gbc	frames_observed		57.95	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+gbc	picoarch:gearboy	gbc/Horde DX (USA).gbc	frames_observed		57.11	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+gbc	picoarch:vbam	gbc/Horde DX (USA).gbc	frames_observed		58.01	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+gbc	retroarch:gambatte	gbc/Horde DX (USA).gbc	frames_observed		58.44	RUNNING	True	internal_stereo	22	640x480+0+0,533x480+53+0	frames_observed
+gbc	retroarch:gearboy	gbc/Horde DX (USA).gbc	frames_observed		58.79	RUNNING	True	internal_stereo	22	640x480+0+0,533x480+53+0	frames_observed
+gbc	retroarch:mgba	gbc/Horde DX (USA).gbc	frames_observed		53.56	RUNNING	True	internal_stereo	22	640x480+0+0,533x480+53+0	frames_observed
+gbc	retroarch:tgbdual	gbc/Horde DX (USA).gbc	frames_observed		58.69	RUNNING	True	internal_stereo	22	640x480+0+0,533x480+53+0	frames_observed
+gbc	retroarch:vbam	gbc/Horde DX (USA).gbc	frames_observed		57.69	RUNNING	True	internal_stereo	22	640x480+0+0,533x480+53+0	frames_observed
+intellivision	retroarch:freeintv	_etc/intellivision/Lock 'N' Chase (USA, Europe) (v1.1)/Lock 'N' Chase (USA, Europe) (v1.1).bin	frames_observed		56.52	RUNNING	True	internal_stereo	22	640x480+0+0,640x407+0+36	frames_observed
+j2me	retroarch:freej2me_plus	_etc/j2me/Cento.jar	frames_observed		59.3	RUNNING	True	internal_stereo	22	640x480+0+0,360x480+140+0	frames_observed
+jaguar	retroarch:virtualjaguar	ATARI/Jaguar/ClubDrive.j64	frames_observed		18.2	RUNNING,XRUN	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+lowresnx	retroarch:lowresnx	_etc/lowresnx/Rubik's cube.nx	frames_observed		56.6	RUNNING	True	internal_stereo	22	640x480+0+0,600x480+20+0	frames_observed
+lutro	retroarch:lutro	_etc/lutro/lutro-pong.lutro	frames_observed		55.46	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+lynx	retroarch:handy	ATARI/Lynx/Super Asteroids & Missile Command (1995).lnx	frames_observed		51.69	RUNNING	True	internal_stereo	22	640x480+0+0,640x408+0+36	frames_observed
+lynx	retroarch:mednafen_lynx	ATARI/Lynx/Super Asteroids & Missile Command (1995).lnx	frames_observed		39.15	RUNNING	True	internal_stereo	22	640x480+0+0,640x408+0+36	frames_observed
+mame2003plus	retroarch:mame2003_plus	mame/striderj.zip	frames_observed		55.52	RUNNING	True	internal_stereo	22	640x480+0+0	frames_observed
+mastersystem	picoarch:gearsystem	mastersystem/MS_Operation_Wolf_mod_2025_0318_1147.SMS	frames_observed		58.65	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+mastersystem	picoarch:genesis_plus_gx	mastersystem/MS_Operation_Wolf_mod_2025_0318_1147.SMS	frames_observed		58.53	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+mastersystem	picoarch:picodrive	mastersystem/MS_Operation_Wolf_mod_2025_0318_1147.SMS	frames_observed		58.25	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+mastersystem	retroarch:gearsystem	mastersystem/MS_Operation_Wolf_mod_2025_0318_1147.SMS	frames_observed		56.2	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+mastersystem	retroarch:genesis_plus_gx	mastersystem/MS_Operation_Wolf_mod_2025_0318_1147.SMS	frames_observed		58.03	RUNNING	True	internal_stereo	22	640x480+0+0,640x420+0+30	frames_observed
+mastersystem	retroarch:picodrive	mastersystem/MS_Operation_Wolf_mod_2025_0318_1147.SMS	frames_observed		56.27	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+megadrive	picoarch:genesis_plus_gx	megadrive/Bare Knuckle - Ikari no Tekken ~ Streets of Rage (World).md	frames_observed		58.42	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+megadrive	picoarch:picodrive	megadrive/Bare Knuckle - Ikari no Tekken ~ Streets of Rage (World).md	frames_observed		59.05	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+megadrive	retroarch:genesis_plus_gx	megadrive/Bare Knuckle - Ikari no Tekken ~ Streets of Rage (World).md	frames_observed		58.08	RUNNING	True	internal_stereo	22	640x480+0+0,627x480+7+0	frames_observed
+megadrive	retroarch:picodrive	megadrive/Bare Knuckle - Ikari no Tekken ~ Streets of Rage (World).md	frames_observed		54.46	RUNNING	True	internal_stereo	22	640x480+0+0,640x448+0+16	frames_observed
+megaduck	retroarch:sameduck		unavailable	no_compatible_sample_in_rom2							unavailable
+microw8	retroarch:uw8	_etc/microw8/tunnel.uw8	frames_observed		21.71	PREPARED,RUNNING,XRUN	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+mrboom	retroarch:mrboom	Built-in/Mr.Boom.desktop	frames_observed		48.76	RUNNING,XRUN	True	internal_stereo	22	640x480+0+0,640x400+0+40	no_frames_observed
+msx	retroarch:bluemsx	msx2/usas.rom	frames_observed		56.26	RUNNING	True	internal_stereo	22	640x480+0+0,544x480+48+0	frames_observed
+msx	retroarch:fmsx	msx2/bios/blueMSXv282full/Machines/SVI - Spectravideo SVI-328 80 Column/svi806.rom	frames_observed		57.88	RUNNING	True	internal_stereo	22	640x480+0+0,573x480+34+0	frames_observed
+music	retroarch:gme	_etc/music/blueshadow.nsfe	frames_observed		55.1	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+n64	retroarch:mupen64plus_next	n64/AeroGauge [V1.1].z64	frames_observed		57.04	RUNNING,XRUN	True	internal_stereo	22	640x480+0+0	frames_observed
+n64	retroarch:parallel_n64	n64/AeroGauge [V1.1].z64	frames_observed		18.43	RUNNING	True	internal_stereo	22	640x480+0+0	frames_observed
+nds	standalone:drastic	NDS/NewSuperMarioBros.nds	frames_observed		59.38	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+neogeo	retroarch:fbalpha2012	_etc/neogeo/ART OF FIGHTING/aof.zip	frames_observed		58.21	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+neogeo	retroarch:fbalpha2012_neogeo	_etc/neogeo/ART OF FIGHTING/aof.zip	frames_observed		58.29	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+neogeo	retroarch:fbneo	_etc/neogeo/ART OF FIGHTING/aof.zip	frames_observed		58.95	RUNNING	True	internal_stereo	22	640x480+0+0	frames_observed
+neogeocd	retroarch:neocd	_etc/neogeocd/Fatal Fury WAV/Fatal Fury WAV.cue	frames_observed		57.85	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+nes	picoarch:fceumm	nes/Binary Land.nes	frames_observed		58.25	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+nes	picoarch:nestopia	nes/Binary Land.nes	frames_observed		58.34	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+nes	picoarch:quicknes	nes/Akumajou Densetsu.nes	frames_observed		59.57	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+nes	retroarch:fceumm	nes/Binary Land.nes	frames_observed		58.31	RUNNING	True	internal_stereo		640x480+0+0,627x480+7+0	frames_observed
+nes	retroarch:nestopia	nes/Binary Land.nes	frames_observed		57.92	RUNNING	True	internal_stereo		640x480+0+0,627x480+7+0	frames_observed
+nes	retroarch:quicknes	nes/Akumajou Densetsu.nes	frames_observed		54.42	RUNNING	True	internal_stereo		640x480+0+0,627x480+7+0	frames_observed
+ngp	retroarch:mednafen_ngp		unavailable	no_compatible_sample_in_rom2							unavailable
+ngpc	retroarch:mednafen_ngp	ngpc/Pocket Tennis Color - Pocket Sports Series (World) (En,Ja).ngc	frames_observed		58.41	RUNNING	True	internal_stereo	22	640x480+0+0,505x480+67+0	frames_observed
+odyssey2	retroarch:o2em	_etc/odyssey2/Interpol (Europe) (Proto).bin	frames_observed		56.7	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+openbor	standalone:openbor	openbor/Dragon Ball [v.3.0 Build 4086].PAK	frames_observed		58.29	RUNNING,SETUP	True	internal_stereo		640x480+0+0	frames_observed
+palm	retroarch:mu		unavailable	no_compatible_sample_in_rom2							unavailable
+pc88	retroarch:quasi88	pc88/XeGrader100001.d88	frames_observed		47.99	RUNNING	True	internal_stereo	22	640x480+0+0,640x400+0+40	frames_observed
+pc98	retroarch:nekop2	_etc/pc-9800/Can Can Bunny 5 and half Limited.hdi	frames_observed		58.19	RUNNING	True	internal_stereo	22	640x480+0+0,640x400+0+40	frames_observed
+pc98	retroarch:np2kai	_etc/pc-9800/Can Can Bunny 5 and half Limited.hdi	frames_observed		45.22	RUNNING	True	internal_stereo	22	640x480+0+0,640x400+0+40	frames_observed
+pcengine	picoarch:mednafen_pce_fast	pcengine/Bomberman_93_U.pce	frames_observed		58.43	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+pcengine	picoarch:mednafen_supergrafx	pcengine/dummy.PCE	frames_observed		57.76	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+pcengine	retroarch:mednafen_pce	pcengine/Bomberman_93_U.pce	frames_observed		59.18	RUNNING	True	internal_stereo	22	640x480+0+0	frames_observed
+pcengine	retroarch:mednafen_pce_fast	pcengine/Bomberman_93_U.pce	frames_observed		56.51	RUNNING	True	internal_stereo	22	640x480+0+0,583x480+28+0	frames_observed
+pcengine	retroarch:mednafen_supergrafx	pcengine/Bomberman_93_U.pce	frames_observed		57.2	RUNNING	True	internal_stereo	22	640x480+0+0,585x480+27+0	frames_observed
+pcenginecd	picoarch:mednafen_pce_fast	pcenginecd/DEDEN no DEN.cue	frames_observed		56.86	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+pcenginecd	retroarch:mednafen_pce_fast	pcenginecd/DEDEN no DEN.cue	frames_observed		57.98	RUNNING	True	internal_stereo	22	640x480+0+0,583x480+28+0	frames_observed
+pcfx	retroarch:mednafen_pcfx	_etc/pcfx/SimpleBattle_FX/simplebattle.cue	frames_observed		35.35	RUNNING,XRUN	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+pico8	retroarch:fake08	pico-8/51752.p8	frames_observed		53.81	RUNNING	True	internal_stereo	22	640x480+0+0,480x480+80+0	frames_observed
+pico8	retroarch:retro8	pico-8/51752.p8	frames_observed		57.28	RUNNING	True	internal_stereo	22	640x480+0+0,480x480+80+0	frames_observed
+pokemini	retroarch:pokemini	_etc/pokemini/Pokemon Party Mini - Baseline Judge (Japan) (GameCube).zip	frames_observed		56.63	RUNNING	True	internal_stereo	22	640x480+0+0,640x427+0+27	frames_observed
+ports	external:port	PORTS/Playload.sh	frames_observed		59.46	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+psp	standalone:ppsspp	psp/Star Soldier (Japan)/Star Soldier (Japan).iso	frames_observed		59.28	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+psx	retroarch:km_duckswanstation_xtreme_amped	psx/PAC-MAN_WORLD.cue	frames_observed		58.88	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+psx	retroarch:pcsx_rearmed	psx/PAC-MAN_WORLD.cue	frames_observed		57.22	RUNNING	True	internal_stereo		640x480+0+0,640x480+0+0	frames_observed
+psx	standalone:pcsx_rearmed	psx/PAC-MAN_WORLD.cue	frames_observed		29.59	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+puzzlescript	retroarch:puzzlescript		unavailable	no_compatible_sample_in_rom2							unavailable
+pyxel	pyxel:bubble	pyxel/pfs.pyxapp	frames_observed		29.55	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+quake	retroarch:tyrquake	_etc/quake/Quake Shareware (1_06) PAK/PAK0.PAK	frames_observed		42.51	PREPARED,RUNNING,closed	True	internal_stereo	22	640x480+0+0	frames_observed
+rickdangerous	retroarch:xrick		unavailable	no_compatible_sample_in_rom2							unavailable
+saturn	retroarch:beetle_saturn	saturn/TOWER_The.cue	frames_observed		24.48	RUNNING	True	internal_stereo	22	640x480+0+0,640x475+0+2	frames_observed
+saturn	retroarch:yabasanshiro	saturn/TOWER_The.cue	frames_observed		58.59	RUNNING	True	internal_stereo	22	640x480+0+0	no_frames_observed
+saturn	standalone:yabasanshiro	saturn/TOWER_The.cue	frames_observed		43.21	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+scummvm	retroarch:scummvm	scummvm/BASS-Floppy-1.3/sky.scummvm	frames_observed		58.22	RUNNING	True	internal_stereo	22	640x480+0+0	frames_observed
+sega32x	picoarch:picodrive	_etc/sega32x/BC Racers (USA).32x	frames_observed		58.14	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+sega32x	retroarch:picodrive	_etc/sega32x/BC Racers (USA).32x	frames_observed		57.63	RUNNING	True	internal_stereo	22	640x480+0+0,640x448+0+16	frames_observed
+segacd	picoarch:genesis_plus_gx	_etc/segacd/Fatal Fury Special (Europe) (Demo)/Fatal Fury Special (Europe) (Demo).cue	frames_observed		48.58	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+segacd	picoarch:picodrive	_etc/segacd/Fatal Fury Special (Europe) (Demo)/Fatal Fury Special (Europe) (Demo).cue	frames_observed		49.0	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+segacd	retroarch:genesis_plus_gx	_etc/segacd/Fatal Fury Special (Europe) (Demo)/Fatal Fury Special (Europe) (Demo).cue	frames_observed		42.01	RUNNING	True	internal_stereo	22	640x480+0+0,640x404+0+38	frames_observed
+segacd	retroarch:picodrive	_etc/segacd/Fatal Fury Special (Europe) (Demo)/Fatal Fury Special (Europe) (Demo).cue	frames_observed		36.22	RUNNING	True	internal_stereo	22	640x480+0+0,640x448+0+16	frames_observed
+sfc	picoarch:chimerasnes	snes/Space Invaders - The Original Game.sfc	frames_observed		58.86	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+sfc	picoarch:mednafen_supafaust	snes/Space Invaders - The Original Game.sfc	frames_observed		58.43	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+sfc	picoarch:snes9x	snes/Space Invaders - The Original Game.sfc	frames_observed		58.38	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+sfc	picoarch:snes9x2002	snes/Space Invaders - The Original Game.sfc	frames_observed		57.99	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+sfc	picoarch:snes9x2005	snes/Space Invaders - The Original Game.sfc	frames_observed		58.72	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+sfc	picoarch:snes9x2005_plus	snes/Space Invaders - The Original Game.sfc	frames_observed		58.76	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+sfc	picoarch:snes9x2010	snes/Space Invaders - The Original Game.sfc	frames_observed		58.68	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+sfc	retroarch:chimerasnes	snes/Space Invaders - The Original Game.sfc	frames_observed		57.4	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+sfc	retroarch:mednafen_supafaust	snes/Space Invaders - The Original Game.sfc	frames_observed		55.61	RUNNING	True	internal_stereo	22	640x480+0+0,626x480+7+0	frames_observed
+sfc	retroarch:snes9x	snes/Space Invaders - The Original Game.sfc	frames_observed		57.47	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+sfc	retroarch:snes9x2002	snes/Space Invaders - The Original Game.sfc	frames_observed		54.84	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+sfc	retroarch:snes9x2005	snes/Space Invaders - The Original Game.sfc	frames_observed		58.11	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+sfc	retroarch:snes9x2005_plus	snes/Space Invaders - The Original Game.sfc	frames_observed		56.64	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+sfc	retroarch:snes9x2010	snes/Space Invaders - The Original Game.sfc	frames_observed		55.11	RUNNING	True	internal_stereo	22	640x480+0+0,627x480+7+0	frames_observed
+sg1000	retroarch:bluemsx		unavailable	no_compatible_sample_in_rom2							unavailable
+sg1000	retroarch:gearsystem		unavailable	no_compatible_sample_in_rom2							unavailable
+sg1000	retroarch:genesis_plus_gx		unavailable	no_compatible_sample_in_rom2							unavailable
+sg1000	retroarch:picodrive		unavailable	no_compatible_sample_in_rom2							unavailable
+sharpx1	retroarch:x1		unavailable	no_compatible_sample_in_rom2							unavailable
+superbroswar	retroarch:km_superbroswar		unavailable	no_compatible_sample_in_rom2							unavailable
+supergrafx	picoarch:mednafen_pce_fast	_etc/supergrafx/Axelay_SuperGrafx_Demo__(PC_Engine)/Axelay_Demo (SGX).pce	frames_observed		57.28	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+supergrafx	picoarch:mednafen_supergrafx	_etc/supergrafx/Axelay_SuperGrafx_Demo__(PC_Engine)/Axelay_Demo (SGX).pce	frames_observed		57.64	RUNNING	True	internal_stereo		640x480+0+0	frames_observed
+supergrafx	retroarch:mednafen_pce_fast	_etc/supergrafx/Axelay_SuperGrafx_Demo__(PC_Engine)/Axelay_Demo (SGX).pce	frames_observed		56.94	RUNNING	True	internal_stereo	22	640x480+0+0,583x480+28+0	frames_observed
+supergrafx	retroarch:mednafen_supergrafx	_etc/supergrafx/Axelay_SuperGrafx_Demo__(PC_Engine)/Axelay_Demo (SGX).pce	frames_observed		56.67	RUNNING	True	internal_stereo	22	640x480+0+0,585x480+27+0	frames_observed
+supervision	retroarch:potator	_etc/supervision/assembloids_supervision_2022.bin	frames_observed		58.34	RUNNING	True	internal_stereo	22	640x480+0+0	frames_observed
+thomson	retroarch:theodore	_etc/moto/3d Sub (1985)(Loriciels).k7	frames_observed		35.24	RUNNING	True	internal_stereo	22	640x480+0+0,640x411+0+34	frames_observed
+ti83	retroarch:numero	_etc/ti83/tetris.8xp	frames_observed		55.14	PREPARED	False	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
+tic80	retroarch:tic80		unavailable	no_compatible_sample_in_rom2							unavailable
+uzebox	retroarch:uzem	_etc/uzebox/Arkanoid2.uze	frames_observed		35.31	RUNNING,XRUN	True	internal_stereo	22	640x480+0+0,640x455+0+12	frames_observed
+vectrex	retroarch:vecx		unavailable	no_compatible_sample_in_rom2							unavailable
+vic20	retroarch:vice_xvic	_etc/vic20/tetwels.prg	frames_observed		42.24	RUNNING	True	internal_stereo	22	640x480+0+0,631x480+5+0	frames_observed
+virtualboy	retroarch:mednafen_vb	_etc/viretualboy/tron.VB	frames_observed		49.18	RUNNING	True	internal_stereo	22	640x480+0+0	frames_observed
+vmu	retroarch:vemulator		unavailable	no_compatible_sample_in_rom2							unavailable
+wolf3d	retroarch:ecwolf		unavailable	no_compatible_sample_in_rom2							unavailable
+wonderswan	retroarch:mednafen_wswan	wonderswan/Puzzle Bobble.ws	frames_observed		57.64	RUNNING	True	internal_stereo	22	640x480+0+0,640x411+0+34	frames_observed
+wonderswancolor	retroarch:mednafen_wswan		unavailable	no_compatible_sample_in_rom2							unavailable
+x68000	retroarch:px68k		unavailable	no_compatible_sample_in_rom2							unavailable
+zx81	retroarch:81		unavailable	no_compatible_sample_in_rom2							unavailable
+zxspectrum	retroarch:fuse	_etc/zxspectrum/10th Frame (1987)(U.S. Gold).tap	frames_observed		34.18	RUNNING	True	internal_stereo	22	640x480+0+0,640x480+0+0	frames_observed
