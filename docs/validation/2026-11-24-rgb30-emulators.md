@@ -117,3 +117,11 @@ ARM64 Docker内のDropbearで、パスワード認証と鍵認証、誤ったパ
 メニューショートカットとSSH認証を含むSYSTEMのSHA-256は `5fe5b1e5cbb0b5254727c52632ac511f8306eb22a874fc288d3b08d38b28ce0e`。パッケージ内のrootエントリーはBubbleのビルド入力とバイト単位で一致した。既存SDへSYSTEMを差分適用し、再起動後のRGB30に、SSHクライアントの公開鍵認証とキーボード対話認証を無効にした状態で、シリーズ共通のパスワードを使ってrootでログインした。
 
 試験中は一時的に開いたSSH経由のADBを使用した。繰り返し試験でFEを停止した回数がplumOS initの再起動上限に達したため、修正版を既定に設定して本体を再起動した。試験鍵と登録スクリプトを削除し、試験鍵での接続が拒否されることと、再起動後にもパスワードでログインできることを確認した。Bubbleのプロセス、p5とSD2の読み書きマウント、試験前の実行時音量18/20を確認した。直前のSYSTEMはp4に保管した。
+
+## RetroArchの既定アスペクト比
+
+全機種共通のRetroArch設定は `aspect_ratio_index = "22"`（Core Provided）。Game Gearでも既定でこの設定を使い、LCDシェーダーを有効にしたまま、起動時のCustom指定を省く。ユーザー設定と、診断用に環境変数で明示した `sega43` と `integer3x` は使用できる。[RetroArch v1.22.2のアスペクト比定義](https://github.com/libretro/RetroArch/blob/v1.22.2/gfx/video_defines.h#L34-L61)
+
+Docker生成のSYSTEM `5e7e5ac71cfeb2de5ad3739ede87d888336a200311ccc35ab120c3b4932f5d2a` を既存SDに差分適用した。RGB30でGame Gearの『Columns』とNESの『悪魔城伝説』をFEのランチャー経由で起動し、両方でCore Providedを読み込み、起動設定にアスペクト比の上書きがないことを確認した。ログ上でコアが返した比率はそれぞれ1.333と1.306。Game GearではLCDシェーダーが読み込まれた。分離した試験設定で既存の4:3指定が維持されることと、明示的に `integer3x` を選ぶとCustomになることも確認した。
+
+720×720の内蔵パネルでは、Game Gearの表示範囲は720×540で上下90 pxの余白、NESの描画面は720×551で上端84 pxだった。試験後に修正版を既定に設定し、Bubbleの起動、p5とSD2の読み書きマウント、音量18/20への復帰を確認した。
