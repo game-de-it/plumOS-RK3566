@@ -1,0 +1,37 @@
+--- a/runner/runner.c
++++ b/runner/runner.c
+@@ -146,6 +146,7 @@
+ static int init_gles(void)
+ {
+     int r = 0;
++    int drawable_w, drawable_h, view_w, view_h;
+ 
+     trace("call %s()\n", __func__);
+ 
+@@ -159,7 +160,8 @@
+     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+ 
+-    myrunner.sdl2.win = SDL_CreateWindow("DraStic", 0, 0, R_LCD_W, R_LCD_H, SDL_WINDOW_OPENGL);
++    myrunner.sdl2.win = SDL_CreateWindow("DraStic", 0, 0, R_LCD_W, R_LCD_H,
++        SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN_DESKTOP);
+     if (!myrunner.sdl2.win) {
+         error("failed to create sdl window: %s\n", SDL_GetError());
+         return -1;
+@@ -224,7 +226,15 @@
+     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+   
+-    glViewport(0, 0, R_LCD_W, R_LCD_H);
++    /* Keep the emulator's logical LCD layout on displays with a different shape. */
++    SDL_GL_GetDrawableSize(myrunner.sdl2.win, &drawable_w, &drawable_h);
++    view_w = drawable_w;
++    view_h = view_w * R_LCD_H / R_LCD_W;
++    if (view_h > drawable_h) {
++        view_h = drawable_h;
++        view_w = view_h * R_LCD_W / R_LCD_H;
++    }
++    glViewport((drawable_w - view_w) / 2, (drawable_h - view_h) / 2, view_w, view_h);
+     glClear(GL_COLOR_BUFFER_BIT);
+     glVertexAttribPointer(myrunner.gles.vert.tex_pos, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), fg_vertices);
+     glVertexAttribPointer(myrunner.gles.vert.tex_coord, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), &fg_vertices[3]);

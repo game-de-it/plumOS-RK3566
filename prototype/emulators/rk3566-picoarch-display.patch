@@ -1,0 +1,89 @@
+--- a/picoarch_v90s_fbdev.h
++++ b/picoarch_v90s_fbdev.h
+@@ -33,6 +33,46 @@
+ static int v90s_fb_active = -1;
+ static int v90s_fb_pending = -1;
+ 
++static uint32_t v90s_fb_xrgb(uint16_t pixel)
++{
++	uint32_t r = (pixel >> 11) & 0x1f;
++	uint32_t g = (pixel >> 5) & 0x3f;
++	uint32_t b = pixel & 0x1f;
++
++	return 0xff000000u | ((r << 3 | r >> 2) << 16) |
++	       ((g << 2 | g >> 4) << 8) | (b << 3 | b >> 2);
++}
++
++static void v90s_fb_present_drm(const uint16_t *pixels)
++{
++	unsigned panel_w = v90s_drm.var.xres;
++	unsigned panel_h = v90s_drm.var.yres;
++	unsigned width = panel_w;
++	unsigned height = width * SCREEN_HEIGHT / SCREEN_WIDTH;
++	unsigned left, top, x_step, y;
++
++	/* Fit the canvas without changing the core's aspect within it. */
++	if (height > panel_h) {
++		height = panel_h;
++		width = height * SCREEN_WIDTH / SCREEN_HEIGHT;
++	}
++	left = (panel_w - width) / 2;
++	top = (panel_h - height) / 2;
++	x_step = (SCREEN_WIDTH << 16) / width;
++
++	/* DRM buffers start black. Only the fitted rectangle changes. */
++	for (y = 0; y < height; y++) {
++		const uint16_t *src = pixels + (y * SCREEN_HEIGHT / height) * SCREEN_WIDTH;
++		uint32_t *dst = (uint32_t *)(v90s_drm.mem +
++		                (top + y) * v90s_drm.fix.line_length) + left;
++		unsigned x, source_x = 0;
++
++		for (x = 0; x < width; x++, source_x += x_step)
++			dst[x] = v90s_fb_xrgb(src[source_x >> 16]);
++	}
++	(void)plumos_fbdev_present(&v90s_drm);
++}
++
+ static void v90s_fb_present_pixels(const uint16_t *pixels)
+ {
+ 	struct fb_var_screeninfo next;
+@@ -41,30 +81,19 @@
+ 	if ((!v90s_fb_use_drm && !v90s_fb_map) || !pixels || !v90s_fb_scanout)
+ 		return;
+ 
+-	/* Convert outside scanout memory first. On Bubble fb0 has only one 640x480
+-	 * page, so converting directly into it exposes the line-by-line update
+-	 * and produces a persistent tear. */
++	if (v90s_fb_use_drm) {
++		v90s_fb_present_drm(pixels);
++		return;
++	}
++
++	/* Convert in RAM before updating the fbdev scanout. */
+ 	for (y = 0; y < SCREEN_HEIGHT; y++) {
+ 		const uint16_t *src = pixels + y * SCREEN_WIDTH;
+-		uint32_t *dst = v90s_fb_use_drm
+-			? (uint32_t *)(v90s_drm.mem + y * v90s_drm.fix.line_length)
+-			: v90s_fb_scanout + y * SCREEN_WIDTH;
++		uint32_t *dst = v90s_fb_scanout + y * SCREEN_WIDTH;
+ 		unsigned x;
+ 
+-		for (x = 0; x < SCREEN_WIDTH; x++) {
+-			uint16_t p = src[x];
+-			uint32_t r = (p >> 11) & 0x1f;
+-			uint32_t g = (p >> 5) & 0x3f;
+-			uint32_t b = p & 0x1f;
+-
+-			dst[x] = 0xff000000u | ((r << 3 | r >> 2) << 16) |
+-			         ((g << 2 | g >> 4) << 8) | (b << 3 | b >> 2);
+-		}
+-	}
+-
+-	if (v90s_fb_use_drm) {
+-		(void)plumos_fbdev_present(&v90s_drm);
+-		return;
++		for (x = 0; x < SCREEN_WIDTH; x++)
++			dst[x] = v90s_fb_xrgb(src[x]);
+ 	}
+ 
+ 	if (v90s_fb_double_buffer) {

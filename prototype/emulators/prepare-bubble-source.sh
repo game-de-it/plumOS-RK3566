@@ -17,7 +17,9 @@ git -C "$source" show -s --format=%ct "$revision" > "$destination/source-date-ep
 cp "$scripts/rg353m-retroarch-drm.patch" "$destination/patches/retroarch/021-rg353m-drm.patch"
 cp "$scripts/rg353m-picoarch-audio.patch" "$destination/package/picoarch-bubble/patches/rg353m-audio.patch"
 cp "$scripts/rg353m-picoarch-evdev.patch" "$destination/package/picoarch-bubble/patches/rg353m-evdev.patch"
+cp "$scripts/rk3566-picoarch-display.patch" "$destination/package/picoarch-bubble/patches/rk3566-display.patch"
 cp "$scripts/rg353m-drastic-input.patch" "$destination/package/standalone-bubble/patches/drastic/rg353m-input.patch"
+cp "$scripts/rk3566-drastic-display.patch" "$destination/package/standalone-bubble/patches/drastic/rk3566-display.patch"
 cp "$scripts/rg353m-openbor-input.patch" "$destination/package/standalone-bubble/patches/openbor/rg353m-input.patch"
 cp "$scripts/quicknes-rg353m.patch" "$destination/patches/libretro-cores-bubble/"
 patch -s -d "$destination" -p1 < "$scripts/rg353m-standalone.patch"
@@ -72,18 +74,25 @@ replace("scripts/build-picoarch-bubble.sh",
         'git -C "$SRC" apply "$PLUMOS_BUBBLE_PICOARCH_FRAME_PROBE_PATCH"',
         'git -C "$SRC" apply "$PLUMOS_BUBBLE_PICOARCH_FRAME_PROBE_PATCH"\n'
         'git -C "$SRC" apply /work/package/picoarch-bubble/patches/rg353m-audio.patch\n'
-        'git -C "$SRC" apply /work/package/picoarch-bubble/patches/rg353m-evdev.patch', 1)
+        'git -C "$SRC" apply /work/package/picoarch-bubble/patches/rg353m-evdev.patch\n'
+        'git -C "$SRC" apply /work/package/picoarch-bubble/patches/rk3566-display.patch', 1)
 replace("scripts/build-picoarch-bubble.sh",
         'bubble-evdev-hotplug:$BUBBLE_EVDEV_HOTPLUG_PATCH_SHA256 ',
         'bubble-evdev-hotplug:$BUBBLE_EVDEV_HOTPLUG_PATCH_SHA256 '
-        'rg353m-evdev:$(sha256sum "$ROOT_DIR/package/picoarch-bubble/patches/rg353m-evdev.patch" | cut -d " " -f 1) ', 1)
+        'rg353m-evdev:$(sha256sum "$ROOT_DIR/package/picoarch-bubble/patches/rg353m-evdev.patch" | cut -d " " -f 1) '
+        'rk3566-display:$(sha256sum "$ROOT_DIR/package/picoarch-bubble/patches/rk3566-display.patch" | cut -d " " -f 1) ', 1)
 replace("scripts/build-pyxel-bubble.sh", "guide:b17", "guide:b10", 1)
 replace("scripts/build-portmaster-bubble.sh",
         'ZIP_VERSION="3.0-13"', 'ZIP_VERSION="3.0-13+deb12u1"', 1)
 replace("scripts/build-drastic-bubble.sh",
         'git -C "$SOURCE_DIR" apply --ignore-space-change --ignore-whitespace "$PATCH"',
         'git -C "$SOURCE_DIR" apply --ignore-space-change --ignore-whitespace "$PATCH"\n'
-        '    git -C "$SOURCE_DIR" apply "$ROOT_DIR/package/standalone-bubble/patches/drastic/rg353m-input.patch"', 1)
+        '    git -C "$SOURCE_DIR" apply "$ROOT_DIR/package/standalone-bubble/patches/drastic/rg353m-input.patch"\n'
+        '    git -C "$SOURCE_DIR" apply "$ROOT_DIR/package/standalone-bubble/patches/drastic/rk3566-display.patch"', 1)
+replace("scripts/build-drastic-bubble.sh",
+        '    SDL2_SHA256="$(sha256sum "$SOURCE_LIB_ROOT/libSDL2-2.0.so.0" | awk \'{ print $1 }\')"',
+        '    SDL2_SHA256="$(sha256sum "$SOURCE_LIB_ROOT/libSDL2-2.0.so.0" | awk \'{ print $1 }\')"\n'
+        '    RUNNER_SHA256="$(sha256sum "$SOURCE_DIR/drastic/runner" | awk \'{ print $1 }\')"', 1)
 replace("scripts/build-openbor-bubble.sh", 'git -C "$SOURCE_ROOT" apply "$PATCH_FILE"',
         'git -C "$SOURCE_ROOT" apply "$PATCH_FILE"\n'
         'git -C "$SOURCE_ROOT" apply "$ROOT_DIR/package/standalone-bubble/patches/openbor/rg353m-input.patch"', 1)
