@@ -16,7 +16,7 @@ if [ -x "$payload/frontend/bin/busybox" ]; then
     export PLUMOS_BUSYBOX="$payload/frontend/bin/busybox"
 fi
 export PLUMOS_DEVICE_ID=rg353m PLUMOS_RG353M_DRM=1
-export PLUMOS_DEVICE_NAME='Anbernic RG353M'
+export PLUMOS_DEVICE_NAME=RK3566
 export PLUMOS_FRONTEND_MODE=manual
 export PLUMOS_CONTROLLER_CPU_DEFAULT=0
 

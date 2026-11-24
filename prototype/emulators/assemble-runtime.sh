@@ -46,7 +46,9 @@ for cfg in (root / "factory-defaults/retroarch").glob("*.cfg"):
     cfg.write_text(text)
 autoconfig = root / "factory-defaults/retroarch/autoconfig/udev/gkd-bubble-retrogame-joypad.cfg"
 autoconfig.write_text(autoconfig.read_text().replace('input_menu_toggle_btn = "17"', 'input_menu_toggle_btn = "10"')
-                      .replace('input_screenshot_btn = "10"\n', ''))
+                      .replace('input_screenshot_btn = "10"\n', '')
+                      .replace('input_device_display_name = "GKD Bubble Controller"',
+                               'input_device_display_name = "RK3566 Controller"'))
 launcher = root / "bin/plumos-retroarch-launch"
 s = launcher.read_text()
 needle = """            printf '%s\\n' 'video_context_driver = ""'

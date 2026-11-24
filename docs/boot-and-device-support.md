@@ -1,5 +1,20 @@
 # JELOS 20240206の機種自動判定
 
+## plumOS-RK3566の実機確認状況
+
+| メーカー | 機種 | 現行イメージでの状況 |
+| --- | --- | --- |
+| Anbernic | RG353M | 実機で起動、フロントエンド、ADBを確認済み |
+| Anbernic | RG353P、RG353V、RG503 | 機種別DTBを同梱。plumOSでの実機起動は未確認 |
+| Powkiddy | RK2023、RGB30、RGB10 Max 3 | 機種別DTBを同梱。plumOSでの実機起動は未確認 |
+| Anbernic | RG353VS | JELOS 20240206の対応表に掲載。専用名のDTBは未収録で、plumOSでの実機起動は未確認 |
+
+次の試験はRG353PまたはRG353Vから始めると、RG353Mに近い機種で既存の設定を確認できる。TF1での起動、DTBの選択結果、初回セットアップ、内蔵画面、入力、音声、USB ADB、TF2を機種ごとに確認する。
+
+フロントエンドの製品名は `plumOS-RK3566`、設定に表示する機種欄は `RK3566`。同じイメージで使う共通の表示名で、実際に選ばれた機種は `/proc/device-tree/model` で確認できる。
+
+2026年11月24日にRG353Mで表示名を更新したSYSTEMを試験した。STARTメニューの見出し、SYSTEM SETTINGSのINFORMATIONにある機種名と表示方式、USB ADBの製品名を確認した。カーネルとRG353M用DTBのSHA-256は試験前後で一致し、利用者用のp5は `/storage/user` にマウントされた。USB ADB経由で試験起動したSYSTEM `0acf15b3524b27891fc84f63460945b58f82530434d53c2ed2a5a3304703a464` を既定に設定した。
+
 ## RG353Mで確認したTF1からの起動経路
 
 Dockerで再ビルドしたJELOS 20240206を、黒画面で電源が落ちたplumOS試作と同じ物理SDに書き込み、RG353MでEmulationStationまで起動したことをユーザーが確認しました。
@@ -40,6 +55,8 @@ JELOS 20240206の対応表にはRG353VSも載っている。このイメージ�
 
 ## パーティションとユーザランドの引き渡し
 
+以下はsystemdを使っていた初期試作の記録です。現行のPID 1とパーティション構成は[現行のシステム構成](rk3566-runtime.md)を参照してください。
+
 | GPT | 名前 | 実機の用途 |
 | --- | --- | --- |
 | p1 | `uboot` | U-BootとARM Trusted Firmwareを含むFIT |
@@ -62,7 +79,7 @@ JELOS 20240206の対応表にはRG353VSも載っている。このイメージ�
 
 同じシリーズでも、Pixel2 v2とRK2020は既存のSystem領域 `p2` を8 GiBに拡張し、`p3` にFAT32の `PLUMOS_USER` を作ります。V90S V2とXU20V32は `p4` に利用者用FAT32を作ります。MFはstockのフックからplumOSへ入り、SD上の単一FAT32領域をSystemファイル・Runtime・利用者データで共有します。 [Pixel2 v2](https://github.com/game-de-it/plumOS-pixel2_v2/blob/19e135ba996de5d7b7a7ea915edca5eadc43d225/docs/developer/storage-and-updates.ja.md) · [RK2020](https://github.com/game-de-it/plumOS-RK2020/blob/main/docs/user/storage-and-reimaging.ja.md) · [V90S V2](https://github.com/game-de-it/plumOS-V90S_V2/blob/main/docs/developer/storage-and-updates.ja.md) · [XU20V32](https://github.com/game-de-it/plumOS-XU20V32/blob/main/docs/developer/storage-and-updates.ja.md) · [MF](https://github.com/game-de-it/plumOS-MF/blob/0095017c39226ad1c22bf8df852202673075936d/docs/developer/architecture.ja.md)
 
-### 現在のRK3566試作
+### 初期のRK3566試作
 
 利用者用FAT32を初回に生成する処理は未移植です。配布元のJELOSイメージには32 MiBの `p4`（ext4、`STORAGE`）と `.please_resize_me` が含まれます。初回、initramfsはこのマーカーを見て `fs-resize.target` を選びます。JELOSのサービスが既存の `p4` をSD末尾まで広げ、チェックと `resize2fs` を実行し、マーカーを消した状態で再起動します。
 

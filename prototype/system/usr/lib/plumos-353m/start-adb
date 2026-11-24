@@ -41,7 +41,7 @@ printf '0x0200\n' > "$gadget/bcdUSB"
 serial=$(tr -d '\000' 2>/dev/null </proc/device-tree/serial-number || :)
 printf '%s\n' "${serial:-plumOS-353M}" > "$gadget/strings/0x409/serialnumber"
 printf 'plumOS\n' > "$gadget/strings/0x409/manufacturer"
-printf 'RG353M ADB\n' > "$gadget/strings/0x409/product"
+printf 'plumOS RK3566 ADB\n' > "$gadget/strings/0x409/product"
 printf 'ADB\n' > "$gadget/configs/c.1/strings/0x409/configuration"
 mkdir "$gadget/functions/ffs.adb"
 ln -s "$gadget/functions/ffs.adb" "$gadget/configs/c.1/ffs.adb"

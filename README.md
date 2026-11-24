@@ -12,4 +12,4 @@ JELOS 20240206のブートチェーンとLinux 4.19.172を使う、RK3566向け�
 
 [BubbleベースのSDイメージと初回セットアップ](docs/validation/2026-11-22-bubble-seed-sd.md)
 
-[JELOSの機種自動判定と他機種対応](docs/boot-and-device-support.md)
+[実機確認済みの機種と他機種の起動試験候補](docs/boot-and-device-support.md#plumos-rk3566の実機確認状況)
