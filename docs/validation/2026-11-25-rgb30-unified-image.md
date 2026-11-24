@@ -27,4 +27,8 @@ I²Cの追加処理はレジスターの読み取りだけを行います。r2�
 
 plumOSのinit、720×720の内蔵DSI、Bubbleプロセス、USB ADBを確認した。初回セットアップの完了マーカーがあり、p5は `/storage/user` にFAT32で読み書きマウントされていた。
 
-この採取ではLinuxに渡ったDTBを確認した。r1用DTBは識別不能時にも使うため、U-BootのI²C読み取り結果の判定には、同じSDをr2に移してFAN53555用DTBが選ばれることを確認する。
+## RGB30r2の実機試験
+
+利用者が同じSDをr2に移して起動した。SDのCIDのハッシュ、p1、カーネル、FAT上の両DTB、extlinux設定、SYSTEMをr1で採取した値と照合し、すべて一致した。実行中のデバイスツリーは `fan53555@40`（`fcs,fan53555`）に切り替わり、カーネルがI²C `0-0040` でFAN53555 Option 8 Rev 1を認識した。同一SD・同一IMGで実機の基板に応じてDTBが切り替わることを確認した。
+
+r2でもCPU 4コアがオンラインで、`cpufreq-dt` と `ondemand` が有効だった。plumOSのinit、720×720の内蔵DSI、Bubbleプロセス、USB ADBを確認した。r1で初期化したp5は `/storage/user` に読み書きマウントされ、r2のTF2はSD2として認識された。

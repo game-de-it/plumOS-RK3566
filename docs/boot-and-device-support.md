@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | Anbernic | RG353M | 実機で起動、フロントエンド、ADBを確認済み |
 | Anbernic | RG353P、RG353V、RG503 | 機種別DTBを同梱。plumOSでの実機起動は未確認 |
-| Powkiddy | RGB30 | 実機でplumOS init、720×720の起動ロゴとFE、Wi-Fi、p5、SD2、再起動を確認。USB ADBはOTGケーブルの挿し直しで復帰を確認 |
+| Powkiddy | RGB30 r1・r2 | 同一SDでDTBの自動切り替え、plumOS init、FE、p5、USB ADBを両機で確認。r2ではSD2も確認 |
 | Powkiddy | RK2023、RGB10 Max 3 | 機種別DTBを同梱。plumOSでの実機起動は未確認 |
 | Anbernic | RG353VS | JELOS 20240206の対応表に掲載。専用名のDTBは未収録で、plumOSでの実機起動は未確認 |
 
