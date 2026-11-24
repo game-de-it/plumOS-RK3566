@@ -1,8 +1,105 @@
+diff --git a/nes_emu/Mapper_Namco106.cpp b/nes_emu/Mapper_Namco106.cpp
+index fecc597..3f0986e 100644
+--- a/nes_emu/Mapper_Namco106.cpp
++++ b/nes_emu/Mapper_Namco106.cpp
+@@ -215,10 +215,75 @@ void Mapper_Namco106::read_state( mapper_state_t const& in )
+ 	sound.load_state( sound_state );
+ }
+
++// Mapper 210 keeps the PRG/CHR banking of the N163 but has no IRQ or audio.
++class Mapper_Namco175_340 : public Nes_Mapper {
++public:
++	Mapper_Namco175_340()
++	{
++		register_state( regs, sizeof regs );
++	}
++
++	void reset_state()
++	{
++		for ( int i = 0; i < 8; ++i )
++			regs [i] = i;
++		regs [0x0c] = cart().mirroring() & 1 ? 0x40 : 0xc0;
++		regs [0x0d] = 1;
++		regs [0x0e] = 0x3e;
++	}
++
++	void apply_mapping()
++	{
++		set_prg_bank( 0xe000, bank_8k, last_bank );
++		for ( int i = 0; i < (int) sizeof regs; ++i )
++			write( 0, 0x8000 + i * 0x800, regs [i] );
++	}
++
++	void write( nes_time_t, nes_addr_t addr, int data )
++	{
++		unsigned const reg = (addr - 0x8000) >> 11;
++		if ( reg >= sizeof regs )
++			return;
++
++		regs [reg] = data;
++		if ( reg < 8 )
++			set_chr_bank( reg * 0x400, bank_1k, data );
++		else if ( reg == 8 )
++		{
++			unsigned const ram = cart().prg_ram_size();
++			enable_sram( is_namco175() && ram, !(data & 1), ram );
++		}
++		else if ( reg >= 0x0c )
++		{
++			set_prg_bank( 0x8000 + (reg - 0x0c) * 0x2000, bank_8k, data & 0x3f );
++			if ( reg == 0x0c && !is_namco175() )
++			{
++				switch ( data >> 6 )
++				{
++					case 0: mirror_single( 0 ); break;
++					case 1: mirror_vert(); break;
++					case 2: mirror_single( 1 ); break;
++					case 3: mirror_horiz(); break;
++				}
++			}
++		}
++	}
++
++private:
++	bool is_namco175() const
++	{
++		return cart().submapper() == 1 ||
++				(cart().submapper() == 0 && cart().prg_ram_size() != 0);
++	}
++
++	uint8_t regs [15];
++};
++
+ void register_namco106_mapper();
+ void register_namco106_mapper()
+ {
+ 	register_mapper<Mapper_Namco106>( 19 );
++	register_mapper<Mapper_Namco175_340>( 210 );
+ }
+
+ // in the most obscure place in case crappy linker is used
 diff --git a/nes_emu/Nes_Cart.cpp b/nes_emu/Nes_Cart.cpp
-index 5a1ccde..f76095e 100644
+index 5a1ccde..9c100f4 100644
 --- a/nes_emu/Nes_Cart.cpp
 +++ b/nes_emu/Nes_Cart.cpp
-@@ -87,8 +87,8 @@ struct ines_header_t {
+@@ -2,6 +2,7 @@
+ // Nes_Emu 0.7.0. http://www.slack.net/~ant/
+
+ #include "Nes_Cart.h"
++#include "blargg_endian.h"
+
+ #include <stdlib.h>
+ #include <string.h>
+@@ -46,6 +47,8 @@ void Nes_Cart::clear()
+ 	prg_size_ = 0;
+ 	chr_size_ = 0;
+ 	mapper = 0;
++	submapper_ = 0;
++	prg_ram_size_ = 0;
+ }
+
+ long Nes_Cart::round_to_bank_size( long n )
+@@ -87,31 +90,81 @@ struct ines_header_t {
  	uint8_t prg_count; // number of 16K PRG banks
  	uint8_t chr_count; // number of 8K CHR banks
  	uint8_t flags;     // MMMM FTBV Mapper low, Four-screen, Trainer, Battery, V mirror
@@ -13,14 +110,52 @@ index 5a1ccde..f76095e 100644
  };
  BOOST_STATIC_ASSERT( sizeof (ines_header_t) == 16 );
 
-@@ -102,9 +102,16 @@ const char * Nes_Cart::load_ines( Auto_File_Reader in )
- 	if ( 0 != memcmp( h.signature, "NES\x1A", 4 ) )
- 		return not_ines_file;
++static unsigned nes2_ram_size( unsigned shift )
++{
++	return shift ? 64U << shift : 0;
++}
++
+ const char * Nes_Cart::load_ines( Auto_File_Reader in )
+ {
+ 	RETURN_ERR( in.open() );
  	
++	uint64_t const file_size = in->remain();
+ 	ines_header_t h;
+ 	RETURN_ERR( in->read( &h, sizeof h ) );
+-	
+-	if ( 0 != memcmp( h.signature, "NES\x1A", 4 ) )
+-		return not_ines_file;
+-	
 -	if ( h.zero [7] ) // handle header defaced by a fucking idiot's handle
++	uint64_t rom_bytes = in->remain();
++
++	if ( memcmp( h.signature, "NES\x1A", 4 ) )
++	{
++		// This Virtual Console wrapper stores its size and ROM bounds as
++		// little-endian offsets, followed by a WUP product code.
++		unsigned const wrapper_size = 0x30;
++		uint8_t const* prefix = reinterpret_cast<uint8_t const*>( &h );
++		unsigned long const rom_end = get_le32( prefix + 0x0c );
++		if ( get_le32( prefix + 4 ) != file_size ||
++				get_le32( prefix + 8 ) != wrapper_size ||
++				rom_end < wrapper_size + sizeof h || rom_end > file_size )
++			return not_ines_file;
++
++		uint8_t wrapper_tail [wrapper_size - sizeof h];
++		RETURN_ERR( in->read( wrapper_tail, sizeof wrapper_tail ) );
++		if ( memcmp( wrapper_tail + 0x20 - sizeof h, "WUP-", 4 ) )
++			return not_ines_file;
++
++		RETURN_ERR( in->read( &h, sizeof h ) );
++		if ( memcmp( h.signature, "NES\0", 4 ) )
++			return not_ines_file;
++		rom_bytes = rom_end - wrapper_size - sizeof h;
++	}
++
 +	// Byte 15 is a valid expansion-device field in NES 2.0. Apply the
 +	// dirty-header heuristic only to legacy iNES.
-+	if ( (h.flags2 & 0x0c) == 0x08 )
++	bool const nes2 = (h.flags2 & 0x0c) == 0x08;
++	if ( nes2 )
 +	{
 +		if ( (h.extra [0] & 0x0f) || h.extra [1] )
 +			return "Unsupported NES 2.0 extended mapper or ROM size";
@@ -29,9 +164,130 @@ index 5a1ccde..f76095e 100644
  		h.flags2 = 0;
 -	
 +
++	long const prg_bytes = h.prg_count * 16 * 1024L;
++	long const chr_bytes = h.chr_count * 8 * 1024L;
++	int const trainer_size = (h.flags & 0x04) ? 512 : 0;
++	if ( !prg_bytes )
++		return "NES ROM has no PRG data";
++	if ( static_cast<uint64_t>( prg_bytes + chr_bytes + trainer_size ) > rom_bytes )
++		return "Truncated NES ROM data";
++
  	set_mapper( h.flags, h.flags2 );
++	submapper_ = nes2 ? h.extra [0] >> 4 : 0;
++	prg_ram_size_ = nes2 ?
++			nes2_ram_size( h.extra [2] & 0x0f ) + nes2_ram_size( h.extra [2] >> 4 ) :
++			(has_battery_ram() ? 0x2000 : 0);
++	if ( mapper_code() == 210 && (submapper_ > 2 ||
++			(prg_ram_size_ && prg_ram_size_ != 0x800 &&
++			prg_ram_size_ != 0x1000 && prg_ram_size_ != 0x2000)) )
++		return "Unsupported Namco 175/340 cartridge configuration";
++	if ( trainer_size )
++		RETURN_ERR( in->skip( trainer_size ) );
  	
- 	if ( h.flags & 0x04 ) // skip trainer
+-	if ( h.flags & 0x04 ) // skip trainer
+-		RETURN_ERR( in->skip( 512 ) );
+-	
+-	RETURN_ERR( resize_prg( h.prg_count * 16 * 1024L ) );
+-	RETURN_ERR( resize_chr( h.chr_count * 8 * 1024L ) );
++	RETURN_ERR( resize_prg( prg_bytes ) );
++	RETURN_ERR( resize_chr( chr_bytes ) );
+ 	
+ 	RETURN_ERR( in->read( prg(), prg_size() ) );
+ 	RETURN_ERR( in->read( chr(), chr_size() ) );
+diff --git a/nes_emu/Nes_Cart.h b/nes_emu/Nes_Cart.h
+index 18417ca..f950a39 100644
+--- a/nes_emu/Nes_Cart.h
++++ b/nes_emu/Nes_Cart.h
+@@ -53,6 +53,8 @@ public:
+ 	
+ 	// iNES mapper code
+ 	int mapper_code() const;
++	unsigned submapper() const { return submapper_; }
++	unsigned prg_ram_size() const { return prg_ram_size_; }
+ 	
+ 	// Pointer to beginning of PRG data
+ 	uint8_t      * prg()       { return prg_; }
+@@ -70,6 +72,8 @@ private:
+ 	long prg_size_;
+ 	long chr_size_;
+ 	unsigned mapper;
++	unsigned submapper_;
++	unsigned prg_ram_size_;
+ 	long round_to_bank_size( long n );
+ };
+
+diff --git a/nes_emu/Nes_Core.cpp b/nes_emu/Nes_Core.cpp
+index 7273118..2a782e1 100644
+--- a/nes_emu/Nes_Core.cpp
++++ b/nes_emu/Nes_Core.cpp
+@@ -181,7 +181,7 @@ void Nes_Core::enable_prg_6000()
+ 	lrom_readable = 0x8000;
+ }
+
+-void Nes_Core::enable_sram( bool b, bool read_only )
++void Nes_Core::enable_sram( bool b, bool read_only, unsigned size )
+ {
+ 	sram_writable = 0;
+ 	if ( b )
+@@ -194,7 +194,9 @@ void Nes_Core::enable_sram( bool b, bool read_only )
+ 		sram_readable = sram_end;
+ 		if ( !read_only )
+ 			sram_writable = sram_end;
+-		cpu::map_code( 0x6000, impl->sram_size, impl->sram );
++		sram_mask = size - 1;
++		for ( unsigned offset = 0; offset < impl->sram_size; offset += cpu::page_size )
++			cpu::map_code( 0x6000 + offset, cpu::page_size, impl->sram + (offset & sram_mask) );
+ 	}
+ 	else
+ 	{
+diff --git a/nes_emu/Nes_Core.h b/nes_emu/Nes_Core.h
+index 72771fa..7ad4d3d 100644
+--- a/nes_emu/Nes_Core.h
++++ b/nes_emu/Nes_Core.h
+@@ -79,6 +79,7 @@ private:
+ 	// CPU
+ 	unsigned sram_readable;
+ 	unsigned sram_writable;
++	unsigned sram_mask;
+ 	unsigned lrom_readable;
+ 	nes_time_t clock_;
+ 	nes_time_t cpu_time_offset;
+@@ -96,7 +97,7 @@ public: private: friend class Nes_Ppu;
+ 	
+ public: private: friend class Nes_Mapper;
+ 	void enable_prg_6000();
+-	void enable_sram( bool enabled, bool read_only = false );
++	void enable_sram( bool enabled, bool read_only = false, unsigned size = impl_t::sram_size );
+ 	nes_time_t clock() const { return clock_; }
+ 	void add_mapper_intercept( nes_addr_t start, unsigned size, bool read, bool write );
+ 	
+diff --git a/nes_emu/Nes_Mapper.h b/nes_emu/Nes_Mapper.h
+index bb1f3d1..35d1540 100644
+--- a/nes_emu/Nes_Mapper.h
++++ b/nes_emu/Nes_Mapper.h
+@@ -88,8 +88,8 @@ protected:
+ 	// Automatically cleared to zero by default reset().
+ 	void register_state( void*, unsigned );
+ 	
+-	// Enable 8K of RAM at 0x6000-0x7FFF, optionally read-only.
+-	void enable_sram( bool enabled = true, bool read_only = false );
++	// Map RAM at 0x6000-0x7FFF, mirroring 2 or 4 KiB across the 8 KiB window.
++	void enable_sram( bool enabled = true, bool read_only = false, unsigned size = 0x2000 );
+ 	
+ 	// Cause CPU writes within given address range to call mapper's write() function.
+ 	// Might map a larger address range, which the mapper can ignore and pass to
+@@ -225,9 +225,9 @@ inline void Nes_Mapper::intercept_writes( nes_addr_t addr, unsigned size )
+ 	emu().add_mapper_intercept( addr, size, false, true );
+ }
+
+-inline void Nes_Mapper::enable_sram( bool enabled, bool read_only )
++inline void Nes_Mapper::enable_sram( bool enabled, bool read_only, unsigned size )
+ {
+-	emu_->enable_sram( enabled, read_only );
++	emu_->enable_sram( enabled, read_only, size );
+ }
+
+ #endif
 diff --git a/nes_emu/Nes_Ppu_Impl.h b/nes_emu/Nes_Ppu_Impl.h
 index 1a27218..45b21a6 100644
 --- a/nes_emu/Nes_Ppu_Impl.h
@@ -71,3 +327,25 @@ index 1a27218..45b21a6 100644
  	}
  	else if ( addr < 0x3f00 )
  	{
+diff --git a/nes_emu/nes_cpu_io.h b/nes_emu/nes_cpu_io.h
+index bf02c9e..78b926b 100644
+--- a/nes_emu/nes_cpu_io.h
++++ b/nes_emu/nes_cpu_io.h
+@@ -36,7 +36,7 @@ int Nes_Core::cpu_read( nes_addr_t addr, nes_time_t time )
+ 		return read_io( addr );
+ 	
+ 	if ( addr < sram_readable )
+-		return impl->sram [addr & (impl_t::sram_size - 1)];
++		return impl->sram [addr & sram_mask];
+ 	
+ 	if ( addr < lrom_readable )
+ 		return *cpu::get_code( addr );
+@@ -111,7 +111,7 @@ void Nes_Core::cpu_write( nes_addr_t addr, int data, nes_time_t time )
+ 	
+ 	if ( addr < sram_writable )
+ 	{
+-		impl->sram [addr & (impl_t::sram_size - 1)] = data;
++		impl->sram [addr & sram_mask] = data;
+ 		return;
+ 	}
+ 	

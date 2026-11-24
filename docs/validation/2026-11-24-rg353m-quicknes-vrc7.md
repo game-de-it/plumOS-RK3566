@@ -27,3 +27,12 @@ RG353MのDRMのゲーム画面を読み取り、戦闘のコマンドや名前�
 - 本番カタログのDockerビルドでQuickNESを再生成し、SYSTEM `c24d349d413cc8b24200e8acf0c5c3cffbe2caa5a27612b7ca6083de7adb204f` に収録した。ADBで試験起動し、Bubbleの通常の起動経路からRetroArchとQuickNESを開き、試験用ステートで「デニス」と戦闘コマンドが内蔵画面に表示されることをDRMキャプチャで確認した。内蔵スピーカーのPCMも進行した。Bubbleへの復帰を確認し、新しいSYSTEMを既定に設定した。
 - 元のセーブステート3本とサムネイル3枚は、試験前後でSHA-256が一致した。旧コアで戦闘中に保存したステートには、化けたCHR RAMも含まれている。その場でロードした直後は同じ表示が残り、ゲームがタイルを書き直す次の戦闘で直る。
 - USBでADBが `offline` の間、MacはRG353Mを列挙できるものの `CNXN` への応答がなかった。Mac側のADB再起動後も同じ状態で、ケーブルの抜き差しで復旧した。Wi-FiのFTPとSambaで共有領域を読めた。SSHは公開鍵認証で止まっていた。
+
+## ヘッダー互換性とlibretroDBによる調査
+
+- 指定の `rom2/nes` にあったNESイメージ120本（ZIP内の1本を含む）を同じ入力で各540フレーム実行した。従来のNES 2.0ヘッダー修正は『アルゴス』『ギミック！』『機動戦士Zガンダム ホットスクランブル』『燃えろ!!プロ野球』『プロ野球ファミリースタジアム』でも描画・起動を改善した。『ラグランジュポイント』2本を含め、基準ビルドから挙動が変わったのは7本だった。
+- 『エキサイトバイク』は先頭にWUP形式の付加情報が付いていた。内包されたPRG・CHRのSHA-1はlibretroDBの `Excitebike (World) (Switch Online).unh` と一致した。QuickNESがWUPの識別子とサイズ・ROM範囲を検証して読み込むようにした。元ファイルと診断用のiNES化したコピーは、タイトルとコース選択を描画し、各540フレームの映像とPCMが一致した。WUPの識別子、範囲、末尾、内側の署名を壊した入力と、切り詰めたiNES入力は拒否した。[libretroDBのNES DAT](https://github.com/libretro/libretro-database/blob/f89f09cbe13f9f7863ecf20d0ebf2c5ce53be029/metadat/no-intro/Nintendo%20-%20Nintendo%20Entertainment%20System.dat) [Wii Uの包装形式を調べた記録](https://www.xavenna.net/writing/wiiu-nes.html)
+- 公式互換性リストの『ファミリーサーキット ’91』を別コレクションで確認した。保有ROMの旧iNESヘッダーはマッパー19だった。保有データに検証用のNES 2.0ヘッダーを組み合わせ、libretroDBのマッパー210版とファイル全体のCRC32およびSHA-1が一致することを確認した。配布用コアにNamco 175／340のバンク切り替えとミラーリングを実装した。2 KiBのPRG RAMを8 KiBのCPU窓でミラーし、バンクと書き込み保護の状態をステートに保存する。検証用カートリッジでPRG・CHRの切り替え、PRG RAMのミラーと書き込み保護、画面のミラーリング、ステートの往復を確認した。[QuickNES公式互換性リスト](https://docs.libretro.com/library/compatibility/nes/#quicknes) [マッパー210の仕様](https://www.nesdev.org/wiki/INES_Mapper_210)
+- libretroDBに記載のNES 2.0版とSHA-1が一致する9本で、修正前はすべて読み込み失敗し、修正後はすべて画面を描画した。対象は『ファミリーサーキット ’91』『ちびまる子ちゃん うきうきショッピング』『ファミスタ ’91』『ファミスタ ’92』『ファミスタ ’93』『ファミスタ ’94』『平成天才バカボン』『トップストライカー』『ワギャンランド2』。元のROMセットでは、新たに読めた『エキサイトバイク』と未対応で拒否された1本を除く118本で、既存コアと各540フレームの映像・PCMのSHA-256が一致した。
+- 『Skull & Crossbones』のマッパー64と『SuborWin 2000』のマッパー178は未実装。ヘッダー検証を通過してからマッパー生成で止まる。公式リストの『Burai Fighter』と『Huge Insect』は起動画面まで描画した。公式リストにあるステージ進行時の症状は今回の比較範囲外。
+- Dockerで作成したSYSTEMは `651a1267e2b3a067182adc94f020c30715a6dbfb758c3849edc7bacc6d64e481`。ADBで試験起動し、通常のRetroArch起動スクリプトで『ファミリーサーキット ’91』のモード選択と『エキサイトバイク』のコース選択を内蔵画面から取得した。両方でPCMの再生ポインターが進んだ。検証ではセーブ領域と設定を一時的に分け、Bubbleが復帰してからSYSTEMを既定に設定した。SDの更新領域を確保するため、Mac側に同一SHA-256のコピーがある選択外の旧試験SYSTEMを1本だけSDから取り除いた。
