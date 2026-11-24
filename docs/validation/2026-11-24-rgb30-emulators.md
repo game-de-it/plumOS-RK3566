@@ -94,10 +94,26 @@ ARM64 Dockerで生成したSYSTEM `68b32b11fbe94b4672533cc95108de9ad6e3d8ebe5e0b
 
 ARM64 Linuxの試験では、両プロファイルで押下順、単独押下、リピート、解放、イベント欠落、終了時のキー解放を確認した。
 
+RGB30では既存SDから試験起動し、ランチャー経由で起動したエミュレータへ内蔵ゲームパッドと同じ入力デバイスからショートカットを送った。DRMの画面キャプチャで以下を確認した。
+
+| エミュレータ | 組み合わせ | 実機結果 |
+| --- | --- | --- |
+| RetroArch（QuickNES） | SELECT＋B | Quick Menuの表示とゲームへの復帰。SELECT＋STARTで正常終了 |
+| PicoArch（QuickNES） | SELECT＋START | Resume／Save／Exitメニューの表示とゲームへの復帰 |
+| DraStic | SELECT＋START | DraSticメニューの表示 |
+| PPSSPP | SELECT＋START | ポーズメニューの表示 |
+| YabaSanshiro | SELECT＋START | Yaba Sanshiroメニューの表示 |
+| OpenBOR | SELECT＋START | 『Dragon Ball』のプレイ中にPAUSE、Continue、End Gameの表示 |
+| PCSX-ReARMed（単体版） | SELECT＋START | 『PAC-MAN WORLD』『チョロQワンダフォー！』は起動。メニューは表示されず。合成前の `BTN_MODE` を直接入力した場合も同じ結果 |
+
+PCSX-ReARMedに同梱されているSDL互換ライブラリを使った実機の入力試験では、`BTN_MODE` がボタン10として読み取れた。単体版の実行ファイルにもボタン10のメニューバインドがある。ゲーム中のメニューが開かない原因は未確定。
+
 ## SSHパスワード認証
 
 公開鍵認証に加え、Bubbleと同じrootアカウントでパスワード認証を使える。SYSTEMの組み立て時に、同じリビジョンのBubbleビルドからrootのシャドウエントリーを取り込み、Dropbearをパスワード認証有効で起動する。
 
 ARM64 Docker内のDropbearで、パスワード認証と鍵認証、誤ったパスワードの拒否を確認した。
 
-メニューショートカットとSSH認証を含むSYSTEMのSHA-256は `5fe5b1e5cbb0b5254727c52632ac511f8306eb22a874fc288d3b08d38b28ce0e`。パッケージ内のrootエントリーはBubbleのビルド入力とバイト単位で一致した。検証時にRGB30で稼働していたSYSTEMは公開鍵のみを受け付けたため、修正版の実機反映と実機での入力試験は保留。
+メニューショートカットとSSH認証を含むSYSTEMのSHA-256は `5fe5b1e5cbb0b5254727c52632ac511f8306eb22a874fc288d3b08d38b28ce0e`。パッケージ内のrootエントリーはBubbleのビルド入力とバイト単位で一致した。既存SDへSYSTEMを差分適用し、再起動後のRGB30に、SSHクライアントの公開鍵認証とキーボード対話認証を無効にした状態で、シリーズ共通のパスワードを使ってrootでログインした。
+
+試験中は一時的に開いたSSH経由のADBを使用した。繰り返し試験でFEを停止した回数がplumOS initの再起動上限に達したため、修正版を既定に設定して本体を再起動した。試験鍵と登録スクリプトを削除し、試験鍵での接続が拒否されることと、再起動後にもパスワードでログインできることを確認した。Bubbleのプロセス、p5とSD2の読み書きマウント、試験前の実行時音量18/20を確認した。直前のSYSTEMはp4に保管した。
