@@ -1,0 +1,186 @@
+--- a/src/frontend/plumos_controller_ui.c
++++ b/src/frontend/plumos_controller_ui.c
+@@ -790,8 +790,7 @@
+   enum ui_action repeat_action;
+   unsigned int repeat_key_code;
+   long long repeat_next_ms;
+-  struct cpu_policy_snapshot animation_cpu_snapshot;
+-  int animation_cpu_boosted;
++  char animation_cpu_min_freq[32];
+   long long sdcard_cleanup_last_ms;
+   pid_t rom_scan_refresh_pid;
+   long long rom_scan_refresh_last_ms;
+@@ -9205,37 +9204,34 @@
+   return duration;
+ }
+
+-static int ui_animation_cpu_boost(struct ui_state *ui) {
+-  if (!ui || !runtime_device_is_bubble()) {
+-    return 0;
+-  }
+-  if (ui->animation_cpu_boosted) {
+-    return 1;
+-  }
+-  save_cpu_policy_snapshot(&ui->animation_cpu_snapshot);
+-  if (!ui->animation_cpu_snapshot.saved ||
+-      !write_text_file_line(
+-          "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor",
+-          "performance")) {
+-    restore_cpu_policy_snapshot(&ui->animation_cpu_snapshot);
+-    memset(&ui->animation_cpu_snapshot, 0,
+-           sizeof(ui->animation_cpu_snapshot));
+-    return 0;
+-  }
+-  ui->animation_cpu_boosted = 1;
+-  fprintf(stderr, "frontend_animation_cpu=boost governor=performance\n");
+-  return 1;
++static const char ui_animation_cpu_min_freq_path[] =
++    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq";
++
++static void ui_animation_cpu_boost(struct ui_state *ui) {
++  char minimum[sizeof(ui->animation_cpu_min_freq)];
++  char maximum[sizeof(ui->animation_cpu_min_freq)];
++
++  if (ui->animation_cpu_min_freq[0] || !runtime_device_is_rg353m() ||
++      !read_first_line_file(ui_animation_cpu_min_freq_path, minimum,
++                            sizeof(minimum)) ||
++      !read_first_line_file("/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq",
++                            maximum, sizeof(maximum)) ||
++      strcmp(minimum, maximum) == 0 ||
++      !write_text_file_line(ui_animation_cpu_min_freq_path, maximum)) {
++    return;
++  }
++  copy_string(ui->animation_cpu_min_freq, sizeof(ui->animation_cpu_min_freq),
++              minimum);
++  fprintf(stderr, "frontend_animation_cpu=boost min_freq=%s\n", maximum);
+ }
+
+ static void ui_animation_cpu_restore(struct ui_state *ui) {
+-  if (!ui || !ui->animation_cpu_boosted) {
+-    return;
+-  }
+-  restore_cpu_policy_snapshot(&ui->animation_cpu_snapshot);
+-  ui->animation_cpu_boosted = 0;
+-  memset(&ui->animation_cpu_snapshot, 0,
+-         sizeof(ui->animation_cpu_snapshot));
+-  fprintf(stderr, "frontend_animation_cpu=restore\n");
++  if (ui->animation_cpu_min_freq[0] &&
++      write_text_file_line(ui_animation_cpu_min_freq_path,
++                           ui->animation_cpu_min_freq)) {
++    ui->animation_cpu_min_freq[0] = '\0';
++    fprintf(stderr, "frontend_animation_cpu=restore\n");
++  }
+ }
+
+ static void ui_start_graphic_top_transition(struct ui_state *ui,
+@@ -9257,7 +9253,7 @@
+   if (duration <= 0) {
+     return;
+   }
+-  (void)ui_animation_cpu_boost(ui);
++  ui_animation_cpu_boost(ui);
+   ui->top_transition_from_cursor = from_cursor;
+   ui->top_transition_from_page = from_page;
+   ui->top_transition_to_page = to_page;
+@@ -9341,7 +9337,7 @@
+   if (!ui || from_cursor == to_cursor || ui->rom_count == 0) {
+     return;
+   }
+-  (void)ui_animation_cpu_boost(ui);
++  ui_animation_cpu_boost(ui);
+   ui->gallery_transition_from_cursor = from_cursor;
+   ui->gallery_transition_to_cursor = to_cursor;
+   ui->gallery_transition_start_ms = current_time_ms();
+@@ -11324,6 +11320,7 @@
+ }
+
+ static void shutdown_ui_renderer(struct ui_state *ui) {
++  ui_animation_cpu_restore(ui);
+ #ifdef PLUMOS_ENABLE_MALI_RENDERER
+   if (ui->renderer_mali && ui->renderer_active) {
+     plumos_mali_renderer_shutdown(&ui->mali_renderer);
+@@ -16370,7 +16367,7 @@
+     return 0;
+   }
+   now_us = current_time_us();
+-  if (previous_deadline_us <= 0) {
++  if (previous_deadline_us <= 0 || interval_us == 1) {
+     return now_us + interval_us;
+   }
+   do {
+--- a/src/frontend/plumos_fbdev_renderer.h
++++ b/src/frontend/plumos_fbdev_renderer.h
+@@ -558,6 +558,11 @@
+   r->active_offset = 0;
+   r->visible_offset = 0;
+   r->double_buffer = 1;
++  /* Compose in cached RAM, then copy to the write-combined scanout buffer
++   * once. Drawing over the DRM mapping repeatedly is costly on RK3566. */
++  if (r->drm_pitch[0] == r->drm_pitch[1]) {
++    r->shadow = calloc(1, (size_t)r->frame_bytes);
++  }
+   ok = 1;
+
+ out:
+@@ -590,6 +595,9 @@
+
+   if (!r || !r->drm_active) {
+     return 0;
++  }
++  if (r->shadow) {
++    memcpy(r->mem, r->shadow, (size_t)r->frame_bytes);
+   }
+   r->drm_page_flip_pending = 1;
+   if (drmModePageFlip(r->drm_fd, r->drm_crtc_id,
+@@ -1192,6 +1200,40 @@
+   if (end_y > (int)r->var.yres) {
+     end_y = (int)r->var.yres;
+   }
++
++#ifdef PLUMOS_FBDEV_ENABLE_DRM
++  if (r->drm_active && !r->rotation_180 && start_x < end_x && start_y < end_y) {
++    /* DRM uses XRGB8888. Write rows directly and step the source coordinate
++     * without dividing and validating the framebuffer for every pixel. */
++    unsigned char *base = r->shadow ? r->shadow : r->mem;
++    int source_left = (int)((long)(start_x - draw_x) * image_w / draw_w);
++    int initial_remainder = (int)((long)(start_x - draw_x) * image_w % draw_w);
++    int step = image_w / draw_w;
++    int remainder_step = image_w % draw_w;
++
++    for (ty = start_y; ty < end_y; ty++) {
++      int sy = (int)((long)(ty - draw_y) * image_h / draw_h);
++      const unsigned char *row = pixels + (size_t)sy * (size_t)image_w * 4U;
++      uint32_t *dest = (uint32_t *)(base + (size_t)ty * r->fix.line_length) + start_x;
++      int sx = source_left;
++      int remainder = initial_remainder;
++
++      for (tx = start_x; tx < end_x; tx++, dest++) {
++        const unsigned char *rgba = row + (size_t)sx * 4U;
++        if (rgba[3] >= 128) {
++          *dest = ((uint32_t)rgba[0] << 16) | ((uint32_t)rgba[1] << 8) | rgba[2];
++        }
++        sx += step;
++        remainder += remainder_step;
++        if (remainder >= draw_w) {
++          sx++;
++          remainder -= draw_w;
++        }
++      }
++    }
++    return 1;
++  }
++#endif
+
+   for (ty = start_y; ty < end_y; ty++) {
+     int sy = (int)((long)(ty - draw_y) * (long)image_h / (long)draw_h);
+@@ -3189,6 +3231,10 @@
+     int row = (int)i / cols;
+     int x = grid_x + x_offset + col * (tile_size + gap);
+     int y = grid_y + y_offset + row * (tile_size + gap);
++    if (x + tile_size <= 0 || x >= (int)r->var.xres ||
++        y + tile_size <= 0 || y >= (int)r->var.yres) {
++      continue;
++    }
+     plumos_fbdev_draw_top_tile(r, p, &entries[i], x, y, tile_size, tile_size);
+   }
+ }
