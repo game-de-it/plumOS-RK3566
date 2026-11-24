@@ -78,6 +78,14 @@ for name, original, replacement in (
     assert text.count(original) == 1
     path.write_text(text.replace(original, replacement))
 
+gamegear = root / 'bin/plumos-ggfe-launch'
+text = gamegear.read_text()
+cpu_check = 'if [ -x "$CPU_CONTROL" ] &&'
+assert text.count(cpu_check) == 1
+gamegear.write_text(text.replace(cpu_check, '''if [ ! -d "${PLUMOS_CPUFREQ_ROOT:-/sys/devices/system/cpu/cpufreq}/policy0" ]; then
+    printf '%s\\n' 'Game Gear: CPU policy unavailable; keeping current clock' >&2
+elif [ -x "$CPU_CONTROL" ] &&'''))
+
 scraper = root / 'bin/plumos-thumbnail-scraper'
 text = scraper.read_text()
 required = '[ -z "$worker_dat_index" ] || [ -z "$worker_thumb_index" ] || [ -z "$worker_thumb_base" ]'

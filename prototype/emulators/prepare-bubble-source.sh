@@ -96,6 +96,12 @@ replace("scripts/build-drastic-bubble.sh",
 replace("scripts/build-openbor-bubble.sh", 'git -C "$SOURCE_ROOT" apply "$PATCH_FILE"',
         'git -C "$SOURCE_ROOT" apply "$PATCH_FILE"\n'
         'git -C "$SOURCE_ROOT" apply "$ROOT_DIR/package/standalone-bubble/patches/openbor/rg353m-input.patch"', 1)
+openbor_patch = "package/standalone-bubble/patches/openbor/openbor-v6391-bubble.patch"
+replace(openbor_patch, '@@ -159,6 +159,11 @@', '@@ -159,6 +159,13 @@', 1)
+replace(openbor_patch, '+\tsavedata.stretch = 1;\n',
+        '+\tSDL_DisplayMode mode;\n'
+        '+\tsavedata.stretch = SDL_GetCurrentDisplayMode(0, &mode) != 0 ||\n'
+        '+\t                  mode.w != mode.h;\n', 1)
 replace("scripts/build-libretro-cores-bubble.sh",
         '    build_dir="$work_dir"\n',
         '    if [ "$id" = "quicknes" ]; then\n'
