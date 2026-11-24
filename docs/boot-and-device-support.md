@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | Anbernic | RG353M | 実機で起動、フロントエンド、ADBを確認済み |
 | Anbernic | RG353P、RG353V、RG503 | 機種別DTBを同梱。plumOSでの実機起動は未確認 |
-| Powkiddy | RGB30 | 実機でFE表示とWi-Fi経由のFTP接続を確認。起動ロゴ、FEの正方形画面レイアウト、SD2、USB ADBは要調査 |
+| Powkiddy | RGB30 | 実機でplumOS init、FE、Wi-Fi、p5を確認。起動ロゴ、正方形レイアウト、SD2マウント、USB ADB、再起動に課題あり |
 | Powkiddy | RK2023、RGB10 Max 3 | 機種別DTBを同梱。plumOSでの実機起動は未確認 |
 | Anbernic | RG353VS | JELOS 20240206の対応表に掲載。専用名のDTBは未収録で、plumOSでの実機起動は未確認 |
 
@@ -20,10 +20,13 @@
 
 2026年11月24日。ユーザーが実機のFE表示、起動ロゴの欠落、SD2の内容が表示されないこと、720×720画面の下部に余白があることを確認した。MacからはWi-Fi経由でFTP共有とSSHの待受に接続できた。SSHは公開鍵認証で止まり、MacのUSB一覧にADBデバイスは出なかった。
 
-- 同梱のRGB30用DTBは、720×720のDSIパネル、TF2のMMCコントローラー `dwmmc@fe2c0000`、OTGの `dwc3@fcc00000` を有効にしている。
-- [起動ロゴ描画](../prototype/boot-splash.c)は640×480のフレームバッファーだけを受け付ける。現行の設定ではRGB30でロゴを描画できない。
-- [SD2のマウント処理](../prototype/boot-system/manage-sd2)はRG353Mだけで起動する。RGB30ではカードがカーネルに認識されても、この処理でFEに公開されない。
+- 実機ログでDTのモデル `Powkiddy RGB30`、カーネル4.19.172、plumOS init、FEの準備完了を確認した。RG353Mで試験した同じSYSTEMハッシュが選ばれた。TF1のp3、p4、p5がそれぞれ `/flash`、`/storage`、`/storage/user` にマウントされている。
+- DSIは720×720、fb0は32ビットで仮想サイズ720×1440。ロゴの状態は `framebuffer unavailable`、初回セットアップ描画の消去も失敗していた。[ロゴと消去の実装](../prototype/boot-splash.c)は640×480を要求する。
+- カーネルはTF2カードを `/dev/mmcblk2p1` として認識した。 `/run/media/sd2` は未マウントで、FEはTF1のp5を走査していた。[SD2のマウント処理](../prototype/boot-system/manage-sd2)はRG353Mだけで起動する。
 - FEの既定グリッドは3列×2行で、タイルの大きさを画面幅で制限する。720×720では2行を描いた後も画面下部に余白が残る。
+- 本体の `adbd` とFunctionFSは起動し、コントローラー `fcc00000.dwc3` にバインド済みだった。採取時のUSB状態は `not attached` だった。Macへの列挙に至らなかった原因は未確定。
+- ゲームパッド、電源キー、RK817のALSA再生デバイスは列挙された。ゲーム内の入力、実際の音声出力、スリープ復帰は未試験。
+- 一度の再起動要求で、FEのオーバーレイを `Device or resource busy` でアンマウントできず、initが再起動を中止してFEとWi-Fiを復帰させた。オーバーレイを保持していたプロセスは未特定。
 
 ## RG353Mで確認したTF1からの起動経路
 
