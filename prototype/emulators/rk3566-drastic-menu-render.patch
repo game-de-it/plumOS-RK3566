@@ -1,0 +1,108 @@
+--- a/sdl2/src/render/nds/nds_render.c
++++ b/sdl2/src/render/nds/nds_render.c
+@@ -286,8 +286,10 @@
+     trace("call %s()\n", __func__);
+
+     myvideo.lcd.show_fps = 0;
++#if !defined(GKD_MINIPLUS)
+     myvideo.menu.drastic.enable = 1;
+     usleep(100000);
++#endif
+
+ #if defined(TRIMUI_SMART)
+     if (myconfig.layout.mode.sel != LAYOUT_MODE_N2) {
+--- a/sdl2/src/video/nds/nds_video.c
++++ b/sdl2/src/video/nds/nds_video.c
+@@ -1773,6 +1773,23 @@
+ }
+ #endif
+
++#if defined(GKD_MINIPLUS)
++static SDL_atomic_t drastic_menu_pending;
++
++static void present_drastic_menu(void)
++{
++    SDL_Surface *frame = myvideo.menu.drastic.frame;
++
++    /* Consume the last queued gameplay frame before displaying the menu. */
++    myvideo.lcd.update = 0;
++    myvideo.menu.drastic.enable = 1;
++    flush_lcd(TEXTURE_TMP, frame->pixels, frame->clip_rect, frame->clip_rect, frame->pitch);
++    flush_lcd(TEXTURE_TMP, frame->pixels, frame->clip_rect, frame->clip_rect, frame->pitch);
++    flip_lcd();
++    SDL_AtomicSet(&drastic_menu_pending, 0);
++}
++#endif
++
+ int handle_drastic_menu(void)
+ {
+     int layer = 0;
+@@ -1781,6 +1798,16 @@
+
+ #if defined(UT)
+     return 0;
++#endif
++
++#if defined(GKD_MINIPLUS)
++    /* The video thread may still be copying the previous menu surface. */
++    while (SDL_AtomicGet(&drastic_menu_pending) && myvideo.thread.running) {
++        SDL_Delay(1);
++    }
++    if (!myvideo.thread.running) {
++        return 0;
++    }
+ #endif
+
+     layer = get_current_menu_layer();
+@@ -1817,7 +1844,9 @@
+         return 0;
+     }
+
+-#if defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(GKD_MINIPLUS) || defined(TRIMUI_BRICK) || defined(FXTEC_QX1000) || defined(MOTO_XT897)
++#if defined(GKD_MINIPLUS)
++    SDL_AtomicSet(&drastic_menu_pending, 1);
++#elif defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(TRIMUI_BRICK) || defined(FXTEC_QX1000) || defined(MOTO_XT897)
+     myvideo.menu.update = 1;
+ #else
+     flush_lcd(
+@@ -2404,7 +2433,7 @@
+
+         *((uint32_t *)myhook.var.sdl.screen[1].pixels) =
+             (uint32_t)myvideo.lcd.virt_addr[myvideo.lcd.cur_sel][1];
+-#if !defined(MIYOO_MINI) && !defined(TRIMUI_SMART)
++#if !defined(MIYOO_MINI) && !defined(TRIMUI_SMART) && !defined(GKD_MINIPLUS)
+         myvideo.menu.drastic.enable = 0;
+ #endif
+ #endif
+@@ -2845,7 +2874,15 @@
+         }
+ #endif
+
++#if defined(GKD_MINIPLUS)
++        if (SDL_AtomicGet(&drastic_menu_pending)) {
++            present_drastic_menu();
++            continue;
++        }
++        if (myvideo.menu.sdl2.enable) {
++#else
+         if ((myvideo.menu.sdl2.enable) || (myvideo.menu.drastic.enable)) {
++#endif
+             if (myvideo.menu.update) {
+                 myvideo.menu.update = 0;
+                 if (myvideo.menu.sdl2.enable) {
+@@ -2867,6 +2904,7 @@
+                         myvideo.cvt->pitch
+                     );
+                 }
++#if !defined(GKD_MINIPLUS)
+                 else {
+                     trace("update drastic menu\n");
+
+@@ -2886,6 +2924,7 @@
+                         myvideo.menu.drastic.frame->pitch
+                     );
+                 }
++#endif
+                 flip_lcd();
+             }
+         }

@@ -22,6 +22,7 @@ cp "$scripts/rg353m-drastic-input.patch" "$destination/package/standalone-bubble
 cp "$scripts/rgb30-drastic-menu.patch" "$destination/package/standalone-bubble/patches/drastic/rgb30-menu.patch"
 cp "$scripts/rk3566-drastic-display.patch" "$destination/package/standalone-bubble/patches/drastic/rk3566-display.patch"
 cp "$scripts/rk3566-drastic-frame-pacing.patch" "$destination/package/standalone-bubble/patches/drastic/rk3566-frame-pacing.patch"
+cp "$scripts/rk3566-drastic-menu-render.patch" "$destination/package/standalone-bubble/patches/drastic/rk3566-menu-render.patch"
 cp "$scripts/rg353m-openbor-input.patch" "$destination/package/standalone-bubble/patches/openbor/rg353m-input.patch"
 cp "$scripts/quicknes-rg353m.patch" "$destination/patches/libretro-cores-bubble/"
 cp "$scripts/atari800-caverns-cartridge.patch" "$destination/patches/libretro-cores-bubble/"
@@ -93,7 +94,8 @@ replace("scripts/build-drastic-bubble.sh",
         '    git -C "$SOURCE_DIR" apply "$ROOT_DIR/package/standalone-bubble/patches/drastic/rg353m-input.patch"\n'
         '    git -C "$SOURCE_DIR" apply "$ROOT_DIR/package/standalone-bubble/patches/drastic/rgb30-menu.patch"\n'
         '    git -C "$SOURCE_DIR" apply "$ROOT_DIR/package/standalone-bubble/patches/drastic/rk3566-display.patch"\n'
-        '    git -C "$SOURCE_DIR" apply "$ROOT_DIR/package/standalone-bubble/patches/drastic/rk3566-frame-pacing.patch"', 1)
+        '    git -C "$SOURCE_DIR" apply "$ROOT_DIR/package/standalone-bubble/patches/drastic/rk3566-frame-pacing.patch"\n'
+        '    git -C "$SOURCE_DIR" apply "$ROOT_DIR/package/standalone-bubble/patches/drastic/rk3566-menu-render.patch"', 1)
 replace("scripts/build-drastic-bubble.sh",
         '    SDL2_SHA256="$(sha256sum "$SOURCE_LIB_ROOT/libSDL2-2.0.so.0" | awk \'{ print $1 }\')"',
         '    SDL2_SHA256="$(sha256sum "$SOURCE_LIB_ROOT/libSDL2-2.0.so.0" | awk \'{ print $1 }\')"\n'
