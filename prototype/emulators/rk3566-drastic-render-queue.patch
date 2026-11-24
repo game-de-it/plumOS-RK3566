@@ -1,0 +1,423 @@
+--- a/sdl2/src/video/nds/nds_video.c
++++ b/sdl2/src/video/nds/nds_video.c
+@@ -296,7 +296,7 @@
+
+     trace("call %s()\n", __func__)
+
+-    for (i = 0; i < 2; i++) {
++    for (i = 0; i < SDL_arraysize(myvideo.lcd.virt_addr); i++) {
+         for (j = 0; j <2; j++) {
+ #if defined(MIYOO_MINI)
+             if (MI_SYS_MMA_Alloc(NULL, size, &myvideo.lcd.phy_addr[i][j])) {
+@@ -346,7 +346,7 @@
+
+     trace("call %s()\n", __func__)
+
+-    for (i = 0; i < 2; i++) {
++    for (i = 0; i < SDL_arraysize(myvideo.lcd.virt_addr); i++) {
+         for (j = 0; j <2; j++) {
+ #if defined(MIYOO_MINI)
+             const int size = NDS_Wx2 * NDS_Hx2 * 4;
+@@ -1775,6 +1775,42 @@
+
+ #if defined(GKD_MINIPLUS)
+ static SDL_atomic_t drastic_menu_pending;
++static uint32_t drastic_video_signal;
++static SDL_SpinLock drastic_frame_lock;
++
++static void wake_drastic_video(void)
++{
++    __atomic_add_fetch(&drastic_video_signal, 1, __ATOMIC_RELEASE);
++    syscall(SYS_futex, &drastic_video_signal, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0);
++}
++/* Keep at most two completed frames to absorb short bursts from the core. */
++static int drastic_ready_slots[2];
++static unsigned drastic_ready_count;
++static int drastic_read_slot = -1;
++
++static void queue_drastic_game_frame(void)
++{
++    int written = myvideo.lcd.cur_sel;
++    int next = written;
++
++    SDL_AtomicLock(&drastic_frame_lock);
++    if (drastic_ready_count == SDL_arraysize(drastic_ready_slots)) {
++        drastic_ready_slots[0] = drastic_ready_slots[1];
++        drastic_ready_count--;
++    }
++    drastic_ready_slots[drastic_ready_count++] = written;
++
++    do {
++        next = (next + 1) % SDL_arraysize(myvideo.lcd.virt_addr);
++    } while (next == drastic_read_slot || next == drastic_ready_slots[0] ||
++             (drastic_ready_count == 2 && next == drastic_ready_slots[1]));
++
++    myvideo.lcd.cur_sel = next;
++    *(uint32_t *)myhook.var.sdl.screen[0].pixels = (uint32_t)myvideo.lcd.virt_addr[next][0];
++    *(uint32_t *)myhook.var.sdl.screen[1].pixels = (uint32_t)myvideo.lcd.virt_addr[next][1];
++    SDL_AtomicUnlock(&drastic_frame_lock);
++    wake_drastic_video();
++}
+ static SDL_SpinLock drastic_fps_lock;
+ static char drastic_fps_text[32];
+
+@@ -1832,7 +1868,9 @@
+     SDL_Surface *frame = myvideo.menu.drastic.frame;
+
+     /* Consume the last queued gameplay frame before displaying the menu. */
+-    myvideo.lcd.update = 0;
++    SDL_AtomicLock(&drastic_frame_lock);
++    drastic_ready_count = 0;
++    SDL_AtomicUnlock(&drastic_frame_lock);
+     myvideo.menu.drastic.enable = 1;
+     myvideo.lcd.show_fps = false;
+     SDL_AtomicLock(&drastic_fps_lock);
+@@ -1856,10 +1894,10 @@
+
+ #if defined(GKD_MINIPLUS)
+     /* The video thread may still be copying the previous menu surface. */
+-    while (SDL_AtomicGet(&drastic_menu_pending) && myvideo.thread.running) {
++    while (SDL_AtomicGet(&drastic_menu_pending) && __atomic_load_n(&myvideo.thread.running, __ATOMIC_ACQUIRE)) {
+         SDL_Delay(1);
+     }
+-    if (!myvideo.thread.running) {
++    if (!__atomic_load_n(&myvideo.thread.running, __ATOMIC_ACQUIRE)) {
+         return 0;
+     }
+ #endif
+@@ -1903,6 +1941,7 @@
+
+ #if defined(GKD_MINIPLUS)
+     SDL_AtomicSet(&drastic_menu_pending, 1);
++    wake_drastic_video();
+ #elif defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(TRIMUI_BRICK) || defined(FXTEC_QX1000) || defined(MOTO_XT897)
+     myvideo.menu.update = 1;
+ #else
+@@ -1937,7 +1976,7 @@
+ }
+ #endif
+
+-static int process_screen(void)
++static int process_screen(int slot)
+ {
+     int idx = 0;
+     int cur_ff_sel = 0;
+@@ -2084,7 +2123,7 @@
+
+         show_pen = *myhook.var.sdl.swap_screens == idx ? 0 : 1;
+         pitch = *myhook.var.sdl.bytes_per_pixel * srt.w;
+-        pixels = myvideo.lcd.virt_addr[myvideo.lcd.cur_sel ^ 1][idx];
++        pixels = myvideo.lcd.virt_addr[slot][idx];
+         drt.x = myvideo.layout.mode[cur_mode_sel].screen[idx].x;
+         drt.y = myvideo.layout.mode[cur_mode_sel].screen[idx].y;
+         drt.w = myvideo.layout.mode[cur_mode_sel].screen[idx].w;
+@@ -2284,7 +2323,7 @@
+ #if defined(UT)
+ TEST(sdl2_video, process_screen)
+ {
+-    TEST_ASSERT_EQUAL_INT(0, process_screen());
++    TEST_ASSERT_EQUAL_INT(0, process_screen(0));
+ }
+ #endif
+
+@@ -2380,7 +2419,7 @@
+
+     trace("call %s(ptr=%p)\n", __func__, ptr);
+
+-    for (c0 = 0; c0 < 2; c0++) {
++    for (c0 = 0; c0 < SDL_arraysize(myvideo.lcd.virt_addr); c0++) {
+         for (c1 = 0; c1 < 2; c1++) {
+             if (ptr == myvideo.lcd.virt_addr[c0][c1]) {
+                 found = 1;
+@@ -2484,6 +2523,11 @@
+             _func(myconfig.swap_screen);
+         }
+     }
++#if defined(GKD_MINIPLUS) && !defined(UT)
++    else {
++        queue_drastic_game_frame();
++    }
++#else
+     else if (myvideo.lcd.update == 0) {
+         myvideo.lcd.cur_sel ^= 1;
+
+@@ -2501,6 +2545,7 @@
+         trace("set lcd.update=1\n");
+         myvideo.lcd.update = 1;
+     }
++#endif
+ }
+
+ #if defined(UT)
+@@ -2917,14 +2962,20 @@
+     trace("call %s()++\n", __func__);
+
+ #if !defined(UT)
+-    myvideo.thread.running = 1;
++    __atomic_store_n(&myvideo.thread.running, 1, __ATOMIC_RELEASE);
+ #endif
+
+ #if defined(FXTEC_QX1000) || defined(MOTO_XT897)
+     myvideo.wl.ready = 1;
+ #endif
+
+-    while (myvideo.thread.running) {
++    while (__atomic_load_n(&myvideo.thread.running, __ATOMIC_ACQUIRE)) {
++#if defined(GKD_MINIPLUS)
++        uint32_t signal_seq = __atomic_load_n(&drastic_video_signal, __ATOMIC_ACQUIRE);
++        if (!__atomic_load_n(&myvideo.thread.running, __ATOMIC_ACQUIRE)) {
++            break;
++        }
++#endif
+ #if !defined(MIYOO_MINI) && !defined(TRIMUI_SMART)
+         if ((myvideo.menu.sdl2.enable) || (myvideo.menu.drastic.enable)) {
+ #if !defined(TRIMUI_BRICK) && !defined(GKD_PIXEL2) && !defined(GKD_MINIPLUS)
+@@ -2997,17 +3048,45 @@
+                 flip_lcd();
+             }
+         }
++#endif
++
++#if defined(GKD_MINIPLUS)
++        else {
++            int slot = -1;
++            SDL_AtomicLock(&drastic_frame_lock);
++            if (drastic_ready_count) {
++                slot = drastic_read_slot = drastic_ready_slots[0];
++                drastic_ready_slots[0] = drastic_ready_slots[1];
++                drastic_ready_count--;
++            }
++            SDL_AtomicUnlock(&drastic_frame_lock);
++
++            if (slot >= 0) {
++                process_screen(slot);
++                SDL_AtomicLock(&drastic_frame_lock);
++                drastic_read_slot = -1;
++                SDL_AtomicUnlock(&drastic_frame_lock);
++                continue;
++            }
++        }
++#else
++#if !defined(MIYOO_MINI) && !defined(TRIMUI_SMART)
+         else if (myvideo.lcd.update) {
+ #else
+         if (myvideo.lcd.update) {
+ #endif
+             trace("handle screen update\n");
+
+-            process_screen();
++            process_screen(myvideo.lcd.cur_sel ^ 1);
+             myvideo.lcd.update = 0;
+         }
+-
++#endif
++
++#if defined(GKD_MINIPLUS)
++        syscall(SYS_futex, &drastic_video_signal, FUTEX_WAIT_PRIVATE, signal_seq, NULL, NULL, 0);
++#else
+         usleep(0);
++#endif
+     }
+
+ #if defined(MIYOO_FLIP)
+@@ -3564,13 +3643,21 @@
+     }
+     else {
+         myvideo.shm.buf->cmd = SHM_CMD_QUIT;
++#if defined(GKD_MINIPLUS)
++        nds_shm_set(&myvideo.shm.buf->valid, 1);
++#else
+         __atomic_store_n(&myvideo.shm.buf->valid, 1, __ATOMIC_RELEASE);
++#endif
+         trace("send SHM_CMD_QUIT\n");
+
+ #if !defined(UT)
++#if defined(GKD_MINIPLUS)
++        nds_shm_wait(&myvideo.shm.buf->valid, 1);
++#else
+         while (__atomic_load_n(&myvideo.shm.buf->valid, __ATOMIC_ACQUIRE)) {
+             usleep(10);
+         }
++#endif
+ #endif
+
+         munmap(myvideo.shm.buf, sizeof(shm_buf_t));
+@@ -4368,11 +4455,19 @@
+     );
+
+     /* Publish data to the renderer with a release store. */
++#if defined(GKD_MINIPLUS)
++    nds_shm_set(&myvideo.shm.buf->valid, 1);
++#else
+     __atomic_store_n(&myvideo.shm.buf->valid, 1, __ATOMIC_RELEASE);
+-
++#endif
++
++#if defined(GKD_MINIPLUS)
++    nds_shm_wait(&myvideo.shm.buf->valid, 1);
++#else
+     while (__atomic_load_n(&myvideo.shm.buf->valid, __ATOMIC_ACQUIRE)) {
+         usleep(10);
+     }
++#endif
+ #endif
+
+ #if defined(MIYOO_FLIP)
+@@ -5398,10 +5493,18 @@
+     myvideo.shm.buf->cmd = SHM_CMD_FLIP;
+     trace("send SHM_CMD_FLIP\n");
+
++#if defined(GKD_MINIPLUS)
++    nds_shm_set(&myvideo.shm.buf->valid, 1);
++#else
+     __atomic_store_n(&myvideo.shm.buf->valid, 1, __ATOMIC_RELEASE);
++#endif
++#if defined(GKD_MINIPLUS)
++    nds_shm_wait(&myvideo.shm.buf->valid, 1);
++#else
+     while (__atomic_load_n(&myvideo.shm.buf->valid, __ATOMIC_ACQUIRE)) {
+         usleep(10);
+     }
++#endif
+ #endif
+
+ #if defined(MIYOO_FLIP) || defined(FXTEC_QX1000) || defined(MOTO_XT897)
+@@ -6820,7 +6923,10 @@
+     trace("call %s()\n", __func__);
+
+     trace("wait for video_handler complete\n");
+-    myvideo.thread.running = 0;
++    __atomic_store_n(&myvideo.thread.running, 0, __ATOMIC_RELEASE);
++#if defined(GKD_MINIPLUS)
++    wake_drastic_video();
++#endif
+     pthread_join(myvideo.thread.id, &r);
+     trace("completed\n");
+
+@@ -8416,6 +8522,9 @@
+
+ #if defined(MIYOO_FLIP) || defined(GKD_PIXEL2) || defined(GKD_MINIPLUS) || defined(TRIMUI_BRICK) || defined(FXTEC_QX1000) || defined(MOTO_XT897)
+     myvideo.menu.update = 1;
++#if defined(GKD_MINIPLUS)
++    wake_drastic_video();
++#endif
+ #else
+     flush_lcd(
+         TEXTURE_TMP,
+--- a/sdl2/src/video/nds/nds_video.h
++++ b/sdl2/src/video/nds/nds_video.h
+@@ -331,7 +331,11 @@
+         uint32_t status;
+
+         int cur_sel;
++#if defined(GKD_MINIPLUS)
++        void *virt_addr[4][2];
++#else
+         void *virt_addr[2][2];
++#endif
+
+ #if defined(MIYOO_MINI)
+         MI_PHY phy_addr[2][2];
+--- a/runner/runner.c
++++ b/runner/runner.c
+@@ -272,12 +272,20 @@
+         return NULL;
+     }
+
+-    running = 1;
+-    while (running) {
++    __atomic_store_n(&running, 1, __ATOMIC_RELEASE);
++    while (__atomic_load_n(&running, __ATOMIC_ACQUIRE)) {
++#if defined(GKD_MINIPLUS)
++        if (!__atomic_load_n(&myrunner.shm.buf->valid, __ATOMIC_ACQUIRE)) {
++            const struct timespec idle_timeout = { 1, 0 };
++            syscall(SYS_futex, &myrunner.shm.buf->valid, FUTEX_WAIT, 0, &idle_timeout, NULL, 0);
++            continue;
++        }
++#else
+         if (!__atomic_load_n(&myrunner.shm.buf->valid, __ATOMIC_ACQUIRE)) {
+             usleep(10);
+             continue;
+         }
++#endif
+
+         switch (myrunner.shm.buf->cmd) {
+         case SHM_CMD_FLUSH:
+@@ -393,7 +401,11 @@
+         case SHM_CMD_FLIP:
+             /* FLIP has no shared payload. Let emulation advance during the
+              * blocking KMS page flip. The next command waits in the slot. */
++#if defined(GKD_MINIPLUS)
++            nds_shm_set(&myrunner.shm.buf->valid, 0);
++#else
+             __atomic_store_n(&myrunner.shm.buf->valid, 0, __ATOMIC_RELEASE);
++#endif
+             frame_cnt += 1;
+             trace("recv SHM_CMD_FLIP\n");
+             if (frame_cnt <= 3) {
+@@ -421,11 +433,15 @@
+             /* Do not acknowledge a new command submitted during SwapWindow. */
+             continue;
+         case SHM_CMD_QUIT:
+-            running = 0;
++            __atomic_store_n(&running, 0, __ATOMIC_RELEASE);
+             trace("recv SHM_CMD_QUIT\n");
+             break;
+         }
++#if defined(GKD_MINIPLUS)
++        nds_shm_set(&myrunner.shm.buf->valid, 0);
++#else
+         __atomic_store_n(&myrunner.shm.buf->valid, 0, __ATOMIC_RELEASE);
++#endif
+     }
+
+     trace("free resources\n");
+@@ -462,7 +478,7 @@
+     }
+
+     if (frame_cnt == 0) {
+-        running = 0;
++        __atomic_store_n(&running, 0, __ATOMIC_RELEASE);
+         error("no receive any frame from emulator\n");
+
+ #if defined(TRIMUI_BRICK)
+--- a/runner/runner.h
++++ b/runner/runner.h
+@@ -10,6 +10,25 @@
+ #endif
+
+ #include "common.h"
++
++#if defined(GKD_MINIPLUS)
++#include <linux/futex.h>
++#include <sys/syscall.h>
++#include <unistd.h>
++
++static inline void nds_shm_wait(uint32_t *word, uint32_t busy)
++{
++    while (__atomic_load_n(word, __ATOMIC_ACQUIRE) == busy) {
++        syscall(SYS_futex, word, FUTEX_WAIT, busy, NULL, NULL, 0);
++    }
++}
++
++static inline void nds_shm_set(uint32_t *word, uint32_t value)
++{
++    __atomic_store_n(word, value, __ATOMIC_RELEASE);
++    syscall(SYS_futex, word, FUTEX_WAKE, 2, NULL, NULL, 0);
++}
++#endif
+
+ #if defined(UT)
+ #define R_LCD_W 640
+@@ -40,7 +59,11 @@
+ } shm_cmd_t;
+
+ typedef struct {
++#if defined(GKD_MINIPLUS)
++    uint32_t valid;
++#else
+     uint8_t valid;
++#endif
+     uint8_t cmd;
+     uint8_t tex;
+     uint8_t layout;

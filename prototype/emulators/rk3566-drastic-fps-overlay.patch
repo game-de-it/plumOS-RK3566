@@ -1,0 +1,152 @@
+--- a/sdl2/src/video/nds/nds_video.c
++++ b/sdl2/src/video/nds/nds_video.c
+@@ -1775,6 +1775,57 @@
+
+ #if defined(GKD_MINIPLUS)
+ static SDL_atomic_t drastic_menu_pending;
++static SDL_SpinLock drastic_fps_lock;
++static char drastic_fps_text[32];
++
++static bool capture_drastic_fps(const char *text)
++{
++    const char *speed = strchr(text, '%');
++    const char *frames = speed && speed[1] == ' ' ? strchr(speed + 2, '%') : NULL;
++    size_t length = frames ? (size_t)(frames - text + 1) : 0;
++    static unsigned count;
++
++    if (!length || length >= sizeof(drastic_fps_text) || frames[1] != ' ' ||
++        !strstr(frames + 2, "m/")) {
++        return false;
++    }
++    if (count++ % 60 == 0) {
++        SDL_AtomicLock(&drastic_fps_lock);
++        memcpy(drastic_fps_text, text, length);
++        drastic_fps_text[length] = '\0';
++        SDL_AtomicUnlock(&drastic_fps_lock);
++    }
++    return true;
++}
++
++static void update_drastic_fps(void)
++{
++    char text[sizeof(drastic_fps_text)];
++    SDL_Color color = { 0xcc, 0xcc, 0, 0xff };
++    SDL_Surface *glyphs;
++    SDL_Surface *surface;
++
++    SDL_AtomicLock(&drastic_fps_lock);
++    memcpy(text, drastic_fps_text, sizeof(text));
++    drastic_fps_text[0] = '\0';
++    SDL_AtomicUnlock(&drastic_fps_lock);
++    if (!text[0]) {
++        return;
++    }
++
++    glyphs = TTF_RenderUTF8_Shaded(myvideo.menu.font, text, color, (SDL_Color){0, 0, 0, 0xff});
++    if (!glyphs) {
++        return;
++    }
++    surface = SDL_ConvertSurface(glyphs, myvideo.cvt->format, 0);
++    SDL_FreeSurface(glyphs);
++    if (!surface) {
++        return;
++    }
++    SDL_FreeSurface(myvideo.fps);
++    myvideo.fps = surface;
++    myvideo.lcd.show_fps = true;
++}
+
+ static void present_drastic_menu(void)
+ {
+@@ -1783,7 +1834,10 @@
+     /* Consume the last queued gameplay frame before displaying the menu. */
+     myvideo.lcd.update = 0;
+     myvideo.menu.drastic.enable = 1;
+-    flush_lcd(TEXTURE_TMP, frame->pixels, frame->clip_rect, frame->clip_rect, frame->pitch);
++    myvideo.lcd.show_fps = false;
++    SDL_AtomicLock(&drastic_fps_lock);
++    drastic_fps_text[0] = '\0';
++    SDL_AtomicUnlock(&drastic_fps_lock);
+     flush_lcd(TEXTURE_TMP, frame->pixels, frame->clip_rect, frame->clip_rect, frame->pitch);
+     flip_lcd();
+     SDL_AtomicSet(&drastic_menu_pending, 0);
+@@ -1841,6 +1895,9 @@
+         draw_drastic_menu_rom();
+         break;
+     default:
++#if defined(GKD_MINIPLUS)
++        myvideo.menu.drastic.item.cnt = 0;
++#endif
+         return 0;
+     }
+
+@@ -2160,6 +2217,9 @@
+ #endif
+     }
+
++#if defined(GKD_MINIPLUS)
++    update_drastic_fps();
++#endif
+     if (show_info > 0) {
+         switch (cur_mode_sel) {
+         case LAYOUT_MODE_B0:
+@@ -2483,7 +2543,7 @@
+
+ static void prehook_print_string(char *p, uint32_t fg, uint32_t bg, uint32_t x, uint32_t y)
+ {
+-#if !defined(UT)
++#if !defined(UT) && !defined(GKD_MINIPLUS)
+     int w = 0;
+     int h = 0;
+     SDL_Color col = { 0 };
+@@ -2495,19 +2555,27 @@
+     trace("call %s(p=%p, fg=0x%08x, bg=0x%08x, x=%03d, y=%03d)\n", __func__, p, fg, bg, x, y);
+
+ #if !defined(UT)
+-    if (p && (strlen(p) > 0)) {
++#if defined(GKD_MINIPLUS)
++    if (p && x == 0 && y == 0 && fg == 0xffff && bg == 0 &&
++        capture_drastic_fps(p)) {
++        return;
++    }
++#endif
++    if (p && *p) {
+         if (myvideo.menu.drastic.item.cnt < MAX_MENU_LINE) {
+             myvideo.menu.drastic.item.idx[myvideo.menu.drastic.item.cnt].x = x;
+             myvideo.menu.drastic.item.idx[myvideo.menu.drastic.item.cnt].y = y;
+             myvideo.menu.drastic.item.idx[myvideo.menu.drastic.item.cnt].fg = fg;
+             myvideo.menu.drastic.item.idx[myvideo.menu.drastic.item.cnt].bg = bg;
+-            strcpy(myvideo.menu.drastic.item.idx[myvideo.menu.drastic.item.cnt].msg, p);
++            SDL_strlcpy(myvideo.menu.drastic.item.idx[myvideo.menu.drastic.item.cnt].msg,
++                        p, sizeof(myvideo.menu.drastic.item.idx[0].msg));
+             myvideo.menu.drastic.item.cnt += 1;
+             trace("added info => x=%03d, y=%03d, fg=0x%08x, bg=0x%08x, \'%s\'\n", x, y, fg, bg, p);
+         }
+     }
+
+-    if ((x == 0) && (y == 0) && (fg == 0xffff) && (bg == 0x0000)) {
++#if !defined(GKD_MINIPLUS)
++    if (p && (x == 0) && (y == 0) && (fg == 0xffff) && (bg == 0x0000)) {
+         if (fps_cnt++ > 60) {
+             fps_cnt = 0;
+
+@@ -2545,6 +2613,7 @@
+             }
+         }
+     }
++#endif
+ #endif
+ }
+
+--- a/sdl2/src/render/nds/nds_render.c
++++ b/sdl2/src/render/nds/nds_render.c
+@@ -285,8 +285,8 @@
+ {
+     trace("call %s()\n", __func__);
+
++#if !defined(GKD_MINIPLUS)
+     myvideo.lcd.show_fps = 0;
+-#if !defined(GKD_MINIPLUS)
+     myvideo.menu.drastic.enable = 1;
+     usleep(100000);
+ #endif
