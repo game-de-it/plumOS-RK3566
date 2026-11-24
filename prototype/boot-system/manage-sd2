@@ -1,5 +1,5 @@
 #!/bin/sh
-# Publish the TF2 card on boards with the verified slot assignment.
+# Publish the card attached to the TF2 controller in the active device tree.
 set -eu
 
 payload=/usr/lib/plumos-353m
@@ -7,16 +7,10 @@ storage=/storage/plumos-rk3566
 helper=$payload/frontend/bin/plumos-bubble-mount-sd2
 [ -x "$helper" ] || helper=$storage/init/plumos-bubble-mount-sd2
 [ -x "$helper" ] || exit 0
-case "$(tr -d '\000' </proc/device-tree/model)" in
-    'Anbernic RG353M'|'Anbernic RG353V'|'Powkiddy RGB30') ;;
-    *) exit 0 ;;
-esac
-
 export PLUMOS_ROOT=$storage/frontend
 export PLUMOS_RUNTIME_ROOT=/run/plumos-353m
 export PLUMOS_BUSYBOX=/usr/bin/busybox
 export PLUMOS_USERDATA_ROOT=/storage/user
-export PLUMOS_SD2_DEVICE=/dev/mmcblk2p1
 export PLUMOS_SD2_IDENTITY_FILE=$storage/init/sd2-identity.conf
 
 case "$1" in
@@ -30,7 +24,36 @@ case "$1" in
     *) exit 2 ;;
 esac
 
-if [ -b "$PLUMOS_SD2_DEVICE" ] && ! "$helper" start; then
+# Every shipped RK3566 DTB maps TF2 to the mmc2 alias. The alias identifies
+# the controller even if Linux assigns its card a different block number.
+dt=/sys/firmware/devicetree/base
+[ -r "$dt/aliases/mmc2" ] || exit 0
+tf2=$(tr -d '\000' < "$dt/aliases/mmc2")
+case "$tf2" in
+    /*) ;;
+    *) exit 0 ;;
+esac
+[ -d "$dt$tf2" ] || exit 0
+
+device=
+for part in /sys/class/block/mmcblk*p1; do
+    name=${part##*/}
+    [ -b "/dev/$name" ] || continue
+    card=$(readlink -f "/sys/class/block/${name%p1}/device") || continue
+    [ "$(cat "$card/type" 2>/dev/null)" = SD ] || continue
+    host=${card%/*}
+    controller=$(readlink -f "$host/device/of_node") || continue
+    [ "$controller" = "$dt$tf2" ] || continue
+    if [ -n "$device" ]; then
+        echo 'plumOS SD2: more than one SD partition matches the TF2 controller' >&2
+        exit 1
+    fi
+    device=/dev/$name
+done
+
+[ -n "$device" ] || exit 0
+export PLUMOS_SD2_DEVICE=$device
+if ! "$helper" start; then
     "$helper" stop
     exit 1
 fi
