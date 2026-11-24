@@ -33,6 +33,7 @@ mkdir /tmp/uboot
 cd /tmp/uboot
 tar -xf /source.tar
 patch -p1 < /patches/rk3566-uboot-rgb30-regulator.patch
+patch -p1 < /patches/rk3566-uboot-rg353v-powered-start.patch
 mkdir /tmp/bin
 ln -s "$(command -v python3)" /tmp/bin/python
 export PATH="/tmp/bin:$PATH"
@@ -51,6 +52,7 @@ for segment in atf-{1..6}; do
 done
 strings u-boot.itb > /tmp/fit-strings
 grep -Fx 'rk3566-rgb30r2-linux.dtb' /tmp/fit-strings
+grep -Fx 'RG353V: booting from power key with USB power' /tmp/fit-strings
 install -m 644 u-boot.itb "/output/$1.partial"
 mv -T "/output/$1.partial" "/output/$1"
 BUILD

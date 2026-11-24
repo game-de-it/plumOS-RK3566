@@ -1,0 +1,42 @@
+--- a/drivers/power/charge_animation.c
++++ b/drivers/power/charge_animation.c
+@@ -34,6 +34,8 @@
+ #endif
+ DECLARE_GLOBAL_DATA_PTR;
+ 
++#define RK817_ON_PWRON			BIT(7)
++
+ #define IMAGE_RESET_IDX				-1
+ #define IMAGE_SOC_100_IDX(n)			((n) - 2)
+ #define IMAGE_LOWPOWER_IDX(n)			((n) - 1)
+@@ -438,6 +440,9 @@
+ 	struct udevice *pmic = priv->pmic;
+ 	struct udevice *fg = priv->fg;
+ 	const char *preboot = env_get("preboot");
++#if defined(CONFIG_ROCKCHIP_RK3568) && defined(CONFIG_RKIMG_BOOTLOADER)
++	const char *model;
++#endif
+ 	int image_num = priv->image_num;
+ 	bool ever_lowpower_screen_off = false;
+ 	bool screen_on = true;
+@@ -530,6 +535,20 @@
+ 		printf("Exit charge: due to not enable uboot charge\n");
+ 		return 0;
+ 	}
++
++	/* A physical power-on requests Linux even when VBUS is present.
++	 * Preserve plug-in-only charging and the low-battery check above. */
++#if defined(CONFIG_ROCKCHIP_RK3568) && defined(CONFIG_RKIMG_BOOTLOADER)
++	model = ofnode_read_string(ofnode_path("/"), "model");
++	if (model && !strcmp(model, "Anbernic RG353V") &&
++	    boot_mode == BOOT_MODE_UNDEFINE) {
++		ret = pmic_reg_read(pmic, RK817_ON_SOURCE);
++		if (ret >= 0 && (ret & RK817_ON_PWRON)) {
++			puts("RG353V: booting from power key with USB power\n");
++			return 0;
++		}
++	}
++#endif
+ 
+ 	voltage = fuel_gauge_get_voltage(fg);
+ 	if (voltage < 0) {

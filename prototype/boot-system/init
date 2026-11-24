@@ -51,9 +51,13 @@ volume_keys_pid=
 attempt=0
 provisioned=no
 
-clear_rgb30_pmic_saved_rails() {
-    local node save_flag save0 save1
-    [ "$(tr -d '\000' </proc/device-tree/model)" = 'Powkiddy RGB30' ] || return 0
+clear_pmic_saved_rails() {
+    local model node save_flag save0 save1
+    model=$(tr -d '\000' </proc/device-tree/model)
+    case "$model" in
+        'Powkiddy RGB30'|'Anbernic RG353V') ;;
+        *) return 0 ;;
+    esac
     node=/sys/bus/i2c/devices/0-0020/of_node
     [ "$(tr '\000' '\n' <"$node/compatible")" = rockchip,rk817 ] || return 1
     save_flag=$(od -An -tx1 "$node/not-save-power-en" | tr -d ' \n')
@@ -68,7 +72,7 @@ clear_rgb30_pmic_saved_rails() {
         i2cset -f -y 0 0x20 0xa4 0x00 b &&
         [ "$(i2cget -f -y 0 0x20 0x99 b)" = 0x00 ] &&
         [ "$(i2cget -f -y 0 0x20 0xa4 b)" = 0x00 ] || return 1
-    printf 'plumOS init: cleared RGB30 RK817 saved rail state (%s/%s)\n' "$save0" "$save1"
+    printf 'plumOS init: cleared %s RK817 saved rail state (%s/%s)\n' "$model" "$save0" "$save1"
 }
 
 power_action() {
@@ -77,8 +81,8 @@ power_action() {
     rm -f "$runtime/power-request"
     case "$action" in reboot|poweroff) ;; *) return 0 ;; esac
     echo "plumOS init: requested $action"
-    if ! clear_rgb30_pmic_saved_rails; then
-        echo 'plumOS init: RGB30 RK817 saved rail state could not be cleared; power action cancelled'
+    if ! clear_pmic_saved_rails; then
+        echo 'plumOS init: RK817 saved rail state could not be cleared; power action cancelled'
         return 0
     fi
     marker=$storage/provision/clean-shutdown
