@@ -240,18 +240,37 @@ terminate_active() {
 }
 
 storage_blocker_pids() {
-    for link in /proc/[0-9]*/fd/* /proc/[0-9]*/cwd; do
-        target=$($BB readlink "$link" 2>/dev/null || true)
-        [ -n "$target" ] || continue
-        matched=0
-        for prefix in "$@"; do
-            case $target in "$prefix"|"$prefix"/*) matched=1; break ;; esac
+    {
+        for link in /proc/[0-9]*/fd/* /proc/[0-9]*/cwd /proc/[0-9]*/exe; do
+            target=$($BB readlink "$link" 2>/dev/null || true)
+            [ -n "$target" ] || continue
+            for prefix in "$@"; do
+                case $target in "$prefix"|"$prefix"/*)
+                    pid=${link#/proc/}
+                    printf '%s\n' "${pid%%/*}"
+                    break
+                    ;;
+                esac
+            done
         done
-        [ "$matched" -eq 1 ] || continue
-        pid=${link#/proc/}
-        pid=${pid%%/*}
-        printf '%s\n' "$pid"
-    done | $BB sort -n -u
+        for prefix in "$@"; do
+            $BB awk -v prefix="$prefix" '
+                BEGIN {
+                    for (i = 1; i < ARGC; i++) {
+                        while ((getline line < ARGV[i]) > 0) {
+                            split(line, fields)
+                            if (fields[6] == prefix || index(fields[6], prefix "/") == 1) {
+                                split(ARGV[i], path, "/")
+                                print path[3]
+                                break
+                            }
+                        }
+                        close(ARGV[i])
+                    }
+                }
+            ' /proc/[0-9]*/maps
+        done
+    } | $BB sort -n -u
 }
 
 terminate_storage() {

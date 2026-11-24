@@ -1,5 +1,5 @@
 #!/bin/sh
-# Publish the RG353M TF2 card through the normal Bubble content paths.
+# Publish the TF2 card on boards with the verified slot assignment.
 set -eu
 
 payload=/usr/lib/plumos-353m
@@ -7,7 +7,10 @@ storage=/storage/plumos-rk3566
 helper=$payload/frontend/bin/plumos-bubble-mount-sd2
 [ -x "$helper" ] || helper=$storage/init/plumos-bubble-mount-sd2
 [ -x "$helper" ] || exit 0
-[ "$(tr -d '\000' </proc/device-tree/model)" = 'Anbernic RG353M' ] || exit 0
+case "$(tr -d '\000' </proc/device-tree/model)" in
+    'Anbernic RG353M'|'Powkiddy RGB30') ;;
+    *) exit 0 ;;
+esac
 
 export PLUMOS_ROOT=$storage/frontend
 export PLUMOS_RUNTIME_ROOT=/run/plumos-353m

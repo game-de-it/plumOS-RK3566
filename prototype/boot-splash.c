@@ -4,26 +4,40 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/mman.h>
 #include <unistd.h>
 
 enum { width = 640, height = 480, pixel_bytes = 4, row_bytes = width * pixel_bytes };
 static unsigned char image[height][row_bytes];
 
-static int clear_framebuffer(int fb, uint64_t bytes)
+static int write_pixels(int fb, const unsigned char *pixels, size_t bytes,
+                        uint64_t offset)
 {
-    uint64_t offset = 0;
-    while (offset < bytes) {
-        uint64_t remaining = bytes - offset;
-        size_t chunk = remaining < sizeof(image) ? (size_t)remaining : sizeof(image);
-        ssize_t written = pwrite(fb, image, chunk, (off_t)offset);
+    while (bytes) {
+        ssize_t written = pwrite(fb, pixels, bytes, (off_t)offset);
         if (written < 0 && errno == EINTR)
             continue;
         if (written <= 0)
             return 1;
+        pixels += written;
+        bytes -= (size_t)written;
         offset += (uint64_t)written;
+    }
+    return 0;
+}
+
+static int clear_framebuffer(int fb, uint64_t bytes)
+{
+    static const unsigned char black[4096];
+    uint64_t offset = 0;
+    while (offset < bytes) {
+        uint64_t remaining = bytes - offset;
+        size_t chunk = remaining < sizeof(black) ? (size_t)remaining : sizeof(black);
+        if (write_pixels(fb, black, chunk, offset))
+            return 1;
+        offset += chunk;
     }
     return 0;
 }
@@ -54,7 +68,7 @@ int main(int argc, char **argv)
     if (ioctl(fb, FBIOGET_FSCREENINFO, &fix) != 0 ||
         ioctl(fb, FBIOGET_VSCREENINFO, &var) != 0 ||
         fix.type != FB_TYPE_PACKED_PIXELS || fix.visual != FB_VISUAL_TRUECOLOR ||
-        var.bits_per_pixel != 32 || var.xres != width || var.yres != height ||
+        var.bits_per_pixel != 32 || !var.xres || !var.yres ||
         var.red.offset != 16 || var.green.offset != 8 || var.blue.offset != 0 ||
         var.red.length != 8 || var.green.length != 8 || var.blue.length != 8) {
         close(fb);
@@ -63,9 +77,11 @@ int main(int argc, char **argv)
 
     uint64_t x = (uint64_t)var.xoffset * pixel_bytes;
     uint64_t start = (uint64_t)var.yoffset * fix.line_length + x;
-    uint64_t end = start + (uint64_t)(height - 1) * fix.line_length + row_bytes;
+    uint64_t visible_row_bytes = (uint64_t)var.xres * pixel_bytes;
+    uint64_t end = start + ((uint64_t)var.yres - 1) * fix.line_length + visible_row_bytes;
     uint64_t virtual_bytes = (uint64_t)var.yres_virtual * fix.line_length;
-    if (x + row_bytes > fix.line_length || end > fix.smem_len ||
+    if ((uint64_t)var.yoffset + var.yres > var.yres_virtual ||
+        x + visible_row_bytes > fix.line_length || end > fix.smem_len ||
         (clear && (virtual_bytes < end || virtual_bytes > fix.smem_len))) {
         close(fb);
         return 1;
@@ -78,14 +94,48 @@ int main(int argc, char **argv)
         return result;
     }
 
-    unsigned char *screen = mmap(NULL, fix.smem_len, PROT_WRITE, MAP_SHARED, fb, 0);
-    if (screen == MAP_FAILED) {
+    unsigned char *scanline = calloc(1, (size_t)visible_row_bytes);
+    if (!scanline) {
         close(fb);
         return 1;
     }
-    for (unsigned int row = 0; row < height; row++)
-        memcpy(screen + start + row * (uint64_t)fix.line_length, image[row], row_bytes);
-    munmap(screen, fix.smem_len);
+    unsigned int draw_width = var.xres;
+    unsigned int draw_height = (uint64_t)var.xres * height / width;
+    if (draw_height > var.yres) {
+        draw_width = (uint64_t)var.yres * width / height;
+        draw_height = var.yres;
+    }
+    if (!draw_width)
+        draw_width = 1;
+    if (!draw_height)
+        draw_height = 1;
+    unsigned int left = (var.xres - draw_width) / 2;
+    unsigned int top = (var.yres - draw_height) / 2;
+
+    int result = 0;
+    for (unsigned int row = 0; row < var.yres; row++) {
+        if (row == top + draw_height)
+            memset(scanline, 0, (size_t)visible_row_bytes);
+        if (row >= top && row - top < draw_height) {
+            const unsigned char *src = image[(uint64_t)(row - top) * height / draw_height];
+            unsigned char *dst = scanline + (size_t)left * pixel_bytes;
+            if (draw_width == width) {
+                memcpy(dst, src, row_bytes);
+            } else {
+                for (unsigned int col = 0; col < draw_width; col++)
+                    memcpy(dst + (size_t)col * pixel_bytes,
+                           src + (uint64_t)col * width / draw_width * pixel_bytes,
+                           pixel_bytes);
+            }
+        }
+        result = write_pixels(fb, scanline, (size_t)visible_row_bytes,
+                              start + (uint64_t)row * fix.line_length);
+        if (result)
+            break;
+    }
+    free(scanline);
     close(fb);
-    return 0;
+    if (!result)
+        printf("framebuffer: %ux%u XRGB8888\n", var.xres, var.yres);
+    return result;
 }

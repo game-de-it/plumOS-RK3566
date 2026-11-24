@@ -127,10 +127,15 @@ power_action() {
         "$network" --wifi off || echo 'plumOS init: Wi-Fi shutdown failed'
         network_stopped=yes
     fi
-    if grep -qs " $PLUMOS_ROOT overlay " /proc/mounts && ! umount "$PLUMOS_ROOT"; then
-        echo 'plumOS init: could not unmount the runtime; power action cancelled'
-        power_rollback "$marker" "$user_marker" "$network_stopped"
-        return 0
+    if grep -qs " $PLUMOS_ROOT overlay " /proc/mounts; then
+        # A service can still be exiting, with its executable or a mapped
+        # library on the runtime overlay after all of its files were closed.
+        if { [ -x "$quiesce" ] && ! "$quiesce" terminate-storage "$PLUMOS_ROOT"; } ||
+            ! umount "$PLUMOS_ROOT"; then
+            echo 'plumOS init: could not unmount the runtime; power action cancelled'
+            power_rollback "$marker" "$user_marker" "$network_stopped"
+            return 0
+        fi
     fi
     if [ -x "$quiesce" ] && ! "$quiesce" terminate-storage /storage; then
         echo 'plumOS init: runtime writer could not stop; power action cancelled'

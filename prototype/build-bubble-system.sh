@@ -53,6 +53,7 @@ python3 "$prototype/emulators/set-volume-curve.py" \
     "$stage/source/package/frontend-bubble/plumos/bin/plumos-volume-control"
 python3 "$prototype/emulators/enable-frontend-builtins.py" "$stage/source/src/frontend"
 python3 "$prototype/brand-rk3566-frontend.py" "$stage/source"
+patch -d "$stage/source" -p1 < "$prototype/patches/rk3566-square-layout.patch"
 "$prototype/build-frontend-docker.sh" "$stage" "$stage/source/src/frontend"
 
 layer=$stage/layer

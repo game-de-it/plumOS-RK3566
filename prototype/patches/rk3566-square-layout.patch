@@ -1,0 +1,148 @@
+--- a/src/frontend/plumos_fbdev_renderer.h
++++ b/src/frontend/plumos_fbdev_renderer.h
+@@ -3055,13 +3055,18 @@
+   }
+ }
+ 
++static int plumos_fbdev_graphic_top_grid_rows(
++    const struct plumos_fbdev_renderer *r) {
++  return r->var.yres >= 640 && r->var.yres >= r->var.xres ? 3 : 2;
++}
++
+ static void plumos_fbdev_graphic_top_layout_metrics(
+     struct plumos_fbdev_renderer *r, const struct plumos_fbdev_motion *motion,
+     int *columns_out, int *rows_out, int *grid_x_out, int *grid_y_out,
+     int *tile_size_out, int *gap_out) {
+   int strip = motion && strcmp(motion->top_layout, "tile_strip") == 0;
+   int columns = strip ? 2 : 3;
+-  int rows = strip ? 1 : 2;
++  int rows = strip ? 1 : plumos_fbdev_graphic_top_grid_rows(r);
+   int horizontal_margin = strip ? 32 : 22;
+   int grid_y = strip ? 116 : 70;
+   int bottom_margin = strip ? 42 : 18;
+@@ -3328,11 +3333,23 @@
+   }
+ }
+ 
++enum { PLUMOS_FBDEV_ROM_LIST_TOP = 70, PLUMOS_FBDEV_ROM_ROW_HEIGHT = 38,
++       PLUMOS_FBDEV_ROM_BOTTOM_MARGIN = 20, PLUMOS_FBDEV_ROM_MAX_ROWS = 16 };
++
++static size_t plumos_fbdev_graphic_rom_rows(const struct plumos_fbdev_renderer *r) {
++  int rows = ((int)r->var.yres - PLUMOS_FBDEV_ROM_LIST_TOP -
++              PLUMOS_FBDEV_ROM_BOTTOM_MARGIN) / PLUMOS_FBDEV_ROM_ROW_HEIGHT;
++  if (rows < 1) {
++    return 1;
++  }
++  return rows > PLUMOS_FBDEV_ROM_MAX_ROWS ? PLUMOS_FBDEV_ROM_MAX_ROWS : rows;
++}
++
+ static int plumos_fbdev_render_roms(struct plumos_fbdev_renderer *r,
+                                     char lines[][PLUMOS_FBDEV_RENDER_LINE_MAX],
+                                     size_t line_count,
+                                     const struct plumos_fbdev_palette *p) {
+-  struct plumos_fbdev_entry entries[14];
++  struct plumos_fbdev_entry entries[PLUMOS_FBDEV_ROM_MAX_ROWS];
+   const struct plumos_fbdev_entry *selected;
+   const char *system_value;
+   char title[160];
+@@ -3341,9 +3358,9 @@
+   int w = (int)r->var.xres;
+   int h = (int)r->var.yres;
+   int list_x = 18;
+-  int list_y = 70;
++  int list_y = PLUMOS_FBDEV_ROM_LIST_TOP;
+   int list_w = w > 680 ? 360 : w / 2 - 28;
+-  int row_h = 38;
++  int row_h = PLUMOS_FBDEV_ROM_ROW_HEIGHT;
+   int preview_x = list_x + list_w + 16;
+   int preview_y = 72;
+   int preview_w = w - preview_x - 16;
+@@ -3381,7 +3398,7 @@
+     int name_right_x = list_x + list_w - 10;
+     int scroll_px = 0;
+     uint32_t fg = entries[i].selected ? p->selection_foreground : p->foreground;
+-    if (y + row_h > h - 20) {
++    if (y + row_h > h - PLUMOS_FBDEV_ROM_BOTTOM_MARGIN) {
+       break;
+     }
+     if (entries[i].selected) {
+@@ -3941,13 +3958,15 @@
+   }
+ }
+ 
++enum { PLUMOS_FBDEV_TEXT_MAX_ROWS = 32 };
++
+ static int plumos_fbdev_render_generic(struct plumos_fbdev_renderer *r,
+                                        char lines[][PLUMOS_FBDEV_RENDER_LINE_MAX],
+                                        size_t line_count,
+                                        const struct plumos_fbdev_palette *p) {
+   char title[128];
+-  char items[18][PLUMOS_FBDEV_RENDER_LINE_MAX];
+-  int selected[18];
++  char items[PLUMOS_FBDEV_TEXT_MAX_ROWS][PLUMOS_FBDEV_RENDER_LINE_MAX];
++  int selected[PLUMOS_FBDEV_TEXT_MAX_ROWS];
+   size_t item_count = 0;
+   size_t i;
+   int w = (int)r->var.xres;
+@@ -3999,7 +4018,7 @@
+                                          &wifi_keyboard_row,
+                                          &wifi_keyboard_col);
+ 
+-  for (i = 1; i < line_count && item_count < 18; i++) {
++  for (i = 1; i < line_count && item_count < PLUMOS_FBDEV_TEXT_MAX_ROWS; i++) {
+     const char *line = plumos_fbdev_ltrim(lines[i]);
+     int is_selected = 0;
+     if (plumos_fbdev_is_hidden_line(line)) {
+--- a/src/frontend/plumos_controller_ui.c
++++ b/src/frontend/plumos_controller_ui.c
+@@ -5974,7 +5974,7 @@
+ };
+ 
+ static const struct setting_choice GRAPHIC_TOP_LAYOUT_CHOICES[] = {
+-    {"tile_grid", "Grid 3x2"},
++    {"tile_grid", "Grid"},
+     {"tile_strip", "Strip 2x1"},
+ };
+ 
+@@ -9002,8 +9002,8 @@
+   }
+ 
+   rows = (size_t)((bottom_y - first_entry_y) / line_height) + 1;
+-  if (rows > 18) {
+-    rows = 18;
++  if (rows > PLUMOS_FBDEV_TEXT_MAX_ROWS) {
++    rows = PLUMOS_FBDEV_TEXT_MAX_ROWS;
+   }
+   return rows ? rows : 1;
+ #else
+@@ -9035,8 +9035,16 @@
+ }
+ 
+ static size_t ui_graphic_top_page_size(const struct ui_state *ui) {
+-  return ui_graphic_top_uses_strip(ui) ? UI_GRAPHIC_TOP_STRIP_PAGE_SIZE
+-                                       : UI_GRAPHIC_TOP_GRID_PAGE_SIZE;
++  if (ui_graphic_top_uses_strip(ui)) {
++    return UI_GRAPHIC_TOP_STRIP_PAGE_SIZE;
++  }
++#ifdef PLUMOS_ENABLE_FBDEV_RENDERER
++  if (ui->renderer_fbdev && ui->renderer_active) {
++    return UI_GRAPHIC_TOP_GRID_COLUMNS *
++           plumos_fbdev_graphic_top_grid_rows(&ui->fbdev_renderer);
++  }
++#endif
++  return UI_GRAPHIC_TOP_GRID_PAGE_SIZE;
+ }
+ 
+ static size_t ui_graphic_top_columns(const struct ui_state *ui) {
+@@ -9050,6 +9058,11 @@
+ }
+ 
+ static size_t ui_graphic_rom_page_size(const struct ui_state *ui) {
++#ifdef PLUMOS_ENABLE_FBDEV_RENDERER
++  if (ui && ui->renderer_fbdev && ui->renderer_active) {
++    return plumos_fbdev_graphic_rom_rows(&ui->fbdev_renderer);
++  }
++#endif
+ #ifdef PLUMOS_ENABLE_MMF_GFX_RENDERER
+   if (ui && ui->renderer_mmf_gfx && ui->renderer_active) {
+     return plumos_mmf_gfx_renderer_graphic_rom_page_size(&ui->mmf_gfx_renderer);
