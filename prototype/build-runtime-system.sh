@@ -134,6 +134,7 @@ cc -static -O2 -Wall -Wextra -o "$payload/power" /prototype/boot-system/power.c
 cc -static -O2 -Wall -Wextra -o "$payload/rgb30-menu-chord" /prototype/emulators/rgb30-menu-chord.c
 python3 /prototype/emulators/configure-retroarch-aspect.py "$payload/frontend"
 python3 /prototype/emulators/configure-rgb30-menu-chords.py "$payload/frontend"
+python3 /prototype/emulators/install-mrboom-diagnostics.py "$payload/frontend"
 python3 /prototype/configure-ssh-auth.py "$payload/frontend"
 # The preserved initramfs requires this pathname at check and switch_root.
 ln -s ../plumos-353m/init "$root/usr/lib/systemd/systemd"
