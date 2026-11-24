@@ -1,0 +1,73 @@
+diff --git a/nes_emu/Nes_Cart.cpp b/nes_emu/Nes_Cart.cpp
+index 5a1ccde..f76095e 100644
+--- a/nes_emu/Nes_Cart.cpp
++++ b/nes_emu/Nes_Cart.cpp
+@@ -87,8 +87,8 @@ struct ines_header_t {
+ 	uint8_t prg_count; // number of 16K PRG banks
+ 	uint8_t chr_count; // number of 8K CHR banks
+ 	uint8_t flags;     // MMMM FTBV Mapper low, Four-screen, Trainer, Battery, V mirror
+-	uint8_t flags2;    // MMMM --XX Mapper high 4 bits
+-	uint8_t zero [8];  // if zero [7] is non-zero, treat flags2 as zero
++	uint8_t flags2;    // MMMM FFXX Mapper high 4 bits, format, console
++	uint8_t extra [8];  // NES 2.0 fields, or padding in legacy iNES
+ };
+ BOOST_STATIC_ASSERT( sizeof (ines_header_t) == 16 );
+
+@@ -102,9 +102,16 @@ const char * Nes_Cart::load_ines( Auto_File_Reader in )
+ 	if ( 0 != memcmp( h.signature, "NES\x1A", 4 ) )
+ 		return not_ines_file;
+ 	
+-	if ( h.zero [7] ) // handle header defaced by a fucking idiot's handle
++	// Byte 15 is a valid expansion-device field in NES 2.0. Apply the
++	// dirty-header heuristic only to legacy iNES.
++	if ( (h.flags2 & 0x0c) == 0x08 )
++	{
++		if ( (h.extra [0] & 0x0f) || h.extra [1] )
++			return "Unsupported NES 2.0 extended mapper or ROM size";
++	}
++	else if ( h.extra [7] )
+ 		h.flags2 = 0;
+-	
++
+ 	set_mapper( h.flags, h.flags2 );
+ 	
+ 	if ( h.flags & 0x04 ) // skip trainer
+diff --git a/nes_emu/Nes_Ppu_Impl.h b/nes_emu/Nes_Ppu_Impl.h
+index 1a27218..45b21a6 100644
+--- a/nes_emu/Nes_Ppu_Impl.h
++++ b/nes_emu/Nes_Ppu_Impl.h
+@@ -172,23 +172,22 @@ inline int Nes_Ppu_Impl::sprite_tile_index( uint8_t const* sprite ) const
+ inline int Nes_Ppu_Impl::write_2007( int data )
+ {
+ 	int addr = vram_addr;
+-	uint8_t * chr_ram = this->chr_ram; // pre-read
+ 	int changed = addr + addr_inc;
+-	unsigned const divisor = bytes_per_tile * 8;
+-	int mod_index = (unsigned) addr / divisor % (0x4000 / divisor);
+ 	vram_addr = changed;
+ 	changed ^= addr;
+ 	addr &= 0x3fff;
+-	
+-	// use index into modified_tiles [] since it's calculated sooner than addr is masked
+-	if ( (unsigned) mod_index < 0x2000 / divisor )
++
++	if ( addr < chr_addr_size )
+ 	{
+-		// Avoid overhead of checking for read-only CHR; if that is the case,
+-		// this modification will be ignored.
+-		int mod = modified_tiles [mod_index];
+-		chr_ram [addr] = data;
+-		any_tiles_modified = true;
+-		modified_tiles [mod_index] = mod | (1 << ((unsigned) addr / bytes_per_tile % 8));
++		if ( chr_is_writable )
++		{
++			// Cache entries are indexed by the physical CHR bank.
++			unsigned mapped = chr_pages [addr / chr_page_size] + addr;
++			unsigned tile = mapped / bytes_per_tile;
++			chr_ram [mapped] = data;
++			modified_tiles [tile / 8] |= 1 << (tile % 8);
++			any_tiles_modified = true;
++		}
+ 	}
+ 	else if ( addr < 0x3f00 )
+ 	{

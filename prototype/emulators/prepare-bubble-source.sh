@@ -19,7 +19,7 @@ cp "$scripts/rg353m-picoarch-audio.patch" "$destination/package/picoarch-bubble/
 cp "$scripts/rg353m-picoarch-evdev.patch" "$destination/package/picoarch-bubble/patches/rg353m-evdev.patch"
 cp "$scripts/rg353m-drastic-input.patch" "$destination/package/standalone-bubble/patches/drastic/rg353m-input.patch"
 cp "$scripts/rg353m-openbor-input.patch" "$destination/package/standalone-bubble/patches/openbor/rg353m-input.patch"
-cp "$scripts/quicknes-nes2-header.patch" "$destination/patches/libretro-cores-bubble/"
+cp "$scripts/quicknes-rg353m.patch" "$destination/patches/libretro-cores-bubble/"
 patch -s -d "$destination" -p1 < "$scripts/rg353m-standalone.patch"
 patch -s -d "$destination" -p1 < "$scripts/rg353m-drastic-cleanup.patch"
 python3 - "$destination" <<'PY'
@@ -90,13 +90,13 @@ replace("scripts/build-openbor-bubble.sh", 'git -C "$SOURCE_ROOT" apply "$PATCH_
 replace("scripts/build-libretro-cores-bubble.sh",
         '    build_dir="$work_dir"\n',
         '    if [ "$id" = "quicknes" ]; then\n'
-        '        git -C "$work_dir" apply "$ROOT_DIR/patches/libretro-cores-bubble/quicknes-nes2-header.patch"\n'
+        '        git -C "$work_dir" apply "$ROOT_DIR/patches/libretro-cores-bubble/quicknes-rg353m.patch"\n'
         '    fi\n'
         '    build_dir="$work_dir"\n', 1)
 replace("scripts/build-bubble-quicknes.sh",
         'git -C "$work" clean -fdx --quiet\n',
         'git -C "$work" clean -fdx --quiet\n'
-        'patch_file="$repo_root/patches/libretro-cores-bubble/quicknes-nes2-header.patch"\n'
+        'patch_file="$repo_root/patches/libretro-cores-bubble/quicknes-rg353m.patch"\n'
         'git -C "$work" apply "$patch_file"\n'
         'patch_sha256=$(sha256sum "$patch_file" | cut -d " " -f 1)\n', 1)
 replace("scripts/build-bubble-quicknes.sh",
@@ -104,7 +104,7 @@ replace("scripts/build-bubble-quicknes.sh",
         '  "source_commit": "$ref",\n  "patch_sha256": "$patch_sha256",\n', 1)
 replace("scripts/lib/bubble-libretro-package-metadata.sh",
         '        bluemsx) patch=bluemsx-cbios-safe-default.patch ;;',
-        '        quicknes) patch=quicknes-nes2-header.patch ;;\n'
+        '        quicknes) patch=quicknes-rg353m.patch ;;\n'
         '        bluemsx) patch=bluemsx-cbios-safe-default.patch ;;', 1)
 standalone = "scripts/build-standalone-bubble.sh"
 replace(standalone, '"input": "/dev/input/event2",',
