@@ -9,7 +9,7 @@
 | Anbernic | RG353M | 実機で起動、フロントエンド、ADBを確認済み |
 | Anbernic | RG353V | 共通SDでplumOS init、FE、p5、USB ADBを確認。修正版SYSTEMでSD2とROM・BIOSの公開を確認 |
 | Anbernic | RG353P | 機種別DTBを同梱。plumOSでの実機起動は未確認 |
-| Anbernic | RG503 | 共通SDで960×544のFEとTF2のROM・BIOS公開を実機確認。実機試験の接続経路はWi-Fi SSH |
+| Anbernic | RG503 | 共通SDで960×544のFEとTF2を確認。174プロファイルの表示、Appsの起動、USB給電中のスリープ復帰をWi-Fi SSHで検証。[実機結果](validation/2026-11-25-rg503-runtime.md) |
 | Powkiddy | RGB30 r1・r2 | 同一SDでDTBの自動切り替え、plumOS init、FE、p5、USB ADBを両機で確認。r2ではSD2も確認 |
 | Powkiddy | RK2023、RGB10 Max 3 | 機種別DTBを同梱。plumOSでの実機起動は未確認 |
 | Anbernic | RG353VS | JELOS 20240206の対応表に掲載。専用名のDTBは未収録で、plumOSでの実機起動は未確認 |
