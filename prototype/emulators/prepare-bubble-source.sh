@@ -57,9 +57,11 @@ replace(standalone_launcher,
 replace(standalone_launcher,
         'LD_PRELOAD="/usr/lib/libSDL2-2.0.so.0:$PLUMOS_ROOT/emulator/lib/libmali.so.1:$drm_share_preload"',
         'LD_PRELOAD="$kms_sdl2:$PLUMOS_ROOT/emulator/lib/libmali.so.1:$drm_share_preload"', 1)
+# The SDL 1.2 shim loads the bundled SDL2 privately. Preloading SDL2 resolves
+# PCSX's SDL_PeepEvents to the incompatible SDL2 ABI.
 replace(standalone_launcher,
         'LD_PRELOAD="$drm_share_preload" \\\nSDL_VIDEODRIVER=kmsdrm',
-        'LD_PRELOAD="$kms_sdl2:$mali_preload" \\\n'
+        'LD_PRELOAD="$mali_preload" \\\n'
         'SDL_VIDEO_EGL_DRIVER="$PLUMOS_ROOT/emulator/lib/libmali.so.1" \\\n'
         'SDL_VIDEO_GL_DRIVER="$PLUMOS_ROOT/emulator/lib/libmali.so.1" \\\n'
         'SDL_VIDEODRIVER=kmsdrm', 1)
