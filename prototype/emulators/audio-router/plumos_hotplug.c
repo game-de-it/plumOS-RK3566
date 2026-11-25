@@ -36,6 +36,7 @@ typedef struct {
     unsigned int volume_probe_countdown;
     int volume_level;
     int allow_fast_drop;
+    int short_period;
     char fast_forward_state[PATH_MAX];
     int fast_forward_active;
     int physical_resync_pending;
@@ -274,6 +275,7 @@ static int configure_physical(snd_pcm_t *pcm, const snd_pcm_ioplug_t *io,
     snd_pcm_sw_params_t *sw;
     snd_pcm_uframes_t period = io->period_size ? io->period_size : 768;
     snd_pcm_uframes_t buffer = io->buffer_size ? io->buffer_size : period * 4;
+    snd_pcm_uframes_t start = period;
     unsigned int rate = io->rate;
     int direction = 0;
     int err;
@@ -297,10 +299,16 @@ static int configure_physical(snd_pcm_t *pcm, const snd_pcm_ioplug_t *io,
     if (rate != io->rate)
         return -EINVAL;
 
+    /* Keep the short wake interval during playback. After a reopen or XRUN,
+     * give the synchronous client its original period to fill with real audio. */
+    if (!period_limit)
+        start = period;
+    else if (start > buffer)
+        start = buffer;
     snd_pcm_sw_params_alloca(&sw);
     if ((err = snd_pcm_sw_params_current(pcm, sw)) < 0 ||
         (err = snd_pcm_sw_params_set_avail_min(pcm, sw, period)) < 0 ||
-        (err = snd_pcm_sw_params_set_start_threshold(pcm, sw, period)) < 0 ||
+        (err = snd_pcm_sw_params_set_start_threshold(pcm, sw, start)) < 0 ||
         (err = snd_pcm_sw_params(pcm, sw)) < 0)
         return err;
     if (actual_buffer)
@@ -313,8 +321,7 @@ static snd_pcm_t *open_physical(const snd_pcm_ioplug_t *io, int card,
                                 snd_pcm_uframes_t *actual_buffer)
 {
     const plumos_pcm_t *owner = io->private_data;
-    const char *short_period = getenv("PLUMOS_AUDIO_SHORT_PERIOD");
-    snd_pcm_uframes_t period_limit = 0;
+    snd_pcm_uframes_t period_limit = owner->short_period ? SHORT_PERIOD_FRAMES : 0;
     char name[32];
     snd_pcm_t *pcm = NULL;
     int mode = owner->allow_fast_drop ? SND_PCM_NONBLOCK : 0;
@@ -322,9 +329,6 @@ static snd_pcm_t *open_physical(const snd_pcm_ioplug_t *io, int card,
     int direct_first = owner->allow_fast_drop;
     int plug;
     int err;
-
-    if (short_period && !strcmp(short_period, "1"))
-        period_limit = SHORT_PERIOD_FRAMES;
 
     /*
      * RetroArch needs the direct hardware PCM: inserting plughw adds a second
@@ -408,7 +412,7 @@ static int switch_route(plumos_pcm_t *pcm, int force)
         snd_pcm_drop(old);
         snd_pcm_close(old);
     }
-    if (old && pcm->io.state == SND_PCM_STATE_RUNNING) {
+    if (old && pcm->io.state == SND_PCM_STATE_RUNNING && !pcm->short_period) {
         snd_pcm_uframes_t frames = pcm->io.period_size ?
                                    pcm->io.period_size : 768;
         int16_t *silence = calloc((size_t)frames * 2, sizeof(*silence));
@@ -658,20 +662,16 @@ static void resync_prepared_physical(plumos_pcm_t *pcm)
         snd_pcm_state(pcm->physical) != SND_PCM_STATE_PREPARED)
         return;
 
-    /*
-     * The physical queue is empty after suspend recovery.  Keep the matching
-     * logical backlog dropped, but prime one silent physical period before
-     * reporting the new pointer.  SDL 2.32 otherwise sees an empty logical
-     * ring as permanently writable while the physical PCM stays PREPARED,
-     * and its SDLAudio thread spins without invoking our transfer callback.
-     *
-     * Do not advance submitted_ptr for the silent prime.  The pointer callback
-     * therefore exposes it as queued hardware data; once it drains, SDL
-     * naturally submits the next real game buffer and playback continues.
-     */
     pcm->submitted_ptr = pcm->io.appl_ptr;
     pcm->physical_resync_pending = 0;
     pcm->prepared_wake_active = 0;
+    /* DraStic calls ALSA directly. It can fill a PREPARED device on its
+     * next write, and a silent prime would move its logical pointer backwards. */
+    if (pcm->short_period)
+        return;
+
+    /* SDL 2.32 can spin on an empty PREPARED PCM without calling transfer.
+     * Prime it without advancing submitted_ptr to let SDL wait for progress. */
     prime_frames = pcm->io.period_size ? pcm->io.period_size : 512;
     if (pcm->physical_buffer_size &&
         prime_frames > pcm->physical_buffer_size)
@@ -1120,6 +1120,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(plumos_hotplug)
     snd_config_iterator_t i, next;
     plumos_pcm_t *pcm;
     const char *poll_proxy;
+    const char *short_period;
     int err;
 
     if (stream != SND_PCM_STREAM_PLAYBACK)
@@ -1144,6 +1145,8 @@ SND_PCM_PLUGIN_DEFINE_FUNC(plumos_hotplug)
     pcm->allow_fast_drop =
         getenv("PLUMOS_AUDIO_FAST_FORWARD_DROP") &&
         !strcmp(getenv("PLUMOS_AUDIO_FAST_FORWARD_DROP"), "1");
+    short_period = getenv("PLUMOS_AUDIO_SHORT_PERIOD");
+    pcm->short_period = short_period && !strcmp(short_period, "1");
     poll_proxy = getenv("PLUMOS_AUDIO_POLL_PROXY");
     if (pcm->allow_fast_drop &&
         getenv("PLUMOS_AUDIO_FAST_FORWARD_STATE") &&
