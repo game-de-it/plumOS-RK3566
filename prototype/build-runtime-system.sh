@@ -131,9 +131,9 @@ install -m644 /prototype/system/etc/issue "$root/etc/issue"
 payload=$root/usr/lib/plumos-353m
 install -m755 /prototype/boot-system/init "$payload/init"
 cc -static -O2 -Wall -Wextra -o "$payload/power" /prototype/boot-system/power.c
-cc -static -O2 -Wall -Wextra -o "$payload/rgb30-menu-chord" /prototype/emulators/rgb30-menu-chord.c
+cc -static -O2 -Wall -Wextra -o "$payload/standalone-menu-chord" /prototype/emulators/standalone-menu-chord.c
 python3 /prototype/emulators/configure-retroarch-aspect.py "$payload/frontend"
-python3 /prototype/emulators/configure-rgb30-menu-chords.py "$payload/frontend"
+python3 /prototype/emulators/configure-standalone-menu-chords.py "$payload/frontend"
 python3 /prototype/emulators/install-mrboom-diagnostics.py "$payload/frontend"
 python3 /prototype/configure-ssh-auth.py "$payload/frontend"
 # The preserved initramfs requires this pathname at check and switch_root.

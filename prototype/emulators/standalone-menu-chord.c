@@ -22,7 +22,7 @@ static void stop(int signal_number)
     running = 0;
 }
 
-static bool is_rgb30(void)
+static bool needs_menu_chord(void)
 {
     char model[64] = {0};
     FILE *file = fopen("/proc/device-tree/model", "rb");
@@ -30,7 +30,8 @@ static bool is_rgb30(void)
         return false;
     size_t length = fread(model, 1, sizeof(model) - 1, file);
     fclose(file);
-    return length > 0 && strcmp(model, "Powkiddy RGB30") == 0;
+    return length > 0 && (strcmp(model, "Powkiddy RGB30") == 0 ||
+                          strcmp(model, "Powkiddy RK2023") == 0);
 }
 
 static int open_joypad(void)
@@ -66,22 +67,14 @@ static bool set_menu_key(int fd, bool down)
 
 int main(int argc, char **argv)
 {
-    if (!is_rgb30())
+    if (!needs_menu_chord())
         return 0;
-    if (argc != 3)
+    if (argc != 2)
         return 2;
     char *end;
     long parent = strtol(argv[1], &end, 10);
     if (*end || parent <= 1)
         return 2;
-    unsigned int menu_partner;
-    if (strcmp(argv[2], "retroarch") == 0)
-        menu_partner = BTN_SOUTH; /* The RGB30's physical B. */
-    else if (strcmp(argv[2], "standalone") == 0)
-        menu_partner = BTN_START;
-    else
-        return 2;
-
     const struct sigaction action = {.sa_handler = stop};
     sigaction(SIGTERM, &action, NULL);
     sigaction(SIGINT, &action, NULL);
@@ -92,7 +85,7 @@ int main(int argc, char **argv)
 
     int fd = open_joypad();
     if (fd < 0) {
-        perror("plumOS RGB30 menu chord: joypad unavailable");
+        perror("plumOS standalone menu chord: joypad unavailable");
         return 1;
     }
 
@@ -123,7 +116,7 @@ int main(int argc, char **argv)
             continue;
         } else if (event.code == BTN_SELECT) {
             select_down = event.value == 1;
-        } else if (event.code == menu_partner) {
+        } else if (event.code == BTN_START) {
             partner_down = event.value == 1;
         } else {
             continue;

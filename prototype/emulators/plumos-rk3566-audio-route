@@ -10,12 +10,19 @@ speaker_path=SPK
 headphone_path=HP
 headphone_no_mic_path=HP_NO_MIC
 
-# The RGB30 wiring uses the RK817 headphone DAC path for its speakers.
-if [ "$(tr -d '\000' </proc/device-tree/model 2>/dev/null || :)" = 'Powkiddy RGB30' ]; then
-    speaker_path=HP
-    headphone_path=SPK
-    headphone_no_mic_path=SPK
-fi
+case "$(tr -d '\000' </proc/device-tree/model 2>/dev/null || :)" in
+    'Powkiddy RGB30')
+        speaker_path=HP
+        headphone_path=SPK
+        headphone_no_mic_path=SPK
+        ;;
+    'Powkiddy RK2023')
+        # Both outputs use HPOL/HPOR. The analog jack switches them in hardware.
+        speaker_path=HP
+        headphone_path=HP
+        headphone_no_mic_path=HP
+        ;;
+esac
 
 route() {
     local headset card previous output

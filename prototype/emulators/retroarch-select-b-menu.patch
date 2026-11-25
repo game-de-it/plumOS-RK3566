@@ -1,0 +1,18 @@
+--- a/runloop.c
++++ b/runloop.c
+@@ -5652,4 +5652,14 @@
+                &last_input))
+       BIT256_SET(current_bits, RARCH_MENU_TOGGLE);
+-
++
++   /* Keep the plumOS Select+B shortcut independent of the FN binding
++    * and RetroArch's configurable gamepad combo. */
++   if (   BIT256_GET(current_bits, RETRO_DEVICE_ID_JOYPAD_SELECT)
++       && BIT256_GET(current_bits, RETRO_DEVICE_ID_JOYPAD_B))
++   {
++      BIT256_CLEAR(current_bits, RETRO_DEVICE_ID_JOYPAD_SELECT);
++      BIT256_CLEAR(current_bits, RETRO_DEVICE_ID_JOYPAD_B);
++      BIT256_SET(current_bits, RARCH_MENU_TOGGLE);
++   }
++
+    if (menu_st->input_driver_flushing_input > 0)

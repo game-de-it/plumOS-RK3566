@@ -1,4 +1,4 @@
-"""Configure RGB30 input and migrate the DraStic factory configuration."""
+"""Configure menu chords on handhelds without an FN button."""
 
 import hashlib
 from pathlib import Path
@@ -7,41 +7,30 @@ import sys
 
 root = Path(sys.argv[1])
 bindings = {
-    "plumos-retroarch-launch": (
-        'set -- "$PLUMOS_ROOT/bin/retroarch" -v -c "$config"',
-        "retroarch",
-        '"$PLUMOS_ROOT/logs/retroarch-$system-$core_id.log"',
-    ),
-    "plumos-retroarch-menu-launch": (
-        'set -- "$PLUMOS_ROOT/bin/retroarch" -v -c "$config"',
-        "retroarch",
-        '"$PLUMOS_ROOT/logs/retroarch-menu.log"',
-    ),
     "plumos-picoarch-launch": (
         "set +e\nHOME=",
-        "standalone",
         '"$LOG"',
     ),
     "plumos-standalone-launch": (
         'if [ "$emulator_id" = ppsspp ]; then',
-        "standalone",
         '"$route_log"',
     ),
 }
 
 changed = {}
-for launcher, (anchor, profile, log) in bindings.items():
+for launcher, (anchor, log) in bindings.items():
     relative = f"bin/{launcher}"
     path = root / relative
     source = path.read_text()
     if source.count(anchor) != 1:
         raise SystemExit(f"Menu binding anchor changed in {path}")
-    addition = f'/usr/lib/plumos-353m/rgb30-menu-chord "$$" {profile} >>{log} 2>&1 &\n'
+    addition = f'/usr/lib/plumos-353m/standalone-menu-chord "$$" >>{log} 2>&1 &\n'
     if launcher == "plumos-standalone-launch":
         addition = (
-            'if [ "$emulator_id" = drastic ] &&\n'
-            '   [ "$("$BB" tr -d \'\\000\' </proc/device-tree/model)" = "Powkiddy RGB30" ]; then\n'
-            '    export PLUMOS_DRASTIC_RGB30_CHORD=1\n'
+            'if [ "$emulator_id" = drastic ]; then\n'
+            '    case "$("$BB" tr -d \'\\000\' 2>/dev/null </proc/device-tree/model || :)" in\n'
+            '        "Powkiddy RGB30"|"Powkiddy RK2023") export PLUMOS_DRASTIC_RGB30_CHORD=1 ;;\n'
+            '    esac\n'
             'else\n'
             f'    {addition}'
             'fi\n'
