@@ -1,18 +1,108 @@
---- a/runloop.c
-+++ b/runloop.c
-@@ -5652,4 +5652,14 @@
-                &last_input))
-       BIT256_SET(current_bits, RARCH_MENU_TOGGLE);
--
+--- a/input/input_driver.c
++++ b/input/input_driver.c
+@@ -5657,6 +5657,11 @@
+    input_driver_state_t *input_st = &input_driver_st;
+    bool block_hotkey[RARCH_BIND_LIST_END];
+    bool any_pressed               = false;
++   bool libretro_input_active;
++#ifdef HAVE_MENU
++   const unsigned plumos_menu_buttons =
++        (1U << RETRO_DEVICE_ID_JOYPAD_SELECT) | (1U << RETRO_DEVICE_ID_JOYPAD_B);
++#endif
+    bool libretro_hotkey_set       =
+             binds_norm->joykey  != NO_BTN
+          || binds_norm->joyaxis != AXIS_NONE
+@@ -5706,7 +5711,12 @@
+    /* Check libretro input if emulated device type is active,
+     * except device type must be always active in menu. */
+-   if (     !(input_st->flags & INP_FLAG_BLOCK_LIBRETRO_INPUT)
+-         && !(!is_menu && !input_config_get_device(port)))
++   libretro_input_active = !(input_st->flags & INP_FLAG_BLOCK_LIBRETRO_INPUT)
++      && (is_menu || input_config_get_device(port));
++   if (libretro_input_active
++#ifdef HAVE_MENU
++         || port == hotkey_port
++#endif
++      )
+       ret = input_state_wrap(
+             input_st->current_driver,
+             input_st->current_data,
+@@ -5717,6 +5727,20 @@
+             (input_st->flags & INP_FLAG_KB_MAPPING_BLOCKED) ? true : false,
+             port, RETRO_DEVICE_JOYPAD, 0,
+             RETRO_DEVICE_ID_JOYPAD_MASK);
 +
-+   /* Keep the plumOS Select+B shortcut independent of the FN binding
-+    * and RetroArch's configurable gamepad combo. */
-+   if (   BIT256_GET(current_bits, RETRO_DEVICE_ID_JOYPAD_SELECT)
-+       && BIT256_GET(current_bits, RETRO_DEVICE_ID_JOYPAD_B))
++#ifdef HAVE_MENU
++   /* Select is also the hotkey enabler. Read the chord before its
++    * block delay starts suppressing gameplay input. */
++   if (port == hotkey_port && (ret & plumos_menu_buttons) == plumos_menu_buttons)
 +   {
-+      BIT256_CLEAR(current_bits, RETRO_DEVICE_ID_JOYPAD_SELECT);
-+      BIT256_CLEAR(current_bits, RETRO_DEVICE_ID_JOYPAD_B);
-+      BIT256_SET(current_bits, RARCH_MENU_TOGGLE);
++      any_pressed = true;
++      ret &= ~plumos_menu_buttons;
++      if (!(input_st->flags & INP_FLAG_WAIT_INPUT_RELEASE))
++         BIT256_SET_PTR(p_new_state, RARCH_MENU_TOGGLE);
 +   }
++#endif
++   if (!libretro_input_active)
++      ret = 0;
+
+    for (i = 0; i < RARCH_FIRST_CUSTOM_BIND; i++)
+    {
+@@ -5951,6 +5975,14 @@
+                   (input_st->flags & INP_FLAG_KB_MAPPING_BLOCKED) ? true : false,
+                   port, RETRO_DEVICE_JOYPAD, 0,
+                   i);
 +
-    if (menu_st->input_driver_flushing_input > 0)
++#if defined(HAVE_MENU) && defined(HAVE_UDEV)
++      /* Accept the built-in FN button independently of menu autoconfig
++       * and the hotkey enabler. Keep RetroArch's menu-on-release path. */
++      if (i == RARCH_MENU_TOGGLE && joypad == &udev_joypad
++            && udev_joypad_builtin_fn_pressed(joy_idx))
++         other_pressed = true;
++#endif
+
+       if (     bit_pressed
+             || other_pressed
+--- a/input/drivers_joypad/udev_joypad.c
++++ b/input/drivers_joypad/udev_joypad.c
+@@ -90,6 +90,7 @@
+    bool has_set_ff[2];
+    /* Deal with analog triggers that report -32767 to 32767 */
+    bool neg_trigger[NUM_AXES];
++   bool builtin_fn_down;
+ };
+
+ struct joypad_udev_entry
+@@ -102,6 +103,13 @@
+ static struct udev *udev_joypad_fd             = NULL;
+ static struct udev_monitor *udev_joypad_mon    = NULL;
+ static struct udev_joypad udev_pads[MAX_USERS];
++
++bool udev_joypad_builtin_fn_pressed(unsigned port)
++{
++   return port < MAX_USERS && udev_pads[port].fd >= 0
++      && udev_pads[port].builtin_fn_down
++      && string_is_equal(udev_pads[port].ident, "retrogame_joypad");
++}
+
+ static INLINE int16_t udev_compute_axis(const struct input_absinfo *info, int value)
+ {
+@@ -574,6 +582,8 @@
+             switch (type)
+             {
+                case EV_KEY:
++                  if (code == BTN_MODE)
++                     pad->builtin_fn_down = value != 0;
+                   if (code > 0 && code < KEY_MAX)
+                   {
+                      if (value)
+--- a/input/input_driver.h
++++ b/input/input_driver.h
+@@ -1208,6 +1208,7 @@
+ extern input_device_driver_t linuxraw_joypad;
+ extern input_device_driver_t parport_joypad;
+ extern input_device_driver_t udev_joypad;
++bool udev_joypad_builtin_fn_pressed(unsigned port);
+ extern input_device_driver_t xinput_joypad;
+ extern input_device_driver_t sdl_joypad;
+ extern input_device_driver_t sdl_dingux_joypad;
