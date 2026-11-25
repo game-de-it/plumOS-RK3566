@@ -10,6 +10,14 @@ RG503の内蔵画面は960×544。既存SDで起動し、Wi-Fi SSHから操作�
 
 修正を組み込んだSYSTEMのSHA-256は `f360fab5aa4d1b8e123ee608b3ca6913a38d61ac917070d0f605a7dd23abb365`。従来SYSTEMをDockerで展開し、起動スクリプトを差し替え、対応するチェックサムの項目を更新してSquashFSを再生成した。転送後に実機でもSHA-256を照合し、SDを焼き直さず `boot-system trial` で起動した。診断用のプリロードなしで、BubbleのPlayStation一覧から『チョロQワンダフォー！』を起動。FNでメニューを開き、再度FNを押すと同じPIDでゲーム画面と内蔵PCMの `RUNNING` に戻った。単体版のメニューから終了してBubbleへ戻った後、`boot-system keep` で修正版を実機の既定に設定した。
 
+### メニューのA/B
+
+RG503の `retrogame_joypad` はAをSDLボタン1、Bをボタン0として報告する。単体版の `in_sdl_joy_map` ではボタン0が決定になっていた。Dockerで使用するPCSXパッチを更新し、メニューはAで決定、Bで戻るようにした。ゲーム内のA→×とB→○、メニューを開くFNの割り当ては従来どおり。
+
+ピン留め済みのPCSX-ReARMedをDockerで再ビルドし、単体版の実行ファイルとコンポーネントの検証情報をSYSTEMに組み込んだ。SHA-256 `2ef03de4a4b984bc33352686c78f6103770b5b29976f26c643a3e6a5b2d4b61c` を実機で照合し、既存SDのまま試行起動した。
+
+Bubbleの一覧からSD2の『チョロQワンダフォー！』を起動した。実機のevdevにFNを送り、単体版メニューを表示。Aで `Controls` に入り、Bで親メニューへ戻り、もう一度Bを押して同じPIDでゲーム画面と内蔵PCMが復帰した。FNで開き直し、`Exit` をAで確定するとBubbleへ戻った。このSYSTEMを実機の既定に設定した。
+
 ## PortMaster
 
 BubbleのAppsからPortMasterを起動した。カタログの読み込みと初回案内のカウントダウンが完了した後、実機のB相当入力で `Are you sure you want to exit PortMaster?` を表示した。Aで終了を確定すると、PortMasterのプロセスとセッションロックが消え、Bubbleへ戻った。同梱のPortMasterでこの手順が通ることを確認した。

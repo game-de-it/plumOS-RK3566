@@ -45,8 +45,18 @@ def replace(path, before, after, expected):
 
 replace("package/picoarch-bubble/patches/picoarch-bubble-physical-input.patch",
         "+\t{ BTN_TRIGGER_HAPPY1,", "+\t{ BTN_MODE,   ", 2)
-replace("package/standalone-bubble/patches/pcsx-rearmed-bubble-kmsdrm.patch",
-        "SDLK_WORLD_17", "SDLK_WORLD_10", 2)
+pcsx_patch = "package/standalone-bubble/patches/pcsx-rearmed-bubble-kmsdrm.patch"
+replace(pcsx_patch, "SDLK_WORLD_17", "SDLK_WORLD_10", 2)
+# retrogame_joypad reports B as SDL button 0 and A as button 1.
+# Change the menu bindings independently of the emulated PSX buttons.
+replace(pcsx_patch,
+        '@@ -121,6 +139,13 @@ const struct menu_keymap in_sdl_joy_map[] =\n'
+        '   { SDLK_WORLD_1, PBTN_MBACK },\n',
+        '@@ -120,7 +138,14 @@ const struct menu_keymap in_sdl_joy_map[] =\n'
+        '-  { SDLK_WORLD_0, PBTN_MOK },\n'
+        '-  { SDLK_WORLD_1, PBTN_MBACK },\n'
+        '+  { SDLK_WORLD_0, PBTN_MBACK },\n'
+        '+  { SDLK_WORLD_1, PBTN_MOK },\n', 1)
 standalone_launcher = "package/standalone-bubble/plumos/bin/plumos-standalone-launch"
 replace(standalone_launcher, "guide:b17", "guide:b10", 4)
 replace(standalone_launcher,
