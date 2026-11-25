@@ -1,0 +1,18 @@
+--- a/package/frontend-bubble/plumos/bin/plumos-retroarch-launch
++++ b/package/frontend-bubble/plumos/bin/plumos-retroarch-launch
+@@ -174,3 +174,14 @@
+ fi
+-case "$shader_preset:$core_id:$menu_driver" in
++# On RK2023 the software DRM blit misses display refreshes for these cores.
++# Select KMS GLES while retaining the configured menu and aspect ratio.
++renderer_hint=$shader_preset
++case "$core_id" in
++    gambatte|quicknes)
++        model=$("$BB" tr -d '\000' 2>/dev/null </proc/device-tree/model || :)
++        if [ "$model" = 'Powkiddy RK2023' ]; then
++            renderer_hint=gles
++        fi
++        ;;
++esac
++case "$renderer_hint:$core_id:$menu_driver" in
+     ?*:*:*|*:*:xmb|*:*:ozone|\
