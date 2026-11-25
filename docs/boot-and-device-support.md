@@ -9,7 +9,7 @@
 | Anbernic | RG353M | 実機で起動、フロントエンド、ADBを確認済み |
 | Anbernic | RG353V | 共通SDでplumOS init、FE、p5、USB ADBを確認。修正版SYSTEMでSD2とROM・BIOSの公開を確認 |
 | Anbernic | RG353P | 機種別DTBを同梱。plumOSでの実機起動は未確認 |
-| Anbernic | RG503 | 共通SDで960×544のFEとTF2を確認。174プロファイルの表示、Appsの起動、USB給電中のスリープ復帰をWi-Fi SSHで検証。[実機結果](validation/2026-11-25-rg503-runtime.md) |
+| Anbernic | RG503 | 共通SDで960×544のFEとTF2を確認。174プロファイルの表示、Appsの起動、USB給電中のスリープ復帰をWi-Fi SSHで検証。別のケーブルでUSB ADBのシェル接続とファイル往復も確認。[実機結果](validation/2026-11-25-rg503-runtime.md) |
 | Powkiddy | RGB30 r1・r2 | 同一SDでDTBの自動切り替え、plumOS init、FE、p5、USB ADBを両機で確認。r2ではSD2も確認 |
 | Powkiddy | RK2023 | 共通SDで640×480のFE、SD2、174エミュレータプロファイルの起動、Apps、USB給電中のスリープ復帰を確認。MacではADBの `NATIVE` 方式で接続した。[初回起動](validation/2026-11-25-rk2023-boot.md) · [実機動作試験](validation/2026-11-25-rk2023-runtime.md) |
 | Powkiddy | RGB10 Max 3 | 機種別DTBを同梱。plumOSでの実機起動は未確認 |

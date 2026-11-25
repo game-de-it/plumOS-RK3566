@@ -1,5 +1,7 @@
 # plumOS-RK3566 RG353M試作
 
+共通イメージを組み立てる場合は、現行のビルドガイドを参照してください。[日本語](../docs/developer/build.ja.md) · [English](../docs/developer/build.md)
+
 RG353Mの内蔵液晶とゲームパッドで、GKD mini PLUS由来のplumOSフロントエンドを確認するためのイメージです。mini PLUSのコミット `baa7143a0bddb1aef5ebc8ee0c8c3358a6aa8d35` を使用しています。ゲーム・エミュレーター・機種固有メニューの移植はこの試作の検証対象外です。
 
 ## ADBでの実機更新

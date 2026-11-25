@@ -1,5 +1,7 @@
 # RK3566のシステムと更新
 
+共通イメージの構成と現行の試験起動手順は開発者ガイドにあります。このページにはRG353Mでの導入と検証の履歴も残しています。[日本語](developer/README.ja.md) · [English](developer/README.md)
+
 RG353Mでは実機確認済みのJELOS 20240206のU-Boot、extlinux、カーネル、DTB、initramfsを使う。initramfsの `switch_root` が要求する `/usr/lib/systemd/systemd` は、plumOS initへのシンボリックリンクとして収録する。出荷用 `SYSTEM` はBubbleのアプリレイヤーとARM64 Docker環境のユーザーランドから新規に生成する。JELOSのルートファイルシステム、systemd本体、EmulationStation、スワップ設定は組み込まない。
 
 Linux 4.19.172とRG353Mに対応するRealtek 8821CSのカーネルモジュールとファームウェア、Maliのベンダーライブラリは、同じピン留め済みの入力から個別に取り出す。対応ファイルの抽出範囲は [SYSTEM組み立てスクリプト](../prototype/build-runtime-system.sh) にある。
