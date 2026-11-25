@@ -78,6 +78,8 @@ replace(standalone_launcher,
 replace(standalone_launcher,
         '        export ALSA_PLUGIN_DIR="$PLUMOS_ROOT/lib/alsa-lib-armhf"',
         '        export ALSA_CONFIG_PATH="$RUNTIME_ROOT/audio/asound-armhf.conf"\n'
+        '        # DraStic writes audio synchronously from the emulation thread.\n'
+        '        export PLUMOS_AUDIO_SHORT_PERIOD=1\n'
         '        export ALSA_PLUGIN_DIR="$PLUMOS_ROOT/lib/alsa-lib-armhf"', 1)
 replace("package/standalone-bubble/patches/yabasanshiro/yabasanshiro-2.10.4-bubble-input.patch",
         'mapInput("select", Input(joyId, TYPE_BUTTON, 17, 1, true))',
@@ -118,6 +120,17 @@ replace("scripts/build-drastic-bubble.sh",
         '    SDL2_SHA256="$(sha256sum "$SOURCE_LIB_ROOT/libSDL2-2.0.so.0" | awk \'{ print $1 }\')"',
         '    SDL2_SHA256="$(sha256sum "$SOURCE_LIB_ROOT/libSDL2-2.0.so.0" | awk \'{ print $1 }\')"\n'
         '    RUNNER_SHA256="$(sha256sum "$SOURCE_DIR/drastic/runner" | awk \'{ print $1 }\')"', 1)
+replace("scripts/build-drastic-bubble.sh",
+        "    's/^controls_b\\[CONTROL_INDEX_MENU\\] = 1154$/controls_b[CONTROL_INDEX_MENU] = 1041/' \\\n",
+        "    -e 's/^controls_b\\[CONTROL_INDEX_MENU\\] = 1154$/controls_b[CONTROL_INDEX_MENU] = 1041/' \\\n"
+        "    -e 's/^frameskip_type = 2$/frameskip_type = 0/' \\\n", 1)
+replace("scripts/build-drastic-bubble.sh",
+        'install -m 0644 "$SOURCE_LIB_ROOT/libcommon.so" "$OUT_ROOT/lib/libcommon.so"',
+        'grep -Fqx \'frameskip_type = 0\' "$OUT_ROOT/config/drastic.cfg" || {\n'
+        '    printf \'error: DraStic frame skip factory setting was not applied\\n\' >&2\n'
+        '    exit 1\n'
+        '}\n'
+        'install -m 0644 "$SOURCE_LIB_ROOT/libcommon.so" "$OUT_ROOT/lib/libcommon.so"', 1)
 replace("scripts/build-openbor-bubble.sh", 'git -C "$SOURCE_ROOT" apply "$PATCH_FILE"',
         'git -C "$SOURCE_ROOT" apply "$PATCH_FILE"\n'
         'git -C "$SOURCE_ROOT" apply "$ROOT_DIR/package/standalone-bubble/patches/openbor/rg353m-input.patch"', 1)

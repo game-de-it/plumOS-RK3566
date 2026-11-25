@@ -1,4 +1,4 @@
-"""Configure RGB30 input and DraStic defaults in the packaged launchers."""
+"""Configure RGB30 input and migrate the DraStic factory configuration."""
 
 import hashlib
 from pathlib import Path
@@ -50,19 +50,16 @@ for launcher, (anchor, profile, log) in bindings.items():
         if source.count(config_anchor) != 1:
             raise SystemExit(f"DraStic config anchor changed in {path}")
         source = source.replace(config_anchor, config_anchor + '''\
-    if [ "${PLUMOS_DRASTIC_RGB30_CHORD:-0}" = 1 ] &&
-       [ ! -e "$work/config/.rgb30-frameskip-v1" ]; then
-        # A title could stay at one displayed frame out of five after the
-        # menu closed. Migrate the old factory pair once, with a backup.
-        if "$BB" grep -qx 'frameskip_type = 2' "$drastic_config" &&
-           "$BB" grep -qx 'frameskip_value = 4' "$drastic_config"; then
-            drastic_backup="$drastic_config.pre-rgb30-frameskip"
-            [ -e "$drastic_backup" ] || "$BB" cp -p "$drastic_config" "$drastic_backup"
-            "$BB" sed 's/^frameskip_type = 2$/frameskip_type = 0/' \\
-                "$drastic_config" >"$drastic_config.next"
+    if [ ! -e "$work/config/.rk3566-frameskip-v1" ]; then
+        # Migrate a pristine copy of the old factory configuration. Existing
+        # RGB30 migrations and custom global or per-game settings take priority.
+        if [ ! -e "$work/config/.rgb30-frameskip-v1" ] &&
+           "$BB" sed 's/^frameskip_type = 0$/frameskip_type = 2/' \\
+               "$runtime/config/drastic.cfg" | "$BB" cmp -s - "$drastic_config"; then
+            "$BB" cp -p "$runtime/config/drastic.cfg" "$drastic_config.next"
             "$BB" mv "$drastic_config.next" "$drastic_config"
         fi
-        : >"$work/config/.rgb30-frameskip-v1"
+        : >"$work/config/.rk3566-frameskip-v1"
     fi
 ''', 1)
     path.write_text(source.replace(anchor, addition + anchor, 1))

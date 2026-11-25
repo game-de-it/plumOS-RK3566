@@ -20,6 +20,7 @@
 #define VOLUME_DEFAULT 8
 #define VOLUME_PROBE_INTERVAL 4
 #define INTERNAL_CARD_ID "rockchiprk817co"
+#define SHORT_PERIOD_FRAMES 256
 
 typedef struct {
     snd_pcm_ioplug_t io;
@@ -266,7 +267,8 @@ static void write_route_status(int card, int is_usb, int uses_plug)
 }
 
 static int configure_physical(snd_pcm_t *pcm, const snd_pcm_ioplug_t *io,
-                              snd_pcm_uframes_t *actual_buffer)
+                              snd_pcm_uframes_t *actual_buffer,
+                              snd_pcm_uframes_t period_limit)
 {
     snd_pcm_hw_params_t *params;
     snd_pcm_sw_params_t *sw;
@@ -276,6 +278,8 @@ static int configure_physical(snd_pcm_t *pcm, const snd_pcm_ioplug_t *io,
     int direction = 0;
     int err;
 
+    if (period_limit && period > period_limit)
+        period = period_limit;
     snd_pcm_hw_params_alloca(&params);
     if ((err = snd_pcm_hw_params_any(pcm, params)) < 0 ||
         (err = snd_pcm_hw_params_set_access(pcm, params,
@@ -309,6 +313,8 @@ static snd_pcm_t *open_physical(const snd_pcm_ioplug_t *io, int card,
                                 snd_pcm_uframes_t *actual_buffer)
 {
     const plumos_pcm_t *owner = io->private_data;
+    const char *short_period = getenv("PLUMOS_AUDIO_SHORT_PERIOD");
+    snd_pcm_uframes_t period_limit = 0;
     char name[32];
     snd_pcm_t *pcm = NULL;
     int mode = owner->allow_fast_drop ? SND_PCM_NONBLOCK : 0;
@@ -317,6 +323,9 @@ static snd_pcm_t *open_physical(const snd_pcm_ioplug_t *io, int card,
     int plug;
     int err;
 
+    if (short_period && !strcmp(short_period, "1"))
+        period_limit = SHORT_PERIOD_FRAMES;
+
     /*
      * RetroArch needs the direct hardware PCM: inserting plughw adds a second
      * buffering domain whose delay destabilizes its rate control. Other
@@ -324,23 +333,28 @@ static snd_pcm_t *open_physical(const snd_pcm_ioplug_t *io, int card,
      * contract; SDL audio clients such as PicoArch otherwise spin before their
      * first transfer on RK817. Both paths keep the opposite route as fallback.
      */
-    for (attempt = 0; attempt <= 1; attempt++) {
-        plug = direct_first ? attempt : 1 - attempt;
-        snprintf(name, sizeof(name), "%s:%d,0", plug ? "plughw" : "hw",
-                 card);
-        err = snd_pcm_open(&pcm, name, SND_PCM_STREAM_PLAYBACK, mode);
-        if (err < 0)
-            continue;
-        err = configure_physical(pcm, io, actual_buffer);
-        if (err >= 0) {
-            if (uses_plug)
-                *uses_plug = plug;
-            return pcm;
+    for (;;) {
+        for (attempt = 0; attempt <= 1; attempt++) {
+            plug = direct_first ? attempt : 1 - attempt;
+            snprintf(name, sizeof(name), "%s:%d,0", plug ? "plughw" : "hw",
+                     card);
+            err = snd_pcm_open(&pcm, name, SND_PCM_STREAM_PLAYBACK, mode);
+            if (err < 0)
+                continue;
+            err = configure_physical(pcm, io, actual_buffer, period_limit);
+            if (err >= 0) {
+                if (uses_plug)
+                    *uses_plug = plug;
+                return pcm;
+            }
+            snd_pcm_close(pcm);
+            pcm = NULL;
         }
-        snd_pcm_close(pcm);
-        pcm = NULL;
+        if (!period_limit)
+            return NULL;
+        /* Some devices only accept the client's original PCM parameters. */
+        period_limit = 0;
     }
-    return NULL;
 }
 
 static int switch_route(plumos_pcm_t *pcm, int force)
