@@ -15,6 +15,8 @@ Bring your own game ROMs and, where required, matching BIOS files. On the SD1 **
 | `Roms/psx/` | PlayStation `.cue`, `.chd`, `.pbp`, `.m3u` |
 | `Roms/openbor/`, `Roms/pyxel/` | OpenBOR `.pak` and Pyxel `.pyxapp` |
 
+See [Supported systems](supported-systems.md) for all recognized folders, extensions, and launch options.
+
 ## Library and artwork
 
 After adding games, use `START` → `UI Settings` → `Refresh TOP`. To fetch artwork, connect to Wi-Fi and open `START` → `Apps` → `Scraping`. Matching depends on the ROM and available artwork. Images are kept under `Images/` on SD1.

@@ -15,6 +15,8 @@
 | `Roms/psx/` | PlayStationの `.cue`、`.chd`、`.pbp`、`.m3u` |
 | `Roms/openbor/`、`Roms/pyxel/` | OpenBORの `.pak`、Pyxelの `.pyxapp` |
 
+システム別のフォルダ名、拡張子、エミュレータは[対応システム一覧](supported-systems.ja.md)を参照してください。
+
 ## 一覧と画像
 
 ゲームを追加したら `START` → `UI Settings` → `Refresh TOP` で一覧を更新します。ジャケット画像はWi-Fi接続後に `START` → `Apps` → `Scraping` から取得できます。取得できるかはROMと配信元の画像によって異なり、取得した画像はSD1の `Images/` に保存されます。
