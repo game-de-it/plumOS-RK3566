@@ -1,8 +1,18 @@
+<p align="center">
+  <img src="docs/images/plumos-logo.png" width="320" alt="plumOS">
+</p>
+
+<p align="center">
+  <img src="docs/images/handhelds.jpg" width="760" alt="plumOS-RK3566を起動した携帯ゲーム機">
+</p>
+
+| テキストモード | グラフィックモード | ギャラリーモード |
+| :---: | :---: | :---: |
+| <img src="docs/images/frontend-text.png" width="248" alt="テキストモード"> | <img src="docs/images/frontend-graphic.png" width="248" alt="グラフィックモード"> | <img src="docs/images/frontend-gallery.png" width="248" alt="NESのギャラリーモードでArgusを選択"> |
+
 # plumOS-RK3566
 
 plumOS-RK3566は、RK3566携帯ゲーム機向けのSD起動Linuxです。共通イメージで、実機確認済みのAnbernic・Powkiddy機種にBubbleのフロントエンド、RetroArch、PicoArch、単体エミュレータを提供します。
-
-<!-- 写真とスクリーンショットはガイドへのリンクより上のここに掲載します。 -->
 
 ## ドキュメント
 

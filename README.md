@@ -1,8 +1,18 @@
+<p align="center">
+  <img src="docs/images/plumos-logo.png" width="320" alt="plumOS">
+</p>
+
+<p align="center">
+  <img src="docs/images/handhelds.jpg" width="760" alt="Handhelds running plumOS-RK3566">
+</p>
+
+| Text mode | Graphic mode | Gallery mode |
+| :---: | :---: | :---: |
+| <img src="docs/images/frontend-text.png" width="248" alt="Text mode"> | <img src="docs/images/frontend-graphic.png" width="248" alt="Graphic mode"> | <img src="docs/images/frontend-gallery.png" width="248" alt="NES gallery with Argus selected"> |
+
 # plumOS-RK3566
 
 plumOS-RK3566 is SD-boot Linux firmware for RK3566 handhelds. A single image brings the Bubble frontend and RetroArch, PicoArch, and standalone emulators to tested Anbernic and Powkiddy devices.
-
-<!-- Add the device photos and screenshots here before the documentation links. -->
 
 ## Documentation
 
