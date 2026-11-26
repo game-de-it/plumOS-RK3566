@@ -4,9 +4,9 @@
 
 ## Prepare the card
 
-Use a [tested device](README.md#devices), a microSD card for TF1/SD1 (16 GB or larger recommended), a card reader, and a raw-image writer. Use the compressed image and its SHA-256 checksum file from the same release.
+Use a [tested device](devices.md), a microSD card for TF1/SD1 (16 GB or larger recommended), a card reader, and a raw-image writer. Use the compressed image and its SHA-256 checksum file from the same release.
 
-Back up the target card before writing. If it already runs plumOS, back up saves, states, and settings as well as the files on the visible FAT32 volume. A whole-card backup includes both areas. [Data locations](README.md#games-and-saves)
+Back up the target card before writing. If it already runs plumOS, back up saves, states, and settings as well as the files on the visible FAT32 volume. A whole-card backup includes both areas. [Data locations](storage.md)
 
 ## Write and boot
 
@@ -26,4 +26,4 @@ Back up the target card before writing. If it already runs plumOS, back up saves
 
 ## Optional TF2/SD2
 
-Use a FAT32 card with `Roms/` and, when needed, `BIOS/` at its root. Insert or remove the card while the handheld is powered off. On startup, plumOS uses the SD2 folders that are present and keeps saves and settings on SD1. [Folder examples](README.md#games-and-saves)
+Use a FAT32 card with `Roms/` and, when needed, `BIOS/` at its root. Insert or remove the card while the handheld is powered off. On startup, plumOS uses the SD2 folders that are present and keeps saves and settings on SD1. [Folder examples](storage.md)

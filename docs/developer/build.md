@@ -52,7 +52,7 @@ The SYSTEM step produces `SYSTEM`, `bubble-userland.squashfs`, `SHA256SUMS`, and
 (cd "$work" && shasum -a 256 -c plumOS-RK3566.img.sha256)
 ```
 
-The SYSTEM builder checks that the frontend catalog, launchers, app dependencies, and component checksums agree. The raw-image verifier checks the image layout, first-boot provisioning, retention of existing user data, and trial SYSTEM recovery in a container. Keep the image hash with the physical-device results. [Release verification](README.md#release-verification)
+The SYSTEM builder checks that the frontend catalog, launchers, app dependencies, and component checksums agree. The raw-image verifier checks the image layout, first-boot provisioning, retention of existing user data, and trial SYSTEM recovery in a container. Keep the image hash with the physical-device results. [Release verification](release.md)
 
 For a raw-image release, package the verified `.img.gz` and its matching checksum file. Retain the source commit, tool and input versions, and hashes of both the compressed and raw artifacts for support.
 
