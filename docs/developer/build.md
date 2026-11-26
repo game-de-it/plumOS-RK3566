@@ -58,4 +58,6 @@ For a raw-image release, package the verified `.img.gz` and its matching checksu
 
 ## Runtime update packages
 
+New builds embed `prototype/update/rk3566-update-public.pem`. Before signing a release, derive the public key from the RK3566 signing key and confirm that it matches the embedded key. Keep the private key in protected storage outside Git and the build artifacts. See the [user update guide](../user/updates.md) for migration from v0.1.1.
+
 The generated `build-runtime-update.py` packages the unpacked frontend runtime. Use `--base-dir` and `--base-version` for a version-specific delta and `--signing-key` with the key matching the public key included in the installed runtime. The package uses device ID `rg353m` and vendor runtime `rk3566-plumos-r1` for compatibility across the common builds. Check the current options with `build-runtime-update.py --help`. Test the signature, version checks, apply and rollback on a spare card before shipping an update. Runtime packages update frontend files; new boot assets or operating-system files require a new image or SYSTEM as appropriate. [Runtime update design](../rk3566-runtime.md)
