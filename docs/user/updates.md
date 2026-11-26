@@ -23,3 +23,5 @@ The updater checks the signature and updates runtime files.
 ## Full SD image releases
 
 Back up your saves and settings, then follow the image-writing instructions. [Backups](storage.md#saves-and-backups) · [Installation](install.md)
+
+Common SD images starting with v0.1.2 include the official public key. On a fresh installation from one of these images, use `System Update` for the next compatible signed package.
