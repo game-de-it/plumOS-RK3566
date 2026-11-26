@@ -4,6 +4,7 @@ set -eu
 package=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 state=/storage/plumos-rk3566/system
 boot_system=$state/boot-system
+source_hash=00077569e177dbc16ae429002532f882358f17aca74573b5fa58fd7efdf2c43e
 target_hash=1d3b99b4faaa1248cdd74f4eea53a39fd9326a81ebe74c53b217e18a7b2ad706
 candidate=$state/$target_hash.squashfs
 transfer=$state/.sd-update-v0.1.1.partial
@@ -34,9 +35,10 @@ if [ "$active" = "$target_hash" ]; then
     exit 0
 fi
 
-[ "$version" = 0.1.0 ] && [ -z "$active" ] ||
+[ "$version" = 0.1.0 ] && { [ -z "$active" ] || [ "$active" = "$source_hash" ]; } ||
     fail 'Start the original v0.1.0 SYSTEM before applying this update.'
-[ ! -e "$state/default" ] && [ ! -e "$state/pending" ] ||
+default=$(cat "$state/default" 2>/dev/null || :)
+[ ! -e "$state/pending" ] && { [ -z "$default" ] || [ "$default" = "$source_hash" ]; } ||
     fail 'A different SYSTEM selection or unfinished trial needs attention.'
 if [ -e "$state/next" ]; then
     [ "$(cat "$state/next")" = "$target_hash" ] ||
