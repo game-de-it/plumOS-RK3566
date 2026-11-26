@@ -28,6 +28,7 @@ plumOS-RK3566が独自に作成したソフトウェアと文書には[MITライ
 | PicoArch | 本体の独自コードはBSD-3-Clauseです。libpicofeにはGPL・LGPL・MAMEの選択肢があり、一部のフィルターはMITです。同梱の `licenses/picoarch-LICENSE` を参照してください。 |
 | PCSX-ReARMed・Yaba Sanshiro単体版 | GNU GPLバージョン2の本文を同梱しています。バージョンの選択条件と依存コードはソースの各表記に従います。同梱の `licenses/pcsx-rearmed-standalone-COPYING` と `licenses/yabasanshiro-LICENSE` を参照してください。 |
 | PPSSPP単体版 | GPL-2.0-or-laterです。PSPSDKなどに個別の著作権・ライセンス表示があり、`licenses/ppsspp-LICENSE.txt` に収録されています。[上流](https://github.com/hrydgard/ppsspp) |
+| MaliSX2とVulkanローダー（v0.1.0以降の開発ビルド） | PPSSPP専用。MaliSX2 0.6.1はMITで、同梱のMesaコードには個別の条件があります。DebianのVulkanローダーはApache-2.0などのファイル別条件に従います。`emulator/standalone/ppsspp/vulkan/licenses/` に各文書を収録します。[MaliSX2のソース](https://github.com/bmdhacks/malisx2/tree/v0.6.1) |
 | OpenBOR単体版 | エンジンはBSD-3-Clauseです。ゲームパックには個別の条件があります。同梱の `licenses/openbor-LICENSE` を参照してください。 |
 | DraStic | `steward-fu/nds` の統合コードはLGPL-2.1-onlyです。DraSticの実行ファイルはプロプライエタリで、統合コードのライセンス表記と上流のリリースREADMEだけでは公開再配布の権限を確認できていません。同梱の `licenses/steward-fu-nds-LGPL-2.1` と `licenses/drastic-upstream-NOTICE.txt` を参照してください。 |
 | Pyxel、Python、pygame、NumPy、Pillow | PyxelはMIT、CPythonはPSFライセンスと旧版由来の条件、pygameはLGPL-2.1、NumPyはBSD-3-Clause、PillowはHPNDです。同梱ライブラリや素材の表記も含め、`apps/pyxel/site/` 以下の `*.dist-info` 内の文書とCPythonのライセンス文書を保持します。 |

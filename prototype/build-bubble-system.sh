@@ -57,6 +57,7 @@ patch -d "$stage/source" -p1 < "$prototype/patches/rk3566-square-layout.patch"
 patch -d "$stage/source" -p1 < "$prototype/patches/rk3566-gallery-layout.patch"
 patch -d "$stage/source" -p1 < "$prototype/patches/rk3566-settings-footer-fit.patch"
 patch -d "$stage/source" -p1 < "$prototype/patches/rk3566-fe-scroll.patch"
+patch -d "$stage/source" -p1 < "$prototype/patches/rk3566-ppsspp-label.patch"
 "$prototype/build-frontend-docker.sh" "$stage" "$stage/source/src/frontend"
 
 layer=$stage/layer

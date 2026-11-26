@@ -1,0 +1,22 @@
+--- a/src/frontend/plumos_text_ui.c
++++ b/src/frontend/plumos_text_ui.c
+@@ -1487,7 +1487,7 @@
+     value = profile + 9;
+   } else if (strncmp(profile, "standalone:", 11) == 0) {
+     label = "SA";
+-    value = profile + 11;
++    value = strcmp(profile, "standalone:ppsspp") == 0 ? "PPSSPP-MALISX2" : profile + 11;
+   }
+   if (label && value && value[0]) {
+     snprintf(out, out_size, "%s: %s", label, value);
+--- a/src/frontend/plumos_controller_ui.c
++++ b/src/frontend/plumos_controller_ui.c
+@@ -8600,7 +8600,7 @@
+     value = profile + 9;
+   } else if (strncmp(profile, "standalone:", 11) == 0) {
+     label = "SA";
+-    value = profile + 11;
++    value = strcmp(profile, "standalone:ppsspp") == 0 ? "PPSSPP-MALISX2" : profile + 11;
+   }
+   if (label && value && value[0]) {
+     snprintf(display, sizeof(display), "%s: %s", label, value);

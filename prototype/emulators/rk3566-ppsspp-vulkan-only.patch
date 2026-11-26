@@ -1,0 +1,74 @@
+--- a/SDL/SDLMain.cpp
++++ b/SDL/SDLMain.cpp
+@@ -1677,54 +1677,24 @@
+ 	GraphicsContext *graphicsContext = nullptr;
+ 	SDL_Window *window = nullptr;
+ 
+-	// Switch away from Vulkan if not available.
+-	if (g_Config.iGPUBackend == (int)GPUBackend::VULKAN && !vulkanMayBeAvailable) {
+-		g_Config.iGPUBackend = (int)GPUBackend::OPENGL;
+-	}
+-
++
++	// The RK3566 standalone package supplies its own Vulkan ICD. Keep this route
++	// on Vulkan even when a saved config from an older image selects OpenGL.
++	if (!vulkanMayBeAvailable) {
++		fprintf(stderr, "plumOS PPSSPP: the MaliSX2 Vulkan driver is unavailable\n");
++		return 1;
++	}
++
++	g_Config.iGPUBackend = (int)GPUBackend::VULKAN;
++	SetGPUBackend(GPUBackend::VULKAN);
+ 	std::string error_message;
+-	if (g_Config.iGPUBackend == (int)GPUBackend::OPENGL) {
+-		SDLGLGraphicsContext *glctx = new SDLGLGraphicsContext();
+-		if (glctx->Init(window, x, y, w, h, mode, &error_message, force_gl_version) != 0) {
+-			// Let's try the fallback once per process run.
+-			fprintf(stderr, "GL init error '%s' - falling back to Vulkan\n", error_message.c_str());
+-			g_Config.iGPUBackend = (int)GPUBackend::VULKAN;
+-			SetGPUBackend((GPUBackend)g_Config.iGPUBackend);
+-			delete glctx;
+-
+-			// NOTE : This should match the lines below in the Vulkan case.
+-			SDLVulkanGraphicsContext *vkctx = new SDLVulkanGraphicsContext();
+-			if (!vkctx->Init(window, x, y, w, h, mode | SDL_WINDOW_VULKAN, &error_message)) {
+-				fprintf(stderr, "Vulkan fallback failed: %s\n", error_message.c_str());
+-				return 1;
+-			}
+-			graphicsContext = vkctx;
+-		} else {
+-			graphicsContext = glctx;
+-		}
+-#if !PPSSPP_PLATFORM(SWITCH)
+-	} else if (g_Config.iGPUBackend == (int)GPUBackend::VULKAN) {
+-		SDLVulkanGraphicsContext *vkctx = new SDLVulkanGraphicsContext();
+-		if (!vkctx->Init(window, x, y, w, h, mode | SDL_WINDOW_VULKAN, &error_message)) {
+-			// Let's try the fallback once per process run.
+-
+-			fprintf(stderr, "Vulkan init error '%s' - falling back to GL\n", error_message.c_str());
+-			g_Config.iGPUBackend = (int)GPUBackend::OPENGL;
+-			SetGPUBackend((GPUBackend)g_Config.iGPUBackend);
+-			delete vkctx;
+-
+-			// NOTE : This should match the three lines above in the OpenGL case.
+-			SDLGLGraphicsContext *glctx = new SDLGLGraphicsContext();
+-			if (glctx->Init(window, x, y, w, h, mode, &error_message, force_gl_version) != 0) {
+-				fprintf(stderr, "GL fallback failed: %s\n", error_message.c_str());
+-				return 1;
+-			}
+-			graphicsContext = glctx;
+-		} else {
+-			graphicsContext = vkctx;
+-		}
+-#endif
+-	}
++	SDLVulkanGraphicsContext *vkctx = new SDLVulkanGraphicsContext();
++	if (!vkctx->Init(window, x, y, w, h, mode | SDL_WINDOW_VULKAN, &error_message)) {
++		fprintf(stderr, "plumOS PPSSPP: Vulkan initialization failed: %s\n", error_message.c_str());
++		delete vkctx;
++		return 1;
++	}
++	graphicsContext = vkctx;
+ 
+ 	UpdateScreenDPI(window);
+ 

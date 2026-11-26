@@ -1,0 +1,238 @@
+--- a/scripts/build-ppsspp-bubble.sh
++++ b/scripts/build-ppsspp-bubble.sh
+@@ -6,6 +6,7 @@
+ BUILD_DIR="$ROOT_DIR/build/ppsspp-bubble/build"
+ OUT_ROOT="$ROOT_DIR/${PLUMOS_BUBBLE_PPSSPP_OUT:-output/ppsspp/bubble}"
+ PATCH_FILE="$ROOT_DIR/package/standalone-bubble/patches/ppsspp/ppsspp-1.20.4-bubble-no-sdl2-ttf.patch"
++VULKAN_PATCH="$ROOT_DIR/package/standalone-bubble/patches/ppsspp/rk3566-ppsspp-vulkan-only.patch"
+ PPSSPP_REPO="${PLUMOS_BUBBLE_PPSSPP_REPO:-https://github.com/hrydgard/ppsspp.git}"
+ PPSSPP_REF="${PLUMOS_BUBBLE_PPSSPP_REF:-v1.20.4}"
+ PPSSPP_COMMIT="fa50bb1976065c4f8b1b47af227d367fe9771555"
+@@ -38,6 +39,7 @@
+ git -C "$SOURCE_DIR" submodule sync --recursive
+ git -C "$SOURCE_DIR" submodule update --init --recursive
+ restore_source() {
++    git -C "$SOURCE_DIR" apply --reverse "$VULKAN_PATCH" >/dev/null 2>&1 || true
+     git -C "$SOURCE_DIR" apply --reverse "$PATCH_FILE" >/dev/null 2>&1 ||
+         true
+ }
+@@ -45,6 +47,7 @@
+ 
+ git -C "$SOURCE_DIR" apply --check "$PATCH_FILE"
+ git -C "$SOURCE_DIR" apply "$PATCH_FILE"
++git -C "$SOURCE_DIR" apply "$VULKAN_PATCH"
+ 
+ cmake -S "$SOURCE_DIR" -B "$BUILD_DIR" -G Ninja \
+     -DCMAKE_BUILD_TYPE=Release \
+@@ -56,10 +59,10 @@
+     -DUSING_FBDEV=ON \
+     -DUSING_GLES2=ON \
+     -DPLUMOS_BUBBLE=ON \
+-    -DVULKAN=OFF \
++    -DVULKAN=ON \
+     -DUSING_X11_VULKAN=OFF \
+     -DUSE_WAYLAND_WSI=OFF \
+-    -DUSE_VULKAN_DISPLAY_KHR=OFF \
++    -DUSE_VULKAN_DISPLAY_KHR=ON \
+     -DCMAKE_DISABLE_FIND_PACKAGE_X11=TRUE \
+     -DUSE_FFMPEG=ON \
+     -DUSE_SYSTEM_FFMPEG=OFF \
+--- a/scripts/build-standalone-bubble.sh
++++ b/scripts/build-standalone-bubble.sh
+@@ -286,6 +286,7 @@
+     "$PLUMOS_DIR/licenses/drastic-upstream-NOTICE.txt"
+ rsync -a "$PPSSPP_BUILD/runtime/" \
+     "$PLUMOS_DIR/emulator/standalone/ppsspp/"
++"$ROOT_DIR/scripts/stage-ppsspp-malisx2.sh" "$PLUMOS_DIR/emulator/standalone/ppsspp/vulkan"
+ install -m 0644 "$PPSSPP_BUILD/LICENSE.txt" \
+     "$PLUMOS_DIR/licenses/ppsspp-LICENSE.txt"
+ rsync -a \
+@@ -361,10 +362,10 @@
+       "binary": "emulator/standalone/ppsspp/bin/PPSSPPSDL",
+       "version": "1.20.4",
+       "target_cpu": "cortex-a55",
+-      "renderer": "mali-g52-kmsdrm-gles2",
++      "renderer": "malisx2-vulkan-kmsdrm",
++      "driver": "MaliSX2 0.6.1",
+       "audio": "alsa-plumos-output",
+-      "input": "retrogame_joypad",
+-      "thread_affinity": "startup-only-render-cpu3-workers-cpu0-2"
++      "input": "retrogame_joypad"
+     },
+     {
+       "id": "openbor",
+--- a/scripts/package-ppsspp-bubble.sh
++++ b/scripts/package-ppsspp-bubble.sh
+@@ -12,7 +12,7 @@
+ PPSSPP_COMMIT="fa50bb1976065c4f8b1b47af227d367fe9771555"
+ COMMON_FLAGS="${PLUMOS_BUBBLE_PPSSPP_COMPILER_FLAGS:--O3 -mcpu=cortex-a55 -mtune=cortex-a55 -fomit-frame-pointer}"
+ ARTIFACT_ORIGIN="${PLUMOS_BUBBLE_PPSSPP_ARTIFACT_ORIGIN:-source-built in the plumOS Bubble ARM64 toolchain}"
+-SOURCE_PATCHES="${PLUMOS_BUBBLE_PPSSPP_SOURCE_PATCHES:-ppsspp-1.20.4-bubble-no-sdl2-ttf.patch}"
++SOURCE_PATCHES="${PLUMOS_BUBBLE_PPSSPP_SOURCE_PATCHES:-ppsspp-1.20.4-bubble-no-sdl2-ttf.patch,rk3566-ppsspp-vulkan-only.patch}"
+ READELF="${READELF:-$(command -v readelf || command -v llvm-readelf || true)}"
+ 
+ [ -x "$BINARY" ]
+@@ -66,7 +66,7 @@
+   "source_patches": "$SOURCE_PATCHES",
+   "target_cpu": "cortex-a55",
+   "compiler_flags": "$COMMON_FLAGS",
+-  "renderer": "Bubble Mali-G52 KMSDRM GLES2",
++  "renderer": "MaliSX2 Vulkan KMSDRM",
+   "artifact_origin": "$ARTIFACT_ORIGIN"
+ }
+ EOF
+--- a/package/standalone-bubble/plumos/bin/plumos-standalone-launch
++++ b/package/standalone-bubble/plumos/bin/plumos-standalone-launch
+@@ -73,6 +73,7 @@
+ if [ "$emulator_id" = ppsspp ]; then
+     runtime="$PLUMOS_ROOT/emulator/standalone/ppsspp"
+     ppsspp="$runtime/bin/PPSSPPSDL"
++    vulkan="$runtime/vulkan"
+     config_root="$PLUMOS_ROOT/config/standalone/ppsspp"
+     active_system="$config_root/ppsspp/PSP/SYSTEM"
+     factory_system="$PLUMOS_ROOT/factory-defaults/standalone/ppsspp/PSP/SYSTEM"
+@@ -82,6 +83,9 @@
+     ppsspp_pid=""
+ 
+     [ -x "$ppsspp" ] && [ -d "$runtime/assets" ] &&
++        [ -s "$vulkan/libvulkan.so.1" ] &&
++        [ -s "$vulkan/libvulkan_malisx2.so" ] &&
++        [ -s "$vulkan/malisx2_icd.json" ] &&
+         [ -f "$PLUMOS_ROOT/emulator/lib/libstdc++.so.6" ] || {
+         printf 'plumos-standalone-launch: PPSSPP runtime is missing\n' >&2
+         exit 1
+@@ -159,7 +163,7 @@
+     if [ -x "$PLUMOS_ROOT/bin/plumos-volume-control" ]; then
+         "$BB" sh "$PLUMOS_ROOT/bin/plumos-volume-control" apply >>"$log" 2>&1 || true
+     fi
+-    printf 'ppsspp_start=renderer-mali-g52-gles loader-canonical-libmali content-%s\n' \
++    printf 'ppsspp_start=renderer-malisx2-vulkan content-%s\n' \
+         "${content##*/}" >>"$log"
+     set +e
+     (
+@@ -168,100 +172,19 @@
+         export XDG_CONFIG_HOME="$config_root"
+         export XDG_DATA_HOME="$state_root/data"
+         export XDG_CACHE_HOME="$cache_root"
+-        export LD_LIBRARY_PATH="$PLUMOS_ROOT/emulator/lib:$runtime/lib:/usr/lib"
+-        # The captured Bubble loader aliases are separate regular files with
+-        # identical libmali contents. Without a canonical preload SDL/EGL and
+-        # PPSSPP's directly linked GLES entrypoints resolve through different
+-        # Mali instances, so GLES sees no current context and every shader
+-        # compilation fails. Keep this scoped to PPSSPP, as for DraStic.
+-        export LD_PRELOAD="$mali_preload"
+-        export SDL_VIDEO_EGL_DRIVER="$PLUMOS_ROOT/emulator/lib/libmali.so.1"
+-        export SDL_VIDEO_GL_DRIVER="$PLUMOS_ROOT/emulator/lib/libmali.so.1"
++        export LD_LIBRARY_PATH="$vulkan:/usr/lib/aarch64-linux-gnu:$PLUMOS_ROOT/emulator/lib:$runtime/lib:/usr/lib"
++        export VK_DRIVER_FILES="$vulkan/malisx2_icd.json"
++        export VK_ICD_FILENAMES="$VK_DRIVER_FILES"
++        unset VK_ADD_DRIVER_FILES LD_PRELOAD SDL_VIDEO_EGL_DRIVER SDL_VIDEO_GL_DRIVER
+         export SDL_VIDEODRIVER=kmsdrm
+         export SDL_AUDIODRIVER=alsa
+         export AUDIODEV="$alsa_device"
+         export SDL_VIDEO_KMSDRM_DEVICE_INDEX=0
+         export SDL_GAMECONTROLLERCONFIG='190000004b4800000111000000010000,retrogame_joypad,a:b1,b:b0,x:b2,y:b3,leftshoulder:b4,rightshoulder:b5,lefttrigger:b6,righttrigger:b7,back:b8,start:b9,guide:b10,leftstick:b11,rightstick:b12,dpup:b13,dpdown:b14,dpleft:b15,dpright:b16,leftx:a0,lefty:a1,rightx:a3,righty:a4,platform:Linux,'
+-        exec "$ppsspp" --fullscreen --graphics=gles2.0 \
++        exec "$ppsspp" --fullscreen --graphics=vulkan \
+             --pause-menu-exit "$content"
+     ) >>"$log" 2>&1 &
+     ppsspp_pid=$!
+-
+-    # Keep the latency-sensitive SDL/render thread away from PPSSPP's
+-    # EmuThread and the Mali command backend.  Wait until both workers exist,
+-    # constrain the current worker set to CPU0-2 in one operation, then move
+-    # only the process leader/render thread to CPU3.  Threads created later by
+-    # either worker inherit CPU0-2.  This bounded startup step avoids a
+-    # resident affinity monitor during gameplay.
+-    affinity_applied=0
+-    affinity_settled=0
+-    if "$BB" --list 2>/dev/null | "$BB" grep -qx taskset; then
+-        affinity_wait=0
+-        while [ "$affinity_wait" -lt 50 ] &&
+-            kill -0 "$ppsspp_pid" >/dev/null 2>&1; do
+-            emu_thread_ready=0
+-            mali_thread_ready=0
+-            mali_compiler_ready=0
+-            for comm_path in /proc/"$ppsspp_pid"/task/*/comm; do
+-                [ -r "$comm_path" ] || continue
+-                task_name=""
+-                IFS= read -r task_name <"$comm_path" || true
+-                case "$task_name" in
+-                    EmuThread) emu_thread_ready=1 ;;
+-                    mali-cmar-backe) mali_thread_ready=1 ;;
+-                    mali-compiler) mali_compiler_ready=1 ;;
+-                esac
+-            done
+-            if [ "$affinity_applied" -eq 0 ] &&
+-                [ "$emu_thread_ready" -eq 1 ] &&
+-                [ "$mali_thread_ready" -eq 1 ]; then
+-                if "$BB" taskset -ap 7 "$ppsspp_pid" >>"$log" 2>&1 &&
+-                    "$BB" taskset -p 8 "$ppsspp_pid" >>"$log" 2>&1; then
+-                    affinity_applied=1
+-                    printf 'ppsspp_affinity=render-cpu3 workers-cpu0-2 pid-%s\n' \
+-                        "$ppsspp_pid" >>"$log"
+-                else
+-                    "$BB" taskset -ap f "$ppsspp_pid" >/dev/null 2>&1 ||
+-                        true
+-                    printf 'ppsspp_affinity=fallback-all-cpus reason-apply-failed\n' \
+-                        >>"$log"
+-                    break
+-                fi
+-            fi
+-            if [ "$affinity_applied" -eq 1 ] &&
+-                [ "$mali_compiler_ready" -eq 1 ]; then
+-                if "$BB" taskset -ap 7 "$ppsspp_pid" >>"$log" 2>&1 &&
+-                    "$BB" taskset -p 8 "$ppsspp_pid" >>"$log" 2>&1; then
+-                    affinity_settled=1
+-                    printf 'ppsspp_affinity=late-mali-compiler-cpu0-2 pid-%s\n' \
+-                        "$ppsspp_pid" >>"$log"
+-                else
+-                    "$BB" taskset -ap f "$ppsspp_pid" >/dev/null 2>&1 ||
+-                        true
+-                    affinity_applied=0
+-                    printf 'ppsspp_affinity=fallback-all-cpus reason-settle-failed\n' \
+-                        >>"$log"
+-                fi
+-                break
+-            fi
+-            affinity_wait=$((affinity_wait + 1))
+-            "$BB" usleep 100000
+-        done
+-        if [ "$affinity_applied" -eq 0 ] &&
+-            [ "$affinity_wait" -ge 50 ]; then
+-            printf 'ppsspp_affinity=fallback-all-cpus reason-readiness-timeout\n' \
+-                >>"$log"
+-        fi
+-        if [ "$affinity_applied" -eq 1 ] &&
+-            [ "$affinity_settled" -eq 0 ] &&
+-            [ "$affinity_wait" -ge 50 ]; then
+-            printf 'ppsspp_affinity=render-cpu3 workers-cpu0-2 late-mali-compiler-not-seen\n' \
+-                >>"$log"
+-        fi
+-    else
+-        printf 'ppsspp_affinity=fallback-all-cpus reason-taskset-missing\n' \
+-            >>"$log"
+-    fi
+ 
+     wait "$ppsspp_pid"
+     rc=$?
+--- a/package/standalone-bubble/plumos/factory-defaults/standalone/ppsspp/PSP/SYSTEM/ppsspp.ini
++++ b/package/standalone-bubble/plumos/factory-defaults/standalone/ppsspp/PSP/SYSTEM/ppsspp.ini
+@@ -102,7 +102,7 @@
+ JitDisableFlags = 0x00000000
+ CPUSpeed = 0
+ [Graphics]
+-GraphicsBackend = 0 (OPENGL)
++GraphicsBackend = 3 (VULKAN)
+ SoftwareRenderer = False
+ HardwareTransform = True
+ SoftwareSkinning = True
+@@ -110,7 +110,7 @@
+ Smart2DTexFiltering = False
+ InternalResolution = 1
+ FrameSkip = 0
+-AutoFrameSkip = True
++AutoFrameSkip = False
+ DisplayCropTo16x9 = True
+ VerticalSync = True
+ MultiThreading = True

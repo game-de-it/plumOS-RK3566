@@ -46,6 +46,18 @@ for route in routes.values():
         require(route["license"]["path"])
     require(coverage["ownership_policies"][route["runtime"]]["loader"], executable=True)
 
+psp_routes = [route for (system_id, _), route in routes.items() if system_id == "psp"]
+if len(psp_routes) != 1 or psp_routes[0]["profile"] != "standalone:ppsspp":
+    raise SystemExit("PSP must expose exactly one launch profile, with the existing saved core ID")
+if psp_routes[0]["renderer"] != "malisx2-vulkan-kmsdrm":
+    raise SystemExit("PSP launch profile requires the MaliSX2 Vulkan renderer")
+ppsspp_driver = Path("emulator/standalone/ppsspp/vulkan")
+for dependency in (
+    "libvulkan.so.1", "libvulkan_malisx2.so", "malisx2_icd.json", "MANIFEST.json",
+    "licenses/MaliSX2-LICENSE", "licenses/Mesa-license.rst", "licenses/libvulkan1-copyright",
+):
+    require(ppsspp_driver / dependency)
+
 apps = json.loads((frontend / "apps.json").read_text())["apps"]
 internal_tools = {
     "internal:scraping": ("bin/plumos-thumbnail-scraper", "bin/curl", "scraper/lib/plumos-curl"),

@@ -181,3 +181,6 @@ replace(standalone, '"source": "Bubble stockOS read-only capture",',
         '"source": "JELOS 20240206 RG353M SYSTEM",', 1)
 replace(standalone, '    "distribution": "public-with-gkd-vendor-notice",\n    "release_eligible": true,\n', "", 1)
 PY
+patch -s -d "$destination" -p1 < "$scripts/rk3566-ppsspp-malisx2.patch"
+cp "$scripts/rk3566-ppsspp-vulkan-only.patch" "$destination/package/standalone-bubble/patches/ppsspp/"
+cp "$scripts/stage-ppsspp-malisx2.sh" "$destination/scripts/"

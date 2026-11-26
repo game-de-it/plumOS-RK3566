@@ -43,3 +43,11 @@ MaliSX2は既存のkbase UK 11.29に接続した。セットアップ時にRockc
 RG353MのPSP一覧でゲームを選び、`SELECT` → `CORES` で左右を押すと、`SA: PPSSPP` と `SA: PPSSPP-MALISX2` を切り替えられる。`B` で一覧に戻り、`A` で起動する。『Ridge Racers 2』をFE経由で両方起動し、既存バイナリとOpenGL ES用ライブラリ、試験バイナリとMaliSX2をそれぞれ読み込んだことを実機で確認した。
 
 両経路の試験設定は1×、VSync有効、手動・自動フレームスキップOFF、FPS・速度表示ON。CPUガバナーはFEのPSP設定を両方に使う。試験用セーブとセーブステートはRAM上で両経路が共有する。L3で保存し、FNのPPSSPPメニューから読み込める。FEの設定ファイル、起動スクリプト、コア選択を含む状態ディレクトリにRAMから一時的にバインドマウントした。再起動で一時経路、設定、試験用セーブは消える。
+
+## 正式経路への切り替え
+
+2026年11月27日（JST）。開発ビルドのPSP起動経路を `SA: PPSSPP-MALISX2` の1項目に変更した。既存の `standalone:ppsspp` の内部IDと保存先を維持するため、既存のゲーム別設定、履歴、セーブと互換性がある。Vulkanを初期化できない場合はログを出して終了する。フレームスキップは新規設定で手動・自動ともにOFF。既に保存されている個別の設定は引き継ぐ。
+
+Dockerの正式ビルドではPPSSPPにVulkanと `VK_KHR_display` を有効にし、MaliSX2とVulkanローダーをPPSSPP専用ディレクトリへ収録する。公開済みv0.1.0のSYSTEMを基に、更新したPPSSPP、FEバイナリ、ランチャー、ドライバーを入れた開発用SYSTEM `69fcf802b91dd0852453fe725c2194b801b1c44348878e64a698054e7daff319` をDockerで組み立てた。196起動経路と9コンポーネントの検証を通過した。
+
+一時FE経路の試験用セーブをMacへ退避し、RAM上のバインドマウントを解除してから、ADBでRG353Mの既存SDへSYSTEMを配置して試行起動した。Bubble、USB ADB、SD2、PSP一覧に表示された唯一のPPSSPP経路を確認した。FEから『Ridge Racers 2』を起動し、PPSSPPプロセスが同梱の `libvulkan_malisx2.so` を読み込んで内蔵画面にゲームを描画し、FNでメニューが開くことを確認した。このSYSTEMを既定に設定した。
