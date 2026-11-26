@@ -8,4 +8,5 @@ plumOS-RK3566 is SD-boot Linux firmware for RK3566 handhelds. A single image bri
 
 - [User manual](docs/user/README.md)
 - [Developer guide](docs/developer/README.md)
+- [MIT License](LICENSE) · [Third-party licenses](THIRD_PARTY_NOTICES.md)
 - [日本語](README.ja.md)

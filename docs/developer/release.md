@@ -9,3 +9,5 @@ Record the source commit, version, artifact hashes and exact test hardware. Writ
 ## Release files
 
 Keep the final artifact inventory and the source and license notices for shipped components. Inspect the staged artifacts for personal ROMs, BIOS files, saves, test scripts, Wi-Fi profiles, host keys and signing material. The runtime verifier checks route and component coverage; review redistribution terms and validate the final image separately. [Image validation commands](build.md#verify-and-package)
+
+Review the [third-party license inventory](../../THIRD_PARTY_NOTICES.md) against the final image. Include the required notices and provide corresponding source for the binaries that require it.
