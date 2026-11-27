@@ -2,7 +2,7 @@
 
 [日本語](supported-systems.ja.md) · [User manual](README.md)
 
-The plumOS-RK3566 v0.1.0 frontend provides launch profiles for 97 systems. Put games under `Roms/` on the SD1 **PLUMOS** volume or on SD2. Use the first folder listed for each system. The frontend also recognizes the other names, and using multiple folders for one system may produce duplicate entries. [SD card layout and game files](storage.md)
+The plumOS-RK3566 v0.2.0 frontend provides launch profiles for 97 systems. Put games under `Roms/` on the SD1 **PLUMOS** volume or on SD2. Use the first folder listed for each system. The frontend also recognizes the other names, and using multiple folders for one system may produce duplicate entries. [SD card layout and game files](storage.md)
 
 File extensions are case-insensitive. The tables list the extensions and launch options recognized by the frontend. Compatibility and speed vary by title, core, BIOS, ROM set, and handheld. For disc games, keep descriptors such as `.cue` or `.m3u` alongside all referenced tracks or discs.
 
@@ -51,7 +51,7 @@ RA means RetroArch, PICO means PicoArch, and SA means standalone emulator. Highl
 | GBC | `Roms/GBC/`<br>`Roms/GB/`<br>`Roms/gbc/` | `.gbc`, `.zip`, `.7z` | RA `gambatte` | RA `mgba`, `gearboy`, `tgbdual`, `vbam`<br>PICO `gambatte`, `gearboy`, `vbam` |
 | GBA | `Roms/GBA/`<br>`Roms/gba/` | `.gba`, `.zip`, `.7z` | RA `gpsp` | RA `mgba`, `mednafen_gba`, `meteor`, `vba_next`<br>PICO `gpsp`, `mgba` |
 | Game Gear | `Roms/GG/`<br>`Roms/GameGear/`<br>`Roms/MD/`<br>`Roms/gamegear/` | `.gg`, `.zip`, `.7z` | RA `genesis_plus_gx` | RA `picodrive`, `gearsystem`<br>PICO `genesis_plus_gx`, `picodrive`, `gearsystem` |
-| PSP | `Roms/PSP/`<br>`Roms/PPSSPP/`<br>`Roms/psp/` | `.iso`, `.cso`, `.chd`, `.pbp` | SA `ppsspp` | — |
+| PSP | `Roms/PSP/`<br>`Roms/PPSSPP/`<br>`Roms/psp/` | `.iso`, `.cso`, `.chd`, `.pbp` | `SA: PPSSPP-MALISX2` | — |
 | Nintendo DS | `Roms/NDS/`<br>`Roms/nds/` | `.nds` | SA `drastic` | — |
 | NGP | `Roms/NGP/`<br>`Roms/ngp/` | `.ngp`, `.zip`, `.7z` | RA `mednafen_ngp` | — |
 | NGPC | `Roms/NGPC/`<br>`Roms/NGP/`<br>`Roms/ngpc/` | `.ngc`, `.ngpc`, `.zip`, `.7z` | RA `mednafen_ngp` | — |

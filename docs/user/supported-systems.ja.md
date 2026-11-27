@@ -2,7 +2,7 @@
 
 [English](supported-systems.md) · [ガイドの目次](README.ja.md)
 
-plumOS-RK3566 v0.1.0のフロントエンドで利用できる97項目を掲載しています。ROMはSD1の **PLUMOS** ボリュームかSD2の `Roms/` 以下に置きます。フォルダ欄の先頭を推奨します。別名のフォルダも認識しますが、同じシステム用に複数作ると重複表示される場合があります。[SDカードとゲームの配置](storage.ja.md)
+plumOS-RK3566 v0.2.0のフロントエンドで利用できる97項目を掲載しています。ROMはSD1の **PLUMOS** ボリュームかSD2の `Roms/` 以下に置きます。フォルダ欄の先頭を推奨します。別名のフォルダも認識しますが、同じシステム用に複数作ると重複表示される場合があります。[SDカードとゲームの配置](storage.ja.md)
 
 拡張子の大文字・小文字は区別しません。表はフロントエンドが認識する拡張子と起動方法を示します。起動や動作速度はタイトル、選択したコア、BIOS、ROMセット、実機により異なります。ディスク作品は `.cue` や `.m3u` などの参照ファイルと、参照先のトラックやディスクをまとめて置いてください。
 
@@ -51,7 +51,7 @@ RAはRetroArch、PICOはPicoArch、SAは単体エミュレータです。フロ�
 | GBC | `Roms/GBC/`<br>`Roms/GB/`<br>`Roms/gbc/` | `.gbc`, `.zip`, `.7z` | RA `gambatte` | RA `mgba`, `gearboy`, `tgbdual`, `vbam`<br>PICO `gambatte`, `gearboy`, `vbam` |
 | GBA | `Roms/GBA/`<br>`Roms/gba/` | `.gba`, `.zip`, `.7z` | RA `gpsp` | RA `mgba`, `mednafen_gba`, `meteor`, `vba_next`<br>PICO `gpsp`, `mgba` |
 | Game Gear | `Roms/GG/`<br>`Roms/GameGear/`<br>`Roms/MD/`<br>`Roms/gamegear/` | `.gg`, `.zip`, `.7z` | RA `genesis_plus_gx` | RA `picodrive`, `gearsystem`<br>PICO `genesis_plus_gx`, `picodrive`, `gearsystem` |
-| PSP | `Roms/PSP/`<br>`Roms/PPSSPP/`<br>`Roms/psp/` | `.iso`, `.cso`, `.chd`, `.pbp` | SA `ppsspp` | — |
+| PSP | `Roms/PSP/`<br>`Roms/PPSSPP/`<br>`Roms/psp/` | `.iso`, `.cso`, `.chd`, `.pbp` | `SA: PPSSPP-MALISX2` | — |
 | Nintendo DS | `Roms/NDS/`<br>`Roms/nds/` | `.nds` | SA `drastic` | — |
 | NGP | `Roms/NGP/`<br>`Roms/ngp/` | `.ngp`, `.zip`, `.7z` | RA `mednafen_ngp` | — |
 | NGPC | `Roms/NGPC/`<br>`Roms/NGP/`<br>`Roms/ngpc/` | `.ngc`, `.ngpc`, `.zip`, `.7z` | RA `mednafen_ngp` | — |

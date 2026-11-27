@@ -10,7 +10,7 @@ Back up the target card before writing. If it already runs plumOS, back up saves
 
 ## Write and boot
 
-1. Download the image and checksum file from the same release. For v0.2.0, verify the compressed file before extracting it.
+1. Download both files from the v0.2.0 release and verify the compressed image before extracting it. [v0.2.0 release](https://github.com/game-de-it/plumOS-RK3566/releases/tag/v0.2.0)
 
    ```sh
    shasum -a 256 -c plumOS-RK3566-v0.2.0.img.gz.sha256

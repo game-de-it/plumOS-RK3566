@@ -6,7 +6,7 @@
 
 Record the source commit, version, artifact hashes and exact test hardware. Write the candidate to a fresh card and validate first-boot provisioning, cold boot, reboot, shutdown, SD2, representative emulators and app menus, audio, and sleep/resume. Check Wi-Fi and USB ADB where available, screen layout on each panel geometry, and rollback for any update package included with the release. Distinguish a successful launch from compatibility throughout an entire game.
 
-Verify a release update using the exact artifact and procedure users will receive. For release `0.2.1`, check that the archive name `plumos-rk3566-runtime-0.2.1.tar.gz`, checksum entry, signed manifest, packaged `VERSION`, and version shown after updating all use `0.2.1`. Start from the shipped installation and record the result of the documented update through the standard menu.
+Verify a release update using the exact artifact and procedure users will receive. Check that the version in `plumos-rk3566-runtime-<version>.tar.gz` matches the version in the checksum entry, signed manifest, packaged `VERSION`, and frontend after updating. Start from the shipped installation and record the result of the documented update through the standard menu.
 
 Use the same IMG on a freshly written card to verify emulators and apps through the normal frontend controls. Record runs that used separately copied binaries, temporary mounts, or test environment variables as diagnostic work. Record the hashes of the tested compressed IMG, raw IMG, and update archive, then download and compare the release attachments. Recheck artifacts on hardware when a rebuild or a new signature changes their bytes.
 
