@@ -116,8 +116,8 @@
    r->double_buffer = 1;
 +  /* Compose in cached RAM, then copy to the write-combined scanout buffer
 +   * once. Drawing over the DRM mapping repeatedly is costly on RK3566. */
-+  if (r->drm_pitch[0] == r->drm_pitch[1]) {
-+    r->shadow = calloc(1, (size_t)r->frame_bytes);
++  if (!r->drm_landscape && r->drm_pitch[0] == r->drm_pitch[1]) {
++    r->shadow = (unsigned char *)calloc(1, (size_t)r->frame_bytes);
 +  }
    ok = 1;
 

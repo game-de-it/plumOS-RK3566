@@ -14,6 +14,7 @@ mkdir "$work"
 git -C "$bubble" archive "$revision" scripts docker/bubble-tools src \
     package/frontend-bubble LICENSE | tar -xf - -C "$work"
 prototype=$(cd "$(dirname "$0")" && pwd)
+patch -d "$work" -p1 < "$prototype/patches/rk3566-rgb10max3-panel.patch"
 patch -d "$work" -p1 < "$prototype/patches/rk3566-ggfe-panel-fit.patch"
 export SOURCE_DATE_EPOCH
 SOURCE_DATE_EPOCH=$(git -C "$bubble" show -s --format=%ct "$revision")

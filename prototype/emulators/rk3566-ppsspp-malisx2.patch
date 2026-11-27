@@ -1,30 +1,33 @@
 --- a/scripts/build-ppsspp-bubble.sh
 +++ b/scripts/build-ppsspp-bubble.sh
-@@ -6,6 +6,7 @@
+@@ -6,6 +6,8 @@
  BUILD_DIR="$ROOT_DIR/build/ppsspp-bubble/build"
  OUT_ROOT="$ROOT_DIR/${PLUMOS_BUBBLE_PPSSPP_OUT:-output/ppsspp/bubble}"
  PATCH_FILE="$ROOT_DIR/package/standalone-bubble/patches/ppsspp/ppsspp-1.20.4-bubble-no-sdl2-ttf.patch"
 +VULKAN_PATCH="$ROOT_DIR/package/standalone-bubble/patches/ppsspp/rk3566-ppsspp-vulkan-only.patch"
++PANEL_PATCH="$ROOT_DIR/package/standalone-bubble/patches/ppsspp/rk3566-ppsspp-rgb10max3-panel.patch"
  PPSSPP_REPO="${PLUMOS_BUBBLE_PPSSPP_REPO:-https://github.com/hrydgard/ppsspp.git}"
  PPSSPP_REF="${PLUMOS_BUBBLE_PPSSPP_REF:-v1.20.4}"
  PPSSPP_COMMIT="fa50bb1976065c4f8b1b47af227d367fe9771555"
-@@ -38,6 +39,7 @@
+@@ -38,6 +40,8 @@
  git -C "$SOURCE_DIR" submodule sync --recursive
  git -C "$SOURCE_DIR" submodule update --init --recursive
  restore_source() {
++    git -C "$SOURCE_DIR" apply --reverse "$PANEL_PATCH" >/dev/null 2>&1 || true
 +    git -C "$SOURCE_DIR" apply --reverse "$VULKAN_PATCH" >/dev/null 2>&1 || true
      git -C "$SOURCE_DIR" apply --reverse "$PATCH_FILE" >/dev/null 2>&1 ||
          true
  }
-@@ -45,6 +47,7 @@
+@@ -45,6 +49,8 @@
  
  git -C "$SOURCE_DIR" apply --check "$PATCH_FILE"
  git -C "$SOURCE_DIR" apply "$PATCH_FILE"
 +git -C "$SOURCE_DIR" apply "$VULKAN_PATCH"
++git -C "$SOURCE_DIR" apply "$PANEL_PATCH"
  
  cmake -S "$SOURCE_DIR" -B "$BUILD_DIR" -G Ninja \
      -DCMAKE_BUILD_TYPE=Release \
-@@ -56,10 +59,10 @@
+@@ -56,10 +62,10 @@
      -DUSING_FBDEV=ON \
      -DUSING_GLES2=ON \
      -DPLUMOS_BUBBLE=ON \
@@ -68,7 +71,7 @@
  COMMON_FLAGS="${PLUMOS_BUBBLE_PPSSPP_COMPILER_FLAGS:--O3 -mcpu=cortex-a55 -mtune=cortex-a55 -fomit-frame-pointer}"
  ARTIFACT_ORIGIN="${PLUMOS_BUBBLE_PPSSPP_ARTIFACT_ORIGIN:-source-built in the plumOS Bubble ARM64 toolchain}"
 -SOURCE_PATCHES="${PLUMOS_BUBBLE_PPSSPP_SOURCE_PATCHES:-ppsspp-1.20.4-bubble-no-sdl2-ttf.patch}"
-+SOURCE_PATCHES="${PLUMOS_BUBBLE_PPSSPP_SOURCE_PATCHES:-ppsspp-1.20.4-bubble-no-sdl2-ttf.patch,rk3566-ppsspp-vulkan-only.patch}"
++SOURCE_PATCHES="${PLUMOS_BUBBLE_PPSSPP_SOURCE_PATCHES:-ppsspp-1.20.4-bubble-no-sdl2-ttf.patch,rk3566-ppsspp-vulkan-only.patch,rk3566-ppsspp-rgb10max3-panel.patch}"
  READELF="${READELF:-$(command -v readelf || command -v llvm-readelf || true)}"
  
  [ -x "$BINARY" ]

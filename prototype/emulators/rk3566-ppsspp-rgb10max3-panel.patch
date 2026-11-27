@@ -1,0 +1,66 @@
+diff --git a/Common/GPU/Vulkan/VulkanContext.cpp b/Common/GPU/Vulkan/VulkanContext.cpp
+index 9b38473..bccd984 100644
+--- a/Common/GPU/Vulkan/VulkanContext.cpp
++++ b/Common/GPU/Vulkan/VulkanContext.cpp
+@@ -1,6 +1,7 @@
+ #define __STDC_LIMIT_MACROS
+ 
+ #include <cstdlib>
++#include <cstdio>
+ #include <cstdint>
+ #include <cstring>
+ #include <iostream>
+@@ -1345,6 +1346,17 @@ static std::string surface_transforms_to_string(VkSurfaceTransformFlagsKHR trans
+ 	return str;
+ }
+ 
++static bool IsRGB10Max3Panel() {
++	char model[64]{};
++	FILE *file = std::fopen("/proc/device-tree/model", "rb");
++	if (!file)
++		return false;
++	std::fread(model, 1, sizeof(model) - 1, file);
++	std::fclose(file);
++	return std::strcmp(model, "Powkiddy RGB10 Max 3") == 0 ||
++		std::strcmp(model, "Powkiddy RGB10MAX3") == 0;
++}
++
+ bool VulkanContext::InitSwapchain(VkPresentModeKHR desiredPresentMode) {
+ 	_assert_(physical_device_ >= 0 && physical_device_ < (int)physical_devices_.size());
+ 	if (!surface_) {
+@@ -1445,6 +1457,13 @@ bool VulkanContext::InitSwapchain(VkPresentModeKHR desiredPresentMode) {
+ 
+ 	if (surfCapabilities_.currentTransform & (VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR | VK_SURFACE_TRANSFORM_INHERIT_BIT_KHR)) {
+ 		preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
++		if (winsys_ == WINDOWSYSTEM_DISPLAY &&
++			swapChainExtent_.width < swapChainExtent_.height && IsRGB10Max3Panel()) {
++			// Direct display provides a portrait surface with no WSI orientation.
++			// Keep the native extent and rotate the final rendering into it.
++			g_display.rotation = DisplayRotation::ROTATE_270;
++			g_display.rot_matrix.setRotationZ270();
++		}
+ 	} else if (surfCapabilities_.currentTransform & allowedRotations) {
+ 		// Normal, sensible rotations. Let's handle it.
+ 		preTransform = surfCapabilities_.currentTransform;
+diff --git a/SDL/SDLMain.cpp b/SDL/SDLMain.cpp
+index 67cc21e..126599a 100644
+--- a/SDL/SDLMain.cpp
++++ b/SDL/SDLMain.cpp
+@@ -962,6 +962,8 @@ static void ProcessSDLEvent(SDL_Window *window, const SDL_Event &event, InputSta
+ 			bool fullscreen = (window_flags & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_FULLSCREEN_DESKTOP));
+ 
+ 			// This one calls NativeResized if the size changed.
++			if (g_display.rotation == DisplayRotation::ROTATE_270 && new_width_px < new_height_px)
++				std::swap(new_width_px, new_height_px);
+ 			Native_UpdateScreenScale(new_width_px, new_height_px, UIScaleFactorToMultiplier(g_Config.iUIScaleFactor));
+ 
+ 			// Set variable here in case fullscreen was toggled by hotkey
+@@ -1700,6 +1702,8 @@ int main(int argc, char *argv[]) {
+ 
+ 	float dpi_scale = 1.0f / (g_ForcedDPI == 0.0f ? g_DesktopDPI : g_ForcedDPI);
+ 
++	if (g_display.rotation == DisplayRotation::ROTATE_270 && w < h)
++		std::swap(w, h);
+ 	Native_UpdateScreenScale(w * g_DesktopDPI, h * g_DesktopDPI, UIScaleFactorToMultiplier(g_Config.iUIScaleFactor));
+ 
+ 	bool mainThreadIsRender = g_Config.iGPUBackend == (int)GPUBackend::OPENGL;

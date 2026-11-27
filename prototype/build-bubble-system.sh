@@ -46,6 +46,7 @@ fi
 patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-start-menu.patch"
 patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-start-helpers.patch"
 patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-audio.patch"
+patch -d "$stage/source" -p1 < "$prototype/patches/rk3566-rgb10max3-panel.patch"
 patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-power-overlay-drm.patch"
 patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-power-overlay-input.patch"
 patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-brightness-keys.patch"

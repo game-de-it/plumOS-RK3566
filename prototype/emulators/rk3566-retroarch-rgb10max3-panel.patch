@@ -1,0 +1,170 @@
+diff --git a/gfx/drivers/drm_gfx.c b/gfx/drivers/drm_gfx.c
+index 102e410..ed0f68e 100644
+--- a/gfx/drivers/drm_gfx.c
++++ b/gfx/drivers/drm_gfx.c
+@@ -136,6 +136,7 @@ struct drm_struct
+    drmModeModeInfo *current_mode;
+    uint32_t crtc_id;
+    uint32_t connector_id;
++   unsigned panel_rotation;
+ 
+    drmModeCrtcPtr orig_crtc;
+ 
+@@ -286,16 +287,10 @@ static void drm_surface_update_viewport(struct drm_surface *surface)
+       ? settings->bools.video_force_aspect : true;
+    struct video_viewport *vp         = &surface->viewport;
+ 
+-   if (surface->rotation & 1)
+-   {
+-      vp->full_width  = drm.current_mode->hdisplay;
+-      vp->full_height = drm.current_mode->vdisplay;
+-   }
+-   else
+-   {
+-      vp->full_width  = drm.current_mode->hdisplay;
+-      vp->full_height = drm.current_mode->vdisplay;
+-   }
++   vp->full_width = drm.panel_rotation
++      ? drm.current_mode->vdisplay : drm.current_mode->hdisplay;
++   vp->full_height = drm.panel_rotation
++      ? drm.current_mode->hdisplay : drm.current_mode->vdisplay;
+ 
+    vp->x      = 0;
+    vp->y      = 0;
+@@ -319,6 +314,16 @@ static void drm_surface_update_viewport(struct drm_surface *surface)
+       vp->width = 1;
+    if (!vp->height)
+       vp->height = 1;
++   if (drm.panel_rotation)
++   {
++      struct video_viewport landscape = *vp;
++      vp->full_width  = landscape.full_height;
++      vp->full_height = landscape.full_width;
++      vp->x = landscape.y;
++      vp->y = (int)landscape.full_width - landscape.x - (int)landscape.width;
++      vp->width  = landscape.height;
++      vp->height = landscape.width;
++   }
+ }
+ 
+ static void drm_surface_setup(void *data,  int src_width, int src_height,
+@@ -561,6 +566,12 @@ static void drm_blend_osd_pixel(struct drm_surface *surface,
+       uint8_t *dst_base, int x, int y,
+       unsigned red, unsigned green, unsigned blue, unsigned alpha)
+ {
++   if (drm.panel_rotation)
++   {
++      int logical_x = x;
++      x = y;
++      y = surface->src_height - 1 - logical_x;
++   }
+    if (x < 0 || y < 0 || x >= surface->src_width || y >= surface->src_height)
+       return;
+ 
+@@ -607,6 +618,8 @@ static void drm_render_osd_msg(struct drm_video *vid,
+    unsigned green;
+    unsigned blue;
+    unsigned color_alpha = 255;
++   int width  = drm.panel_rotation ? surface->src_height : surface->src_width;
++   int height = drm.panel_rotation ? surface->src_width : surface->src_height;
+ 
+    if (!vid->font_driver || !vid->font_data || !msg || !*msg)
+       return;
+@@ -617,8 +630,8 @@ static void drm_render_osd_msg(struct drm_video *vid,
+ 
+    if (params)
+    {
+-      start_x     = (int)(params->x * surface->src_width);
+-      pen_y       = (int)((1.0f - params->y) * surface->src_height);
++      start_x     = (int)(params->x * width);
++      pen_y       = (int)((1.0f - params->y) * height);
+       scale       = params->scale > 0.0f ? params->scale : 1.0f;
+       red         = FONT_COLOR_GET_RED(params->color);
+       green       = FONT_COLOR_GET_GREEN(params->color);
+@@ -628,10 +641,10 @@ static void drm_render_osd_msg(struct drm_video *vid,
+    else
+    {
+       start_x = settings
+-         ? (int)(settings->floats.video_msg_pos_x * surface->src_width) : 12;
++         ? (int)(settings->floats.video_msg_pos_x * width) : 12;
+       pen_y = settings
+          ? (int)((1.0f - settings->floats.video_msg_pos_y) *
+-               surface->src_height) : surface->src_height - 12;
++               height) : height - 12;
+       red   = settings ? (unsigned)(settings->floats.video_msg_color_r * 255.0f) : 255;
+       green = settings ? (unsigned)(settings->floats.video_msg_color_g * 255.0f) : 255;
+       blue  = settings ? (unsigned)(settings->floats.video_msg_color_b * 255.0f) : 255;
+@@ -1135,6 +1148,23 @@ static int modeset_create_dumbfb(int fd, struct modeset_buf *buf,
+    return 0;
+ }
+ 
++static unsigned drm_internal_panel_rotation(const drmModeConnector *connector)
++{
++   char model[64] = {0};
++   FILE *file;
++
++   if (connector->connector_type != DRM_MODE_CONNECTOR_DSI ||
++       drm.current_mode->hdisplay >= drm.current_mode->vdisplay)
++      return 0;
++   file = fopen("/proc/device-tree/model", "rb");
++   if (!file)
++      return 0;
++   (void)fread(model, 1, sizeof(model) - 1, file);
++   fclose(file);
++   return (strcmp(model, "Powkiddy RGB10 Max 3") == 0 ||
++           strcmp(model, "Powkiddy RGB10MAX3") == 0) ? 3 : 0;
++}
++
+ static bool init_drm(void)
+ {
+    uint i;
+@@ -1213,6 +1243,7 @@ static bool init_drm(void)
+    drm.orig_crtc = drmModeGetCrtc(drm.fd, drm.encoder->crtc_id);
+    drm.current_mode = &(drm.orig_crtc->mode);
+    g_drm_mode = drm.current_mode;
++   drm.panel_rotation = drm_internal_panel_rotation(connector);
+ 
+    /* Set mode physical video mode. Not really needed, but clears TTY console. */
+    struct modeset_buf buf;
+@@ -1276,19 +1307,6 @@ static void *drm_init(const video_info_t *video,
+    _drmvars->pending_mutex    = slock_new();
+    _drmvars->core_width       = 0;
+    _drmvars->core_height      = 0;
+-   {
+-      settings_t *settings = config_get_ptr();
+-      unsigned core_rotation = retroarch_get_core_requested_rotation() & 3;
+-
+-      _drmvars->panel_rotation = settings
+-         ? (settings->uints.video_rotation & 3) : 0;
+-      _drmvars->rotation = (_drmvars->panel_rotation + 4 - core_rotation) & 3;
+-      /* video_driver_get_aspect_ratio() already returns the core aspect
+-       * after RetroArch has applied the requested content rotation. */
+-      fprintf(stderr, "[DRM] Bubble rotations panel=%u core=%u content=%u.\n",
+-            _drmvars->panel_rotation, core_rotation, _drmvars->rotation);
+-   }
+-
+    _drmvars->main_surface     = NULL;
+    _drmvars->menu_surface     = NULL;
+ 
+@@ -1304,6 +1322,13 @@ static void *drm_init(const video_info_t *video,
+    }
+ 
+    RARCH_LOG ("[DRM] Init successful.\n");
++   {
++      settings_t *settings = config_get_ptr();
++      unsigned user_rotation = settings ? settings->uints.video_rotation : 0;
++      unsigned core_rotation = retroarch_get_core_requested_rotation() & 3;
++      _drmvars->panel_rotation = (drm.panel_rotation + user_rotation) & 3;
++      _drmvars->rotation = (_drmvars->panel_rotation + 4 - core_rotation) & 3;
++   }
+ 
+    _drmvars->kms_width  = drm.current_mode->hdisplay;
+    _drmvars->kms_height = drm.current_mode->vdisplay;
+@@ -1546,6 +1571,7 @@ static void drm_set_rotation(void *data, unsigned rotation)
+ 
+    next_panel_rotation = settings
+       ? (settings->uints.video_rotation & 3) : 0;
++   next_panel_rotation = (drm.panel_rotation + next_panel_rotation) & 3;
+    core_rotation = rotation & 3;
+    next_rotation = (next_panel_rotation + 4 - core_rotation) & 3;
+    if (_drmvars->rotation == next_rotation &&

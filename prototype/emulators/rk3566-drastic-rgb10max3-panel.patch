@@ -1,0 +1,61 @@
+diff --git a/runner/runner.c b/runner/runner.c
+index f9b4394..c02a2dc 100644
+--- a/runner/runner.c
++++ b/runner/runner.c
+@@ -50,9 +50,12 @@ static const char *vert_shader_code =
+     "attribute vec4 vert_tex_pos;                                       \n"
+     "attribute vec2 vert_tex_coord;                                     \n"
+     "varying vec2 frag_tex_coord;                                       \n"
++    "uniform bool portrait_panel;                                      \n"
+     "void main()                                                        \n"
+     "{                                                                  \n"
+     "    gl_Position = vert_tex_pos;                                    \n"
++    "    if (portrait_panel)                                           \n"
++    "        gl_Position.xy = vec2(-vert_tex_pos.y, vert_tex_pos.x);     \n"
+     "    frag_tex_coord = vert_tex_coord;                               \n"
+     "}                                                                  \n";
+ 
+@@ -143,10 +146,24 @@ static int init_shm(void)
+     return 0;
+ }
+ 
++static int is_rgb10max3(void)
++{
++    char model[64] = {0};
++    FILE *file = fopen("/proc/device-tree/model", "rb");
++    if (!file) {
++        return 0;
++    }
++    (void)fread(model, 1, sizeof(model) - 1, file);
++    fclose(file);
++    return strcmp(model, "Powkiddy RGB10 Max 3") == 0 ||
++           strcmp(model, "Powkiddy RGB10MAX3") == 0;
++}
++
+ static int init_gles(void)
+ {
+     int r = 0;
+     int drawable_w, drawable_h, view_w, view_h;
++    int portrait_panel, canvas_w, canvas_h;
+ 
+     trace("call %s()\n", __func__);
+ 
+@@ -228,11 +245,16 @@ static int init_gles(void)
+   
+     /* Keep the emulator's logical LCD layout on displays with a different shape. */
+     SDL_GL_GetDrawableSize(myrunner.sdl2.win, &drawable_w, &drawable_h);
++    portrait_panel = drawable_w < drawable_h && is_rgb10max3();
++    canvas_w = portrait_panel ? R_LCD_H : R_LCD_W;
++    canvas_h = portrait_panel ? R_LCD_W : R_LCD_H;
++    glUniform1i(glGetUniformLocation(myrunner.gles.object, "portrait_panel"),
++               portrait_panel);
+     view_w = drawable_w;
+-    view_h = view_w * R_LCD_H / R_LCD_W;
++    view_h = view_w * canvas_h / canvas_w;
+     if (view_h > drawable_h) {
+         view_h = drawable_h;
+-        view_w = view_h * R_LCD_W / R_LCD_H;
++        view_w = view_h * canvas_w / canvas_h;
+     }
+     glViewport((drawable_w - view_w) / 2, (drawable_h - view_h) / 2, view_w, view_h);
+     glClear(GL_COLOR_BUFFER_BIT);

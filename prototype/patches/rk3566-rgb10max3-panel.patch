@@ -1,0 +1,140 @@
+diff --git a/src/frontend/plumos_fbdev_renderer.h b/src/frontend/plumos_fbdev_renderer.h
+index 2a53ddf..07ead29 100644
+--- a/src/frontend/plumos_fbdev_renderer.h
++++ b/src/frontend/plumos_fbdev_renderer.h
+@@ -164,6 +164,7 @@ struct plumos_fbdev_renderer {
+   uint32_t drm_pitch[2];
+   uint64_t drm_size[2];
+   unsigned char *drm_map[2];
++  uint32_t *drm_landscape;
+   int drm_front;
+   int drm_draw;
+   drmModeModeInfo drm_mode;
+@@ -432,6 +433,38 @@ static int plumos_fbdev_drm_create_buffer(
+   return 1;
+ }
+ 
++static int plumos_fbdev_rgb10max3(void) {
++  char model[64] = {0};
++  FILE *file = fopen("/proc/device-tree/model", "rb");
++  if (!file) {
++    return 0;
++  }
++  (void)fread(model, 1, sizeof(model) - 1, file);
++  fclose(file);
++  return strcasecmp(model, "Powkiddy RGB10 Max 3") == 0 ||
++         strcasecmp(model, "Powkiddy RGB10MAX3") == 0;
++}
++
++/* A landscape pixel (x, y) goes to (y, width - 1 - x) on the
++ * portrait scanout. Tile the transpose to keep both strides cache-local. */
++static void plumos_fbdev_drm_rotate_left(uint32_t *dst, size_t dst_stride,
++                                        const uint32_t *src, size_t width,
++                                        size_t height) {
++  const size_t tile = 16;
++  for (size_t top = 0; top < height; top += tile) {
++    for (size_t left = 0; left < width; left += tile) {
++      size_t end_y = top + tile < height ? top + tile : height;
++      size_t end_x = left + tile < width ? left + tile : width;
++      for (size_t x = left; x < end_x; ++x) {
++        uint32_t *row = dst + (width - 1 - x) * dst_stride;
++        for (size_t y = top; y < end_y; ++y) {
++          row[y] = src[y * width + x];
++        }
++      }
++    }
++  }
++}
++
+ static int plumos_fbdev_drm_init(struct plumos_fbdev_renderer *r,
+                                  const char *path, char *error,
+                                  size_t error_size) {
+@@ -488,6 +521,16 @@ static int plumos_fbdev_drm_init(struct plumos_fbdev_renderer *r,
+   }
+   r->drm_connector_id = connector->connector_id;
+   r->drm_mode = connector->modes[chosen_mode];
++  if (connector->connector_type == DRM_MODE_CONNECTOR_DSI &&
++      r->drm_mode.hdisplay < r->drm_mode.vdisplay &&
++      plumos_fbdev_rgb10max3()) {
++    r->drm_landscape = (uint32_t *)calloc(
++        (size_t)r->drm_mode.hdisplay * r->drm_mode.vdisplay, sizeof(uint32_t));
++    if (!r->drm_landscape) {
++      snprintf(error, error_size, "allocate landscape canvas");
++      goto out;
++    }
++  }
+   if (connector->encoder_id) {
+     encoder = drmModeGetEncoder(r->drm_fd, connector->encoder_id);
+   }
+@@ -544,6 +587,15 @@ static int plumos_fbdev_drm_init(struct plumos_fbdev_renderer *r,
+   r->fix.smem_len = (uint32_t)r->drm_size[r->drm_draw];
+   r->var.xres = r->drm_mode.hdisplay;
+   r->var.yres = r->drm_mode.vdisplay;
++  if (r->drm_landscape) {
++    r->var.xres = r->drm_mode.vdisplay;
++    r->var.yres = r->drm_mode.hdisplay;
++    r->fix.line_length = r->var.xres * sizeof(uint32_t);
++    r->frame_bytes = (long)r->fix.line_length * r->var.yres;
++    r->map_size = (size_t)r->frame_bytes;
++    r->fix.smem_len = (uint32_t)r->map_size;
++    r->mem = (unsigned char *)r->drm_landscape;
++  }
+   r->var.xres_virtual = r->var.xres;
+   r->var.yres_virtual = r->var.yres;
+   r->var.bits_per_pixel = 32;
+@@ -560,6 +612,8 @@ static int plumos_fbdev_drm_init(struct plumos_fbdev_renderer *r,
+ 
+ out:
+   if (!ok) {
++    free(r->drm_landscape);
++    r->drm_landscape = NULL;
+     plumos_fbdev_drm_restore_planes(r);
+     plumos_fbdev_drm_destroy_buffer(r, 1);
+     plumos_fbdev_drm_destroy_buffer(r, 0);
+@@ -589,6 +643,11 @@ static int plumos_fbdev_drm_present(struct plumos_fbdev_renderer *r) {
+   if (!r || !r->drm_active) {
+     return 0;
+   }
++  if (r->drm_landscape) {
++    plumos_fbdev_drm_rotate_left((uint32_t *)r->drm_map[r->drm_draw],
++                                r->drm_pitch[r->drm_draw] / sizeof(uint32_t),
++                                r->drm_landscape, r->var.xres, r->var.yres);
++  }
+   r->drm_page_flip_pending = 1;
+   if (drmModePageFlip(r->drm_fd, r->drm_crtc_id,
+                       r->drm_fb_id[r->drm_draw],
+@@ -612,6 +671,9 @@ static int plumos_fbdev_drm_present(struct plumos_fbdev_renderer *r) {
+   }
+   r->drm_front = r->drm_draw;
+   r->drm_draw = r->drm_front == 0 ? 1 : 0;
++  if (r->drm_landscape) {
++    return 1;
++  }
+   r->mem = r->drm_map[r->drm_draw];
+   r->map_size = (size_t)r->drm_size[r->drm_draw];
+   r->frame_bytes =
+@@ -865,8 +927,13 @@ static int plumos_fbdev_write_screenshot_png(
+   }
+ #ifdef PLUMOS_FBDEV_ENABLE_DRM
+   if (r->drm_active) {
+-    source = r->drm_map[r->drm_front];
+-    stride = (size_t)r->drm_pitch[r->drm_front];
++    if (r->drm_landscape) {
++      source = (const unsigned char *)r->drm_landscape;
++      stride = r->fix.line_length;
++    } else {
++      source = r->drm_map[r->drm_front];
++      stride = (size_t)r->drm_pitch[r->drm_front];
++    }
+   } else
+ #endif
+       if (r->shadow) {
+@@ -4310,6 +4377,8 @@ static void plumos_fbdev_renderer_shutdown(struct plumos_fbdev_renderer *r) {
+       r->drm_fd = -1;
+     }
+     r->drm_active = 0;
++    free(r->drm_landscape);
++    r->drm_landscape = NULL;
+     r->mem = NULL;
+     r->map_size = 0;
+   }
