@@ -2,30 +2,14 @@
 
 [日本語](updates.ja.md) · [Guide index](README.md)
 
-## Fresh v0.2.0 installations
+## Move from v0.1.x to v0.2.0
 
-The common SD image includes the official public key and the RK3566 updater. Verify the SHA-256 of a compatible `plumos-rk3566-runtime-<version>.tar.gz`, place it in `PLUMOS/updates/`, then open `START` → `System Settings` → `System Update`. No separate key installation is required. The procedures below are for v0.1.x.
+Back up your saves and settings, then write the v0.2.0 common SD image to the TF1 card. [v0.2.0 release](https://github.com/game-de-it/plumOS-RK3566/releases/tag/v0.2.0) · [Data locations](storage.md) · [Installation](install.md)
 
-## One-time migration from v0.1.1
+## Signed runtime updates
 
-Use the latest migration ZIP on the original v0.1.1 installation to install the RK3566 release public key and add support for `plumos-rk3566-runtime` filenames. Run it once even if you previously installed the key with an earlier ZIP.
+The v0.2.0 common SD image includes the official public key and the RK3566 updater. When a compatible update is published, you can install it through the standard System Update menu using the embedded key.
 
-1. Download `plumOS-RK3566-update-key.zip` and its `.sha256` file from the [v0.1.2 release](https://github.com/game-de-it/plumOS-RK3566/releases/tag/v0.1.2) and verify the ZIP checksum.
-2. Extract the archive and copy the `plumOS-RK3566-update-key` folder to the root of the SD1 **PLUMOS** volume.
-3. Boot v0.1.1. Open `START` → `Apps` → `File Manager`, select `Install-Update-Key.sh`, and choose **Execute**. When `Update-Key.log` in the same folder shows `OK: System Update recognizes plumos-rk3566-runtime packages.`, use the procedure below to install v0.1.2.
-
-If you are running v0.1.0, first use the manual upgrade ZIP from the [v0.1.1 release](https://github.com/game-de-it/plumOS-RK3566/releases/tag/v0.1.1).
-
-## Signed runtime update
-
-1. Download the RK3566 update package for your installed version and verify its checksum. For v0.1.1 to v0.1.2, use `plumos-rk3566-runtime-0.1.2.tar.gz`.
-2. Put the package in `updates/` on the SD1 **PLUMOS** volume.
-3. Open `START` → `System Settings` → `System Update` and follow the prompts through reboot.
-
-The updater checks the signature and updates runtime files.
-
-## Full SD image releases
-
-Back up your saves and settings, then follow the image-writing instructions. [Backups](storage.md#saves-and-backups) · [Installation](install.md)
-
-Common SD images starting with v0.1.2 include the official public key. On a fresh installation from the original v0.1.2 image, run the latest migration ZIP once to add filename support before installing the next `plumos-rk3566-runtime` update.
+1. Download the `plumos-rk3566-runtime-<version>.tar.gz` package for your installed version and verify the attached SHA-256.
+2. Place the archive in `updates/` on the TF1 **PLUMOS** volume.
+3. Open `START` → `System Settings` → `System Update`. After the automatic reboot, check the runtime version in `Information`.

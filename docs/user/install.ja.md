@@ -10,11 +10,11 @@
 
 ## 書き込みと起動
 
-1. イメージとチェックサムを入手します。チェックサムに圧縮版と展開版の両方が載っている場合は、両方のファイルをそろえて照合します。以下は標準のビルド出力名です。
+1. 同じリリースのイメージとチェックサムを入手します。v0.2.0では圧縮ファイルを照合してから展開します。
 
    ```sh
-   gzip -dk plumOS-RK3566.img.gz
-   shasum -a 256 -c plumOS-RK3566.img.sha256
+   shasum -a 256 -c plumOS-RK3566-v0.2.0.img.gz.sha256
+   gzip -dk plumOS-RK3566-v0.2.0.img.gz
    ```
 
    Linuxでは `sha256sum -c` でも照合できます。Windowsでは `Get-FileHash -Algorithm SHA256` で各ファイルの値を出し、チェックサムの該当行と比較します。

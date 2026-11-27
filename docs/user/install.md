@@ -10,11 +10,11 @@ Back up the target card before writing. If it already runs plumOS, back up saves
 
 ## Write and boot
 
-1. Download the image and checksum file. If the checksum file lists both the compressed and raw image, keep both while verifying. These are the standard build filenames.
+1. Download the image and checksum file from the same release. For v0.2.0, verify the compressed file before extracting it.
 
    ```sh
-   gzip -dk plumOS-RK3566.img.gz
-   shasum -a 256 -c plumOS-RK3566.img.sha256
+   shasum -a 256 -c plumOS-RK3566-v0.2.0.img.gz.sha256
+   gzip -dk plumOS-RK3566-v0.2.0.img.gz
    ```
 
    On Linux, `sha256sum -c` performs the same check. On Windows, use `Get-FileHash -Algorithm SHA256` and compare the digest for each file with the matching entry.
