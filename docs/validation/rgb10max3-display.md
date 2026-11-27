@@ -27,4 +27,19 @@ v0.1.2のSYSTEMをベースにARM64 Dockerで試験イメージを生成した�
 - PCSX-ReARMedとOpenBORのゲーム画面とメニュー、Pyxelのアスペクト比
 - 各経路を終了した後のBubbleの描画と、HDMI接続時の表示
 
-RGB10 Max 3での確認は未実施。実機でのRGA転送、画面の向き、フレームレートは上記の試験で確認する。
+RGB10 Max 3の実機利用者から、試験イメージで画面の向きが直ったと報告を受けた。個別のエミュレータやフレームレートについては詳細な結果を受け取っていない。
+
+## 音声と電源オフの追加試験
+
+実機利用者から、設定のシャットダウンで本体が再起動し、再起動の項目は通常どおり再起動するとの報告を受けた。また、音声出力をスピーカーに設定すると無音で、ヘッドフォンを選ぶと内蔵スピーカーから鳴った。
+
+- **音声**はJELOS 20240206の機種別設定と照合し、内蔵スピーカーをRK817の `HP`、ヘッドフォンを `SPK` に割り当てた。自動設定ではジャックの検出結果にこの対応を適用する。 [JELOSの機種別音声設定](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/packages/hardware/quirks/devices/Powkiddy%20RGB10%20Max%203/050-audio_path)
+- **電源**は、メニューからのシャットダウンが `poweroff`、再起動が `reboot` としてplumOS initへ渡されることを確認した。収録DTBの `rockchip,rk817` と `not-save-power-en = 1` を確認し、RGB30・RG353Vと同じ機種限定の対策を適用した。古い電源レール設定をBSPカーネルが復元するのを防ぐため、非ゼロの保存値を電源操作前に消去する。報告機の保存値とUSB給電状態は未採取のため、今回の再起動の原因は実機確認待ち。 [JELOSのRK817処理](https://github.com/JustEnoughLinuxOS/rk356x-kernel/blob/c741d56477939654bb4056be240f93d1ad1ae91e/drivers/mfd/rk808.c#L1049-L1088) · [U-Bootの電源レール保存に関する議論](https://lore-kernel.gnuweeb.org/u-boot/PH0PR19MB997338A34AEEDDAF76FF8D1B95A5762@PH0PR19MB997338.namprd19.prod.outlook.com/T/)
+
+ARM64 Dockerで、音声設定とジャック検出の組み合わせ、機種・PMIC・DT条件での書き込み制限、保存レジスターの読み戻し、シャットダウンと再起動の別経路を試験した。試験SDのブート領域、初期GPT、カーネル、DTBと主要な表示バイナリを前回の表示試験版と照合した。初回のp5作成、再起動後のセットアップ継続、SYSTEMの更新と復旧も確認した。
+
+| 配布ファイル | SHA-256 |
+| --- | --- |
+| `plumOS-RK3566-rgb10max3-power-audio-test.img.gz` | `8e84196199fb285144985a9c63d7bd8f285ed11bfccfa7cdbfe4585d593ae975` |
+
+実機では、スピーカー、ヘッドフォン、自動切替と、バッテリー駆動時・USB給電時それぞれのシャットダウンと再起動を確認する。シャットダウン後にロゴが再表示された場合は、利用者領域の `Logs/rgb10max3-power.log` を採取する。ログには直近20件の要求、起動ID、USB給電状態、電源操作前のRK817保存値、起動時のPMIC理由が残る。

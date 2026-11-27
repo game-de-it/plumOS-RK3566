@@ -11,7 +11,8 @@ headphone_path=HP
 headphone_no_mic_path=HP_NO_MIC
 
 case "$(tr -d '\000' </proc/device-tree/model 2>/dev/null || :)" in
-    'Powkiddy RGB30')
+    'Powkiddy RGB30'|'Powkiddy RGB10 Max 3'|'Powkiddy RGB10MAX3')
+        # On these boards the RK817's HP path feeds the built-in speaker.
         speaker_path=HP
         headphone_path=SPK
         headphone_no_mic_path=SPK

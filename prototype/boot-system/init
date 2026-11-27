@@ -50,12 +50,13 @@ audio_pid=
 volume_keys_pid=
 attempt=0
 provisioned=no
+board_model=$(tr -d '\000' </proc/device-tree/model 2>/dev/null || :)
+pmic_saved_rails=unknown
 
 clear_pmic_saved_rails() {
-    local model node save_flag save0 save1
-    model=$(tr -d '\000' </proc/device-tree/model)
-    case "$model" in
-        'Powkiddy RGB30'|'Anbernic RG353V') ;;
+    local node save_flag save0 save1
+    case "$board_model" in
+        'Powkiddy RGB30'|'Anbernic RG353V'|'Powkiddy RGB10 Max 3'|'Powkiddy RGB10MAX3') ;;
         *) return 0 ;;
     esac
     node=/sys/bus/i2c/devices/0-0020/of_node
@@ -67,12 +68,33 @@ clear_pmic_saved_rails() {
     # tells U-Boot not to save rail state. Discard only the two scratch bytes.
     save0=$(i2cget -f -y 0 0x20 0x99 b) || return 1
     save1=$(i2cget -f -y 0 0x20 0xa4 b) || return 1
+    pmic_saved_rails=$save0/$save1
     [ "$save0/$save1" != 0x00/0x00 ] || return 0
     i2cset -f -y 0 0x20 0x99 0x00 b &&
         i2cset -f -y 0 0x20 0xa4 0x00 b &&
         [ "$(i2cget -f -y 0 0x20 0x99 b)" = 0x00 ] &&
         [ "$(i2cget -f -y 0 0x20 0xa4 b)" = 0x00 ] || return 1
-    printf 'plumOS init: cleared %s RK817 saved rail state (%s/%s)\n' "$model" "$save0" "$save1"
+    printf 'plumOS init: cleared %s RK817 saved rail state (%s/%s)\n' "$board_model" "$save0" "$save1"
+}
+
+record_rgb10max3_power() {
+    local log boot_id ac usb source
+    case "$board_model" in
+        'Powkiddy RGB10 Max 3'|'Powkiddy RGB10MAX3') ;;
+        *) return 0 ;;
+    esac
+    grep -qs ' /storage/user ' /proc/mounts || return 0
+    log=/storage/user/Logs/rgb10max3-power.log
+    mkdir -p "${log%/*}" || return 1
+    boot_id=$(cat /proc/sys/kernel/random/boot_id)
+    ac=$(cat /sys/class/power_supply/ac/online 2>/dev/null || echo unknown)
+    usb=$(cat /sys/class/power_supply/usb/online 2>/dev/null || echo unknown)
+    source=$(dmesg | grep -m 1 '0-0020: source: on=' || :)
+    {
+        if [ -r "$log" ]; then tail -n 19 "$log"; fi
+        printf 'event=%s boot=%s ac=%s usb=%s saved_rails=%s %s\n' \
+            "$1" "$boot_id" "$ac" "$usb" "$pmic_saved_rails" "$source"
+    } >"$log.new" && mv -f "$log.new" "$log"
 }
 
 release_portmaster_mounts() {
@@ -91,7 +113,9 @@ power_action() {
     rm -f "$runtime/power-request"
     case "$action" in reboot|poweroff) ;; *) return 0 ;; esac
     echo "plumOS init: requested $action"
+    pmic_saved_rails=unknown
     if ! clear_pmic_saved_rails; then
+        record_rgb10max3_power "$action-rails-error" || :
         echo 'plumOS init: RK817 saved rail state could not be cleared; power action cancelled'
         return 0
     fi
@@ -154,6 +178,7 @@ power_action() {
         echo 'plumOS init: clean-shutdown markers unavailable; power action cancelled'
         return 0
     fi
+    record_rgb10max3_power "$action-before-remount" || :
     sync
     if grep -qs ' /storage/user ' /proc/mounts; then
         if ! mount -o remount,ro /storage/user; then
@@ -311,6 +336,8 @@ elif [ -x "$sd2_service" ]; then
         echo 'plumOS init: previous clean-shutdown proof unavailable'
     fi
     rm -f "$storage/provision/clean-shutdown" /storage/user/.plumos-clean-shutdown
+    pmic_saved_rails=unknown
+    record_rgb10max3_power boot || :
     "$sd2_service" start || echo 'plumOS init: SD2 setup or library scan failed'
 fi
 
