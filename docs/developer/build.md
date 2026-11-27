@@ -42,7 +42,7 @@ PLUMOS_RUNTIME_VERSION="$RELEASE_VERSION" \
   "$BOOT_SPLASH_DIR" "$work/plumOS-RK3566.img" "$work/u-boot.itb"
 ```
 
-The SYSTEM step produces `SYSTEM`, `bubble-userland.squashfs`, `SHA256SUMS`, and `build-runtime-update.py`. The automatic board-selection image uses the generated U-Boot FIT as the fifth argument. The image step produces the raw `.img`, `.img.gz`, and `.img.sha256` files.
+The SYSTEM step produces `SYSTEM`, `rk3566-userland.squashfs`, `SHA256SUMS`, and `build-runtime-update.py`. The automatic board-selection image uses the generated U-Boot FIT as the fifth argument. The image step produces the raw `.img`, `.img.gz`, and `.img.sha256` files.
 
 ## Verify and package
 
@@ -56,8 +56,14 @@ The SYSTEM builder checks that the frontend catalog, launchers, app dependencies
 
 For a raw-image release, package the verified `.img.gz` and its matching checksum file. Retain the source commit, tool and input versions, and hashes of both the compressed and raw artifacts for support.
 
+## Test images from a validated SYSTEM
+
+To build from the RGB10 Max 3 Wi-Fi test SYSTEM or another validated build, run `prototype/build-rk3566-release-system.sh BASE_SYSTEM "$BUBBLE_GIT" "$RELEASE_VERSION" NEW_OUTPUT_DIRECTORY`. This rebuilds the frontend and repacks the validated drivers and emulators. To include a rebuilt RetroArch with the updated diagnostics, pass its executable as the fifth argument. Pass the existing JELOS input, boot assets, and common U-Boot FIT to the image builder above.
+
+Run `prototype/verify-rk3566-update.sh IMG BUILD_RUNTIME_UPDATE_PY SIGNING_KEY` for a v0.2.0 test image. It drives the shipped System Update menu in Docker, verifies the signature with the embedded public key, and tests application, rollback before confirmation, and successful confirmation.
+
 ## Runtime update packages
 
 New builds embed `prototype/update/rk3566-update-public.pem`. Before signing a release, derive the public key from the RK3566 signing key and confirm that it matches the embedded key. Keep the private key in protected storage outside Git and the build artifacts. See the [user update guide](../user/updates.md) for migration from v0.1.1.
 
-The generated `build-runtime-update.py` packages the unpacked frontend runtime. Use `--base-dir` and `--base-version` for a version-specific delta and `--signing-key` with the key matching the public key included in the installed runtime. The package uses device ID `rg353m` and vendor runtime `rk3566-plumos-r1` for compatibility across the common builds. Check the current options with `build-runtime-update.py --help`. Test the signature, version checks, apply and rollback on a spare card before shipping an update. Runtime packages update frontend files; new boot assets or operating-system files require a new image or SYSTEM as appropriate. [Runtime update design](../rk3566-runtime.md)
+The generated `build-runtime-update.py` packages the unpacked frontend runtime. Use `--base-dir` and `--base-version` for a version-specific delta and `--signing-key` with the key matching the public key included in the installed runtime. Starting with v0.2.0, the package uses the filename `plumos-rk3566-runtime-<version>.tar.gz`, device ID `rk3566`, and vendor runtime `rk3566-plumos-r1`. Check the current options with `build-runtime-update.py --help`. Test the signature, version checks, apply and rollback on a spare card before shipping an update. Runtime packages update frontend files; new boot assets or operating-system files require a new image or SYSTEM as appropriate. [Runtime update design](../rk3566-runtime.md)

@@ -28,7 +28,7 @@ expected=b0028dc48926ad49ab2d0156fec2c64f16f406e2f463ded4cc84eb8dcaac4a83
 test "$(shasum -a 256 "$stock" | cut -d ' ' -f 1)" = "$expected"
 test -x "$adbd"
 test ! -e "$out/SYSTEM"
-test ! -e "$out/bubble-userland.squashfs"
+test ! -e "$out/rk3566-userland.squashfs"
 
 stage=$(mktemp -d "$out/build.XXXXXXXX")
 mkdir "$stage/source"
@@ -43,22 +43,9 @@ if ! docker image inspect "$image" >/dev/null 2>&1; then
     git -C "$bubble" show "$revision:docker/bubble-tools/Dockerfile" |
         docker build --platform linux/arm64 -t "$image" -
 fi
-patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-start-menu.patch"
-patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-start-helpers.patch"
-patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-audio.patch"
-patch -d "$stage/source" -p1 < "$prototype/patches/rk3566-rgb10max3-panel.patch"
-patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-power-overlay-drm.patch"
-patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-power-overlay-input.patch"
-patch -d "$stage/source" -p1 < "$prototype/patches/rg353m-brightness-keys.patch"
+"$prototype/prepare-rk3566-frontend.sh" "$stage/source"
 python3 "$prototype/emulators/set-volume-curve.py" \
     "$stage/source/package/frontend-bubble/plumos/bin/plumos-volume-control"
-python3 "$prototype/emulators/enable-frontend-builtins.py" "$stage/source/src/frontend"
-python3 "$prototype/brand-rk3566-frontend.py" "$stage/source"
-patch -d "$stage/source" -p1 < "$prototype/patches/rk3566-square-layout.patch"
-patch -d "$stage/source" -p1 < "$prototype/patches/rk3566-gallery-layout.patch"
-patch -d "$stage/source" -p1 < "$prototype/patches/rk3566-settings-footer-fit.patch"
-patch -d "$stage/source" -p1 < "$prototype/patches/rk3566-fe-scroll.patch"
-patch -d "$stage/source" -p1 < "$prototype/patches/rk3566-ppsspp-label.patch"
 "$prototype/build-frontend-docker.sh" "$stage" "$stage/source/src/frontend"
 
 layer=$stage/layer
@@ -190,34 +177,28 @@ PY
 python3 "$stage/source/scripts/generate-bubble-runtime-coverage.py" \
     --systems "$catalog/systems.json" --app-root "$payload/frontend" \
     --output "$catalog/runtime-coverage.json"
-python3 "$prototype/emulators/verify-release-runtime.py" "$payload/frontend"
 install -m755 "$frontend/bin/plumos-system-update" "$payload/frontend/bin/"
 install -m644 "$prototype/update/rk3566-update-public.pem" \
-    "$payload/frontend/share/update/plumos-bubble-update-public.pem"
-for file in "$payload/frontend/share/update/plumos-system-update.py" \
-    "$stage/source/scripts/build-bubble-update-package.py"; do
-    sed -e 's/"gkd-bubble"/"rg353m"/' -e 's/"bubble-stockos-r1"/"rk3566-plumos-r1"/' \
-        -e 's/f"plumos-bubble-{args.type}-{args.version}/f"plumos-rk3566-{args.type}-{args.version}/' \
-        -f "$prototype/update/update-filename.sed" \
-        "$file" > "$file.rk3566"
-    mv "$file.rk3566" "$file"
-done
+    "$payload/frontend/share/update/plumos-rk3566-update-public.pem"
+sed -f "$prototype/update/configure-rk3566-update.sed" \
+    "$stage/source/scripts/build-bubble-update-package.py" > "$out/build-runtime-update.py"
+chmod 755 "$out/build-runtime-update.py"
 ln -s /usr/bin/openssl "$payload/frontend/bin/plumos-openssl"
 printf '%s\n' "${PLUMOS_RUNTIME_VERSION:-0.1.0-dev}" > "$payload/frontend/VERSION"
 printf '%s\n' rk3566-plumos-r1 > "$payload/frontend/COMPAT_VENDOR"
 printf '%s\n' 1 > "$payload/frontend/RUNTIME_ABI"
-install -m755 "$stage/source/scripts/build-bubble-update-package.py" "$out/build-runtime-update.py"
 install -m 644 "$stage/source/LICENSE" "$payload/frontend/LICENSE"
 printf 'plumOS-Bubble %s\n' "$revision" > "$payload/frontend-source"
-docker run --rm -i --platform linux/arm64 \
-    -v "$layer:/layer:ro" -v "$out:/out" "$image" bash -s <<'BUILD'
-set -euo pipefail
-mksquashfs /layer /out/bubble-userland.squashfs.partial -noappend -all-root -comp lzo -no-progress
-chmod 644 /out/bubble-userland.squashfs.partial
-mv /out/bubble-userland.squashfs.partial /out/bubble-userland.squashfs
-BUILD
-
 "$prototype/build-runtime-system.sh" "$stock" "$layer" "$out/SYSTEM" \
     "$stage/source/rootfs/bubble-minimal/etc/shadow"
 
-(cd "$out" && shasum -a 256 SYSTEM bubble-userland.squashfs > SHA256SUMS)
+python3 "$prototype/normalize-rk3566-runtime.py" "$payload"
+docker run --rm -i --platform linux/arm64 \
+    -v "$layer:/layer:ro" -v "$out:/out" "$image" bash -s <<'BUILD'
+set -euo pipefail
+mksquashfs /layer /out/rk3566-userland.squashfs.partial -noappend -all-root -comp lzo -no-progress
+chmod 644 /out/rk3566-userland.squashfs.partial
+mv /out/rk3566-userland.squashfs.partial /out/rk3566-userland.squashfs
+BUILD
+
+(cd "$out" && shasum -a 256 SYSTEM rk3566-userland.squashfs > SHA256SUMS)

@@ -40,3 +40,10 @@ retire_test_override bin/plumos-retroarch-launch b707ffa3ee2230e250c58aff47d9917
 retire_test_override picoarch/bin/picoarch 12378fee83b26beead36d5bface68b0d9493b20343fe2f34d4d72207406fdb41
 
 mount -t overlay overlay -o "lowerdir=$factory,upperdir=$root,workdir=$work" "$root"
+
+# Keep saved RetroArch settings from the previous runtime when reusing p4.
+old_config=$root/config/retroarch/retroarch-bubble.cfg
+config=$root/config/retroarch/retroarch-rk3566.cfg
+if [ -f "$old_config" ] && [ ! -e "$config" ]; then
+    cp -p "$old_config" "$config.import" && mv -f "$config.import" "$config"
+fi

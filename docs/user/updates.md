@@ -2,6 +2,10 @@
 
 [日本語](updates.ja.md) · [Guide index](README.md)
 
+## Fresh v0.2.0 installations
+
+The common SD image includes the official public key and the RK3566 updater. Verify the SHA-256 of a compatible `plumos-rk3566-runtime-<version>.tar.gz`, place it in `PLUMOS/updates/`, then open `START` → `System Settings` → `System Update`. No separate key installation is required. The procedures below are for v0.1.x.
+
 ## One-time migration from v0.1.1
 
 Use the latest migration ZIP on the original v0.1.1 installation to install the RK3566 release public key and add support for `plumos-rk3566-runtime` filenames. Run it once even if you previously installed the key with an earlier ZIP.

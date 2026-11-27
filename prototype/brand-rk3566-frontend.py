@@ -1,6 +1,7 @@
 """Apply RK3566 display names to the pinned frontend sources and translations."""
 from pathlib import Path
 import json
+import re
 import sys
 
 source = Path(sys.argv[1])
@@ -15,6 +16,13 @@ for path, replacements in {
         "RG353M RK3566 backlight / DSI": "RK3566 backlight / DSI",
         "Bubble runtime update": "plumOS-RK3566 runtime update",
         "Bubble DRM property": "RK3566 DRM property",
+        "plumOS MF uses manual SD card updates.": "Install a signed RK3566 runtime update.",
+        "Overwrite the distributed files from a PC.": "Place the update archive in PLUMOS/updates.",
+    },
+    frontend / "plumos_text_ui.c": {
+        'if (strcmp(pyxel_profile, "bubble") == 0)':
+            'if (strcmp(pyxel_profile, "rk3566") == 0 || strcmp(pyxel_profile, "bubble") == 0)',
+        "plumos-pyxel-bubble-launch": "plumos-pyxel-launch",
     },
     assets / "bin/plumos-system-update": {
         "Bubble Python runtime is missing": "Python runtime is missing",
@@ -35,12 +43,14 @@ for path in (assets / "share/frontend/lang").glob("*.lang"):
     text = path.read_text()
     updated = (text.replace("Bubble RK3566", "RK3566")
                    .replace("Bubble Runtime", "plumOS-RK3566 Runtime")
-                   .replace("GKD Bubble", "RK3566")
-                   .replace("Bubble", "RK3566"))
+                   .replace("GKD Bubble", "RK3566"))
+    # These are product-specific menu translations, not upstream notices.
+    updated = re.sub(r"(?<!plumOS-)Bubble", "RK3566", updated)
     if updated != text:
         path.write_text(updated)
 
 path = assets / "factory-defaults/system/settings.json"
 settings = json.loads(path.read_text())
+settings["device"] = "rk3566"
 settings["model"] = "RK3566"
 path.write_text(json.dumps(settings, ensure_ascii=False, indent=2) + "\n")

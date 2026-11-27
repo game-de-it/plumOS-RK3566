@@ -137,6 +137,8 @@ python3 /prototype/emulators/configure-retroarch-aspect.py "$payload/frontend"
 python3 /prototype/emulators/configure-standalone-menu-chords.py "$payload/frontend"
 python3 /prototype/emulators/install-mrboom-diagnostics.py "$payload/frontend"
 python3 /prototype/configure-ssh-auth.py "$payload/frontend"
+python3 /prototype/normalize-rk3566-runtime.py "$payload"
+python3 /prototype/emulators/verify-release-runtime.py "$payload/frontend"
 # The preserved initramfs requires this pathname at check and switch_root.
 ln -s ../plumos-353m/init "$root/usr/lib/systemd/systemd"
 ln -s /usr/lib/plumos-353m/init "$root/sbin/init"
@@ -151,9 +153,9 @@ chroot "$root" /usr/lib/plumos-353m/frontend/bin/plumos-library-scan --help >/de
 app_root=/usr/lib/plumos-353m/frontend
 chroot "$root" /bin/busybox env PLUMOS_ROOT="$app_root" \
     PLUMOS_PYTHON_EXTRA_PATH="$app_root/apps/pyxel/site" \
-    PLUMOS_BUBBLE_PYTHON_EXTRA_LIBRARY_PATH="$app_root/emulator/lib" \
+    PLUMOS_RK3566_PYTHON_EXTRA_LIBRARY_PATH="$app_root/emulator/lib" \
     SDL_AUDIODRIVER=dummy PYGAME_HIDE_SUPPORT_PROMPT=1 \
-    /bin/sh "$app_root/bin/plumos-python-bubble" -c '
+    /bin/sh "$app_root/bin/plumos-python" -c '
 import pygame.mixer
 pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=8192)
 assert pygame.mixer.get_init() == (44100, -16, 2), pygame.mixer.get_init()

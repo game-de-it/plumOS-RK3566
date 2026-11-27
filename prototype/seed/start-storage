@@ -13,7 +13,7 @@ result=0
 "$tools/provision-storage" "$disk" || result=$?
 case "$result" in
     0)
-        # Remove the boot or setup frame before Bubble takes over DRM.
+        # Remove the boot or setup frame before the frontend takes over DRM.
         if "$tools/boot-splash" --clear; then
             echo 'plumOS: cleared the boot framebuffer'
         else

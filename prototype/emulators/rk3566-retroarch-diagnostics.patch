@@ -1,0 +1,85 @@
+--- a/audio/drivers/alsa.c
++++ b/audio/drivers/alsa.c
+@@ -388,14 +388,14 @@
+    ret = snd_pcm_prepare(alsa->pcm);
+    if (ret < 0)
+    {
+-      RARCH_ERR("[ALSA] Failed to prepare Bubble PCM after menu: %s.\n",
++      RARCH_ERR("[ALSA] Failed to prepare RK3566 PCM after menu: %s.\n",
+             snd_strerror(ret));
+       fflush(stderr);
+       return false;
+    }
+
+    alsa->is_paused = false;
+-   RARCH_LOG("[ALSA] Bubble PCM prepared after menu; next write will restart DMA.\n");
++   RARCH_LOG("[ALSA] RK3566 PCM prepared after menu; next write will restart DMA.\n");
+    fflush(stderr);
+    return true;
+ }
+@@ -505,14 +505,14 @@
+    ret = snd_pcm_drop(alsa->pcm);
+    if (ret < 0)
+    {
+-      RARCH_ERR("[ALSA] Failed to drop Bubble PCM for menu: %s.\n",
++      RARCH_ERR("[ALSA] Failed to drop RK3566 PCM for menu: %s.\n",
+             snd_strerror(ret));
+       fflush(stderr);
+       return false;
+    }
+
+    alsa->is_paused = true;
+-   RARCH_LOG("[ALSA] Bubble PCM dropped for menu pause.\n");
++   RARCH_LOG("[ALSA] RK3566 PCM dropped for menu pause.\n");
+    fflush(stderr);
+    return true;
+ }
+--- a/gfx/drivers/drm_gfx.c
++++ b/gfx/drivers/drm_gfx.c
+@@ -273,7 +273,7 @@
+     * menu_active unchanged so an open RGUI is rebuilt instead of closed. */
+    drmvars->core_width  = 0;
+    drmvars->core_height = 0;
+-   RARCH_LOG("[DRM] Bubble surfaces invalidated for %s.\n",
++   RARCH_LOG("[DRM] RK3566 surfaces invalidated for %s.\n",
+          reason ? reason : "runtime video state change");
+ }
+
+@@ -376,7 +376,7 @@
+    surface->src_height  = surface->viewport.height;
+    surface->pitch       = surface->src_width * bpp;
+
+-   fprintf(stderr, "[DRM] Bubble display-contract layer=%d frame=%dx%d "
++   fprintf(stderr, "[DRM] RK3566 display-contract layer=%d frame=%dx%d "
+          "aspect=%.6f rotation=%u viewport=%dx%d+%d+%d scanout=%dx%d.\n",
+          layer, src_width, src_height, surface->aspect, surface->rotation,
+          surface->viewport.width, surface->viewport.height,
+@@ -1433,7 +1433,7 @@
+         _drmvars->menu_surface->frame_height != (int)height ||
+         _drmvars->menu_surface->total_pitch != (int)(width * 4)))
+    {
+-      RARCH_LOG("[DRM] Bubble recreating RGUI surface for %ux%u input.\n",
++      RARCH_LOG("[DRM] RK3566 recreating RGUI surface for %ux%u input.\n",
+             width, height);
+       drm_surface_free(_drmvars, &_drmvars->menu_surface);
+    }
+@@ -1580,7 +1580,7 @@
+
+    _drmvars->rotation = next_rotation;
+    _drmvars->panel_rotation = next_panel_rotation;
+-   fprintf(stderr, "[DRM] Bubble rotations panel=%u core=%u content=%u.\n",
++   fprintf(stderr, "[DRM] RK3566 rotations panel=%u core=%u content=%u.\n",
+          next_panel_rotation, core_rotation, next_rotation);
+    if (_drmvars->main_surface)
+    {
+--- a/input/drivers_joypad/udev_joypad.c
++++ b/input/drivers_joypad/udev_joypad.c
+@@ -382,7 +382,7 @@
+           string_is_equal(name, "retrogame_joypad"))
+       {
+          close(fd);
+-         RARCH_LOG("[udev] Adding Bubble retrogame_joypad without udev database: %s.\n", path);
++         RARCH_LOG("[udev] Adding retrogame_joypad without udev database: %s.\n", path);
+          udev_check_device(NULL, path);
+          return;
+       }

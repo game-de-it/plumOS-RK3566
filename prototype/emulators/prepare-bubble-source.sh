@@ -40,6 +40,7 @@ mkdir -p "$destination/display"
 cp "$scripts/display/rk3566-kms-panel.h" "$destination/display/"
 "$scripts/display/fetch-rga-headers.sh" "$destination/display/plumos-rga"
 cp "$scripts/display/retroarch-rgb10max3-kms.patch" "$destination/patches/retroarch/024-rk3566-rgb10max3-kms.patch"
+cp "$scripts/rk3566-retroarch-diagnostics.patch" "$destination/patches/retroarch/025-rk3566-retroarch-diagnostics.patch"
 patch -s -d "$destination" -p1 < "$scripts/display/pyxel-rgb10max3-drawable.patch"
 python3 - "$destination" <<'PY'
 from pathlib import Path

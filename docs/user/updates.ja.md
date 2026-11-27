@@ -2,6 +2,10 @@
 
 [English](updates.md) · [ガイドの目次](README.ja.md)
 
+## v0.2.0の新規インストール
+
+共通SDイメージには正式公開鍵とRK3566用の更新処理が入っています。対応する `plumos-rk3566-runtime-<version>.tar.gz` とSHA-256を照合して `PLUMOS/updates/` に置き、`START` → `System Settings` → `System Update` を実行します。公開鍵の手動導入は不要です。以下はv0.1.x向けの手順です。
+
 ## v0.1.1からの初回移行
 
 出荷版v0.1.1では、署名付き更新を使う前に、最新版の移行ZIPでRK3566用の公開鍵と `plumos-rk3566-runtime` ファイル名への対応を導入します。以前のZIPで公開鍵を導入済みの場合も、最新版のZIPで手順を一度実行してください。

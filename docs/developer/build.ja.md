@@ -42,7 +42,7 @@ PLUMOS_RUNTIME_VERSION="$RELEASE_VERSION" \
   "$BOOT_SPLASH_DIR" "$work/plumOS-RK3566.img" "$work/u-boot.itb"
 ```
 
-SYSTEMの生成では `SYSTEM`、`bubble-userland.squashfs`、`SHA256SUMS`、`build-runtime-update.py` が出力されます。機種を自動判定する共通イメージには、生成したU-Boot FITを第5引数で渡します。イメージ生成の出力はrawの `.img`、`.img.gz`、`.img.sha256` です。
+SYSTEMの生成では `SYSTEM`、`rk3566-userland.squashfs`、`SHA256SUMS`、`build-runtime-update.py` が出力されます。機種を自動判定する共通イメージには、生成したU-Boot FITを第5引数で渡します。イメージ生成の出力はrawの `.img`、`.img.gz`、`.img.sha256` です。
 
 ## 検証と配布ファイル
 
@@ -56,8 +56,14 @@ SYSTEM生成時はフロントエンドのカタログ、各ランチャー、Ap
 
 rawイメージとして配布するときは、検証済みの `.img.gz` と対応するチェックサムを用意します。調査用にソースのコミット、ツールと入力のバージョン、圧縮前後のハッシュを保存します。
 
+## 検証済みSYSTEMからの試験イメージ
+
+RGB10 Max 3のWi-Fi試験版などを基にする場合は、`prototype/build-rk3566-release-system.sh BASE_SYSTEM "$BUBBLE_GIT" "$RELEASE_VERSION" NEW_OUTPUT_DIRECTORY` でFEを再ビルドし、検証済みのドライバーとエミュレータを含むSYSTEMを再梱包します。診断名を変更したRetroArchを組み込む場合は、ビルド済みバイナリを第5引数に渡します。共通SDイメージの生成には、上記と同じJELOS入力、起動素材、共通U-Boot FITを渡します。
+
+v0.2.0試験イメージは `prototype/verify-rk3566-update.sh IMG BUILD_RUNTIME_UPDATE_PY SIGNING_KEY` で確認できます。Docker内でイメージの標準System Updateメニューを操作し、内蔵公開鍵で署名を照合します。次回起動相当の適用、未確定時の復旧、正常確定も同じ更新プログラムで試験します。
+
 ## ランタイム更新パッケージ
 
 新規ビルドには `prototype/update/rk3566-update-public.pem` を収録します。配布用パッケージはこの公開鍵に対応するRK3566の秘密鍵を使い、署名前に秘密鍵から取り出した公開鍵が収録済みの公開鍵と一致することを確認します。秘密鍵はビルド成果物やGitに含めず、保護された場所に保管します。既存v0.1.1の移行は[ユーザー向け更新手順](../user/updates.ja.md)を参照してください。
 
-生成された `build-runtime-update.py` は、展開したフロントエンドランタイムをパッケージ化します。特定の版を起点にする差分では `--base-dir` と `--base-version`、署名にはインストール済みランタイムの公開鍵に対応する `--signing-key` を指定します。共通ビルド間の互換性のため、パッケージの機種IDは `rg353m`、ベンダーランタイムIDは `rk3566-plumos-r1` です。引数の詳細は `build-runtime-update.py --help` で確認できます。配布前に予備カードで、署名とバージョンの照合、適用、ロールバックを試験します。ランタイムパッケージが更新するのはフロントエンド側のファイルです。ブートファイルやOS本体の変更には、必要に応じてイメージまたはSYSTEMを使用します。[ランタイム更新の仕組み](../rk3566-runtime.md)
+生成された `build-runtime-update.py` は、展開したフロントエンドランタイムをパッケージ化します。特定の版を起点にする差分では `--base-dir` と `--base-version`、署名にはインストール済みランタイムの公開鍵に対応する `--signing-key` を指定します。v0.2.0以降のパッケージは `plumos-rk3566-runtime-<version>.tar.gz` 形式で、機種IDは `rk3566`、ベンダーランタイムIDは `rk3566-plumos-r1` です。引数の詳細は `build-runtime-update.py --help` で確認できます。配布前に予備カードで、署名とバージョンの照合、適用、ロールバックを試験します。ランタイムパッケージが更新するのはフロントエンド側のファイルです。ブートファイルやOS本体の変更には、必要に応じてイメージまたはSYSTEMを使用します。[ランタイム更新の仕組み](../rk3566-runtime.md)

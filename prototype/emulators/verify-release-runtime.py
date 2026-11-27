@@ -79,7 +79,7 @@ for executable in (
     "bin/retroarch",
     "bin/plumos-retroarch-menu-launch",
     "picoarch/bin/picoarch",
-    "bin/plumos-python-bubble",
+    "bin/plumos-python",
     "bin/plumos-pyxel-setup",
     "apps/python/lib/ld-linux-aarch64.so.1",
     "bin/plumos-portmaster-launch",
