@@ -12,7 +12,7 @@
 
 # plumOS-RK3566
 
-plumOS-RK3566は、RK3566携帯ゲーム機向けのSD起動Linuxです。共通イメージで、実機確認済みのAnbernic・Powkiddy機種にBubbleのフロントエンド、RetroArch、PicoArch、単体エミュレータを提供します。
+plumOS-RK3566は、RK3566携帯ゲーム機向けのSD起動Linuxです。共通イメージで、実機確認済みのAnbernic・Powkiddy機種にフロントエンド（FE）、RetroArch、PicoArch、単体エミュレータを提供します。
 
 ## ドキュメント
 

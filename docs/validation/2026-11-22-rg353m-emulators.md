@@ -1,6 +1,6 @@
 # RG353Mのエミュレータと音声ルーティング
 
-2026年11月22日（JST）。Bubbleの `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` を入力に、RetroArch 1.22.2、PicoArch、Standalone PCSX-ReARMed・YabaSanshiro・DraStic・PPSSPP・OpenBORをARM64 Dockerでビルドした。PicoArchはBubbleが固定したV90Sのツールチェーンを使う。Standalone用GPUランタイムは検証済みJELOS 20240206のSYSTEMから取得した。ROMとBIOSは指定されたROM2の検証用コピーをADBで転送した。GitとSDイメージにROMやBIOSは収録していない。
+2026年11月22日（JST）。plumOS-Bubbleの `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` を入力に、RetroArch 1.22.2、PicoArch、Standalone PCSX-ReARMed・YabaSanshiro・DraStic・PPSSPP・OpenBORをARM64 Dockerでビルドした。PicoArchはplumOS-Bubbleが固定したV90Sのツールチェーンを使う。Standalone用GPUランタイムは検証済みJELOS 20240206のSYSTEMから取得した。ROMとBIOSは指定されたROM2の検証用コピーをADBで転送した。GitとSDイメージにROMやBIOSは収録していない。
 
 ## 実機で再現した経路
 
@@ -18,8 +18,8 @@
 - RetroArchは起動後に黒画面になった。JELOSのDSI背景面がzpos 6、RGB565のゲーム描画面がzpos 4で重なっていた。RG353Mではゲーム・メニューの面をzpos 7にし、表示を確認した。ソフトウェアDRMは同期描画とし、NESの既定CPUポリシーを `performance` に設定した条件で361回／6.014秒だった。
 - PicoArchの音声は、リングバッファに初期余裕を設け、残量に応じて音声のリサンプル比を微調整する。初期余裕だけの試作は3,600フレームで3,066サンプルの不足があり、補正後の同じ長さの試験は0だった。44.1 kHzのコア音声はハードウェア側の48 kHzに合わせて出力した。
 - PCSX-ReARMedはJELOS同梱のKMSDRM SDL2を使用する。統合SYSTEMの `PLUMOS_BUBBLE_PROFILE_SECONDS` とDRMイベントを照合すると、Choro Q Wonderful!の低い区間でもエミュレーションは毎秒60回進行し、ゲームが更新した画面は毎秒20枚だった。すべてのシーンが60枚を描画するという判定にはしていない。
-- 内蔵音声はBubbleの `plumos_output` とSoft Volume Masterを通す。RG353MのRK817は起動時に `Playback Path=SPK` を確認し、ヘッドホン検出時は端子のマイク有無に応じて `HP`・`HP_NO_MIC` を選ぶ。ヘッドホンの物理抜き差しは今回未検証。
-- Bubbleのランチャーが使う `grep` や `taskset` を備えたARM64静的BusyBoxをSYSTEMへ収録した。アプレット呼び出しを有効にするため、ビルド時にも実機と同じ名前の `busybox` として起動し、必要なアプレットを検査する。
+- 内蔵音声はplumOS-Bubble由来の `plumos_output` とSoft Volume Masterを通す。RG353MのRK817は起動時に `Playback Path=SPK` を確認し、ヘッドホン検出時は端子のマイク有無に応じて `HP`・`HP_NO_MIC` を選ぶ。ヘッドホンの物理抜き差しは今回未検証。
+- plumOS-Bubbleのランチャーが使う `grep` や `taskset` を備えたARM64静的BusyBoxをSYSTEMへ収録した。アプレット呼び出しを有効にするため、ビルド時にも実機と同じ名前の `busybox` として起動し、必要なアプレットを検査する。
 
 ## Dockerビルドへの組み込み
 
@@ -32,7 +32,7 @@
 
 Docker seedは初回からplumOS initを選び、失敗時にsystemdへ復旧する。GPTの初回更新とp5作成、既存データ保持、起動フラグのフォールバックを8 GiB相当の複製イメージで検証する。実機のエミュレータ検証には既存SDへのADB配備を使用した。
 
-検証用SYSTEMには上記のStandalone 5本と、QuickNES・mGBA・PCSX-ReARMedのLibretroコア3本を収録する。ビルドスクリプトの既定はBubbleの全Libretroレシピで、`PLUMOS_BUBBLE_CATALOG_FILTER` で指定したコアだけをビルドできる。表は列挙したROMとプロファイルの実機試験を示す。
+検証用SYSTEMには上記のStandalone 5本と、QuickNES・mGBA・PCSX-ReARMedのLibretroコア3本を収録する。ビルドスクリプトの既定はplumOS-Bubbleの全Libretroレシピで、`PLUMOS_BUBBLE_CATALOG_FILTER` で指定したコアだけをビルドできる。表は列挙したROMとプロファイルの実機試験を示す。
 
 実機のinit更新中に、実行中のinitを置き換えるとext4が読み取り専用化を拒否する事象があった。インストーラは旧inodeへのハードリンクを起動中だけ保持し、次の起動で除去する。更新候補SYSTEMの試験起動と既定化、通常のADB再起動を実機で確認した。
 

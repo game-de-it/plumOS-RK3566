@@ -4,7 +4,7 @@
 
 ## 他シリーズの履歴
 
-- [Bubble PortMaster受け入れ記録](https://github.com/game-de-it/plumOS-Bubble/commit/5b4adad)では、Apotrisの`Failed to open PWM`は表示・音声を妨げず、25回のPCM標本が全て`RUNNING`だった。したがってPWM警告だけを無音原因と扱わない。
+- [plumOS-Bubble PortMaster受け入れ記録](https://github.com/game-de-it/plumOS-Bubble/commit/5b4adad)では、Apotrisの`Failed to open PWM`は表示・音声を妨げず、25回のPCM標本が全て`RUNNING`だった。したがってPWM警告だけを無音原因と扱わない。
 - [MF PortMaster音声ランタイム修正](https://github.com/game-de-it/plumOS-MF/commit/186fab8)はSDL mixer、modplug、fluidsynthなどの依存ライブラリを補完した。RG353MのPortMaster実行時ライブラリリンクはこれらを含む。
 - [V90S OpenAL音声経路修正](https://github.com/game-de-it/plumOS-V90S_V2/commit/db183c0)は、`AUDIODEV`を無視してALSAの`default`を開くポートを扱う。RG353MのALSA設定は`pcm.!default`も管理経路へ向けている。
 

@@ -8,7 +8,7 @@
 
 | 変数 | 入力 |
 | --- | --- |
-| `BUBBLE_GIT` | plumOS Bubbleのコミット `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` を含むローカルGitリポジトリ |
+| `BUBBLE_GIT` | plumOS-Bubbleのコミット `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` を含むローカルGitリポジトリ |
 | `V90S_GIT` | V90Sツールチェーンのコミット `bc49dafe782173f35ab557035fa96ba81564038d` を含むローカルGitリポジトリ |
 | `JELOS_IMG` | 検証済みJELOS 20240206再ビルド版の展開済みイメージ。生成スクリプトはrawのSHA-256 `281bf1c1faf7f4c9d044f59677075fbb9af99d2a8d01f873c23c13587668c73f` を照合。 |
 | `JELOS_SYSTEM` | 対応する入力から取り出したハードウェアサポート用SYSTEM。組み立て時にSHA-256 `b0028dc48926ad49ab2d0156fec2c64f16f406e2f463ded4cc84eb8dcaac4a83` を照合。 |

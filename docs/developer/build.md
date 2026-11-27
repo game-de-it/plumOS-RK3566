@@ -8,7 +8,7 @@ Run commands from the repository root. The host needs Bash, Git, Python 3, `shas
 
 | Variable | Input |
 | --- | --- |
-| `BUBBLE_GIT` | Local Git repository containing plumOS Bubble commit `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` |
+| `BUBBLE_GIT` | Local Git repository containing plumOS-Bubble commit `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` |
 | `V90S_GIT` | Local Git repository containing the V90S toolchain commit `bc49dafe782173f35ab557035fa96ba81564038d` |
 | `JELOS_IMG` | Verified, unpacked JELOS 20240206 rebuild. The image builder checks for raw SHA-256 `281bf1c1faf7f4c9d044f59677075fbb9af99d2a8d01f873c23c13587668c73f`. |
 | `JELOS_SYSTEM` | Kernel-support SYSTEM extracted from the matching input. The SYSTEM builder checks for SHA-256 `b0028dc48926ad49ab2d0156fec2c64f16f406e2f463ded4cc84eb8dcaac4a83`. This supplies matching hardware files. |

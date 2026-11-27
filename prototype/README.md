@@ -49,12 +49,12 @@ ADBはUSB専用で、試作機のrootシェルを認証なしで公開します�
 | 繰り返し出た症状 | 参照コミットと今回の対策 |
 | --- | --- |
 | ロゴ停止、デバイスが複数同時に消失 | RK2020 `b42f34f`・`aa28666`、Pixel2 `1f27134`。JELOSのGPT、ブート領域、カーネル、DTB、extlinux、storageを照合し、更新したSquashFSをFATから再抽出して照合する。 |
-| 初回ストレージ処理やネットワーク待ちで画面が出ない | MF `8934ba5`・`2d2cce8`・`ad0af44`、mini PLUS `ee3a984`、Bubble `bac590e`、V90S `0391a28`。JELOSの既存マウント経路を使い、フロントエンドはWi-FiやTF2に依存させず、デバイス待ちとライブラリ走査に上限を設ける。 |
-| 黒画面、描画の取り合い、表示と入力のずれ | Bubble `f682c81`、RK2020 `0f499d6`、Pixel2 `c55da25`。JELOSの既存サービスから1プロセスだけ起動し、画面は内蔵DSIを優先するmini PLUSのDRM描画、入力は実機のudevパスを使う。 |
+| 初回ストレージ処理やネットワーク待ちで画面が出ない | MF `8934ba5`・`2d2cce8`・`ad0af44`、mini PLUS `ee3a984`、plumOS-Bubble `bac590e`、V90S `0391a28`。JELOSの既存マウント経路を使い、フロントエンドはWi-FiやTF2に依存させず、デバイス待ちとライブラリ走査に上限を設ける。 |
+| 黒画面、描画の取り合い、表示と入力のずれ | plumOS-Bubble `f682c81`、RK2020 `0f499d6`、Pixel2 `c55da25`。JELOSの既存サービスから1プロセスだけ起動し、画面は内蔵DSIを優先するmini PLUSのDRM描画、入力は実機のudevパスを使う。 |
 | USBは見えるがADBが応答しない | Pixel2 `ecf4d16`・`758dfbd`、MFのADB管理スクリプト。FunctionFSの準備を待ってRG353MのDWC3にbindし、USB切断でbindが解除された場合は再取得する。 |
 | アーカイブやビルドが成功しても起動ファイルが古い | mini PLUS `427c28a`、MMF `b4673b7`、XU20V32 `c3a3547`。実際のsystemd起動パスとADBの有効化リンクを完成イメージのSquashFSで確認する。 |
 
-参照した履歴は **Bubble、mini PLUS、MF、pixel2_v2、RK2020、V90S V2、XU20V32、A30、MMF**。各機種のコミットを調べる際は、mini PLUSの `plumOS_gitlog_problem_solution_guide.ja.md` も併用しました。
+参照した履歴は **plumOS-Bubble、mini PLUS、MF、pixel2_v2、RK2020、V90S V2、XU20V32、A30、MMF**。各機種のコミットを調べる際は、mini PLUSの `plumOS_gitlog_problem_solution_guide.ja.md` も併用しました。
 
 ## ビルド入力
 
@@ -63,7 +63,7 @@ ADBはUSB専用で、試作機のrootシェルを認証なしで公開します�
 - Debian bookworm ARM64の `libpng-dev`、`libfreetype-dev`、`libdrm-dev`、`zlib1g-dev` のヘッダ。リンク対象はJELOS由来の共有ライブラリ。
 - Standalone Linux adbd `v36.0.1-linux.2` のARM64静的ビルド。使用した配布tarballのSHA-256は `ba3935056777932addc3de1cdbd25194f0942f796575b5ea5668a9ef32c95117`。[ソースとビルド情報](https://github.com/happyme531/standalone-linux-adbd/tree/v36.0.1-linux.2)
 
-ビルドスクリプトは作業ディレクトリの `tools/`、`refs/mini-PLUS/`、`debian/sysroot/` に上記の入力があることを前提にします。`build-frontend-docker.sh` と `build-boot-splash.sh` でフロントエンドと起動画面を準備します。新規カード用には、既知のJELOSイメージの複製を同じBubbleのARM64 Docker環境でパーティション分けします。
+ビルドスクリプトは作業ディレクトリの `tools/`、`refs/mini-PLUS/`、`debian/sysroot/` に上記の入力があることを前提にします。`build-frontend-docker.sh` と `build-boot-splash.sh` でフロントエンドと起動画面を準備します。新規カード用には、既知のJELOSイメージの複製を同じplumOS-BubbleのARM64 Docker環境でパーティション分けします。
 
 ```sh
 ./prototype/build-image.sh /path/to/JELOS.img /path/to/build-work "$PWD/output/plumOS-RK3566-rg353m-12GiB.img" 12
@@ -71,7 +71,7 @@ ADBはUSB専用で、試作機のrootシェルを認証なしで公開します�
 
 末尾の数値はイメージの大きさ（GiB、既定12）です。大きいカードの容量を利用者領域へ割り当てる場合は、カードの実容量以下の値をビルド時に選びます。初回起動ではパーティションを書き換えません。
 
-## Bubble由来のPID 1を試す
+## plumOS-Bubble由来のPID 1を試す
 
 小容量の初回セットアップ付きseedの導入、起動時間、ADB復旧手順は[RG353MのplumOS init移行](../docs/validation/2026-11-22-rg353m-native-init.md)を参照してください。以下は固定レイアウト版の手順です。
 
@@ -81,9 +81,9 @@ RetroArch・PicoArch・Standaloneを組み込むDocker手順と実機結果は[R
 
 旧systemd試作のSDで `PLUMOS_TRY_PID1=1` を付けて `deploy-boot-overlay.sh` を実行すると、次の1回だけJELOSが呼び出すinitの箇所にplumOSの `init` をバインドします。起動時に試行フラグを消費するため、その次の再起動は元の起動経路へ戻ります。
 
-FEの再試行と電源要求の処理は、Bubble `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` のSystem側 `/init` を参照しています。USB ADBを並列に起動し、入力デバイスはsysfsからも検出できます。既存のライブラリキャッシュがある場合はFE表示前の全走査を省きます。[BubbleのSystem側init](https://github.com/game-de-it/plumOS-Bubble/blob/ec81d42c0c2c39e7a32973bfe4df9b3027512a5d/rootfs/bubble-frontend/init)
+FEの再試行と電源要求の処理は、plumOS-Bubble `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` のSystem側 `/init` を参照しています。USB ADBを並列に起動し、入力デバイスはsysfsからも検出できます。既存のライブラリキャッシュがある場合はFE表示前の全走査を省きます。[plumOS-BubbleのSystem側init](https://github.com/game-de-it/plumOS-Bubble/blob/ec81d42c0c2c39e7a32973bfe4df9b3027512a5d/rootfs/bubble-frontend/init)
 
-Docker環境では `./prototype/build-frontend-docker.sh BUILD_WORK JELOS_SYSTEM` を使います。固定したBubbleコミットの `docker/bubble-tools/Dockerfile` からARM64ビルド環境を作り、JELOSの共有ライブラリにリンクしてFEをビルドします。出力は既存と同じ `BUILD_WORK/compiled` に生成されます。
+Docker環境では `./prototype/build-frontend-docker.sh BUILD_WORK JELOS_SYSTEM` を使います。固定したplumOS-Bubbleコミットの `docker/bubble-tools/Dockerfile` からARM64ビルド環境を作り、JELOSの共有ライブラリにリンクしてFEをビルドします。出力は既存と同じ `BUILD_WORK/compiled` に生成されます。
 
 ## 複数機種向けのSDイメージ
 

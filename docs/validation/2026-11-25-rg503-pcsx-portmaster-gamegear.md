@@ -8,7 +8,7 @@ RG503の内蔵画面は960×544。既存SDで起動し、Wi-Fi SSHから操作�
 
 同じゲーム、同じ本体で起動スクリプトだけを切り替えた。修正後は `SDL_PeepEvents` が `libSDL-1.2.so.0` に結びつき、FNの押下・解放がボタン10として届いた。1回目のFNで `Resume game` を含むメニューを画面キャプチャで確認した。2回目で同じプロセスの描画と内蔵PCMが再開した。表示はメニュー前59.31 fps、復帰後58.12 fps。
 
-修正を組み込んだSYSTEMのSHA-256は `f360fab5aa4d1b8e123ee608b3ca6913a38d61ac917070d0f605a7dd23abb365`。従来SYSTEMをDockerで展開し、起動スクリプトを差し替え、対応するチェックサムの項目を更新してSquashFSを再生成した。転送後に実機でもSHA-256を照合し、SDを焼き直さず `boot-system trial` で起動した。診断用のプリロードなしで、BubbleのPlayStation一覧から『チョロQワンダフォー！』を起動。FNでメニューを開き、再度FNを押すと同じPIDでゲーム画面と内蔵PCMの `RUNNING` に戻った。単体版のメニューから終了してBubbleへ戻った後、`boot-system keep` で修正版を実機の既定に設定した。
+修正を組み込んだSYSTEMのSHA-256は `f360fab5aa4d1b8e123ee608b3ca6913a38d61ac917070d0f605a7dd23abb365`。従来SYSTEMをDockerで展開し、起動スクリプトを差し替え、対応するチェックサムの項目を更新してSquashFSを再生成した。転送後に実機でもSHA-256を照合し、SDを焼き直さず `boot-system trial` で起動した。診断用のプリロードなしで、FEのPlayStation一覧から『チョロQワンダフォー！』を起動。FNでメニューを開き、再度FNを押すと同じPIDでゲーム画面と内蔵PCMの `RUNNING` に戻った。単体版のメニューから終了してFEへ戻った後、`boot-system keep` で修正版を実機の既定に設定した。
 
 ### メニューのA/B
 
@@ -16,15 +16,15 @@ RG503の `retrogame_joypad` はAをSDLボタン1、Bをボタン0として報告
 
 ピン留め済みのPCSX-ReARMedをDockerで再ビルドし、単体版の実行ファイルとコンポーネントの検証情報をSYSTEMに組み込んだ。SHA-256 `2ef03de4a4b984bc33352686c78f6103770b5b29976f26c643a3e6a5b2d4b61c` を実機で照合し、既存SDのまま試行起動した。
 
-Bubbleの一覧からSD2の『チョロQワンダフォー！』を起動した。実機のevdevにFNを送り、単体版メニューを表示。Aで `Controls` に入り、Bで親メニューへ戻り、もう一度Bを押して同じPIDでゲーム画面と内蔵PCMが復帰した。FNで開き直し、`Exit` をAで確定するとBubbleへ戻った。このSYSTEMを実機の既定に設定した。
+FEの一覧からSD2の『チョロQワンダフォー！』を起動した。実機のevdevにFNを送り、単体版メニューを表示。Aで `Controls` に入り、Bで親メニューへ戻り、もう一度Bを押して同じPIDでゲーム画面と内蔵PCMが復帰した。FNで開き直し、`Exit` をAで確定するとFEへ戻った。このSYSTEMを実機の既定に設定した。
 
 ## PortMaster
 
-BubbleのAppsからPortMasterを起動した。カタログの読み込みと初回案内のカウントダウンが完了した後、実機のB相当入力で `Are you sure you want to exit PortMaster?` を表示した。Aで終了を確定すると、PortMasterのプロセスとセッションロックが消え、Bubbleへ戻った。同梱のPortMasterでこの手順が通ることを確認した。
+FEのAppsからPortMasterを起動した。カタログの読み込みと初回案内のカウントダウンが完了した後、実機のB相当入力で `Are you sure you want to exit PortMaster?` を表示した。Aで終了を確定すると、PortMasterのプロセスとセッションロックが消え、FEへ戻った。同梱のPortMasterでこの手順が通ることを確認した。
 
 ## Game Gear
 
-Bubbleの `2df4cda` は原寸のSTN応答と出力解像度でのパネル描画を分け、`bc1262b` は出力解像度で光のにじみを描く第3パスを追加している。RG503の標準は `08f551c` と `97ed867` に由来するB3。MFの `4ed77d6`、Bubbleの `6526d4c` と `96f9fa7` にあるDRMのフレーム提示間隔と音声の対策も照合した。試験したRK3566のGLES経路はすでに `video_threaded=true` を使っていた。
+plumOS-Bubbleの `2df4cda` は原寸のSTN応答と出力解像度でのパネル描画を分け、`bc1262b` は出力解像度で光のにじみを描く第3パスを追加している。RG503の標準は `08f551c` と `97ed867` に由来するB3。MFの `4ed77d6`、plumOS-Bubbleの `6526d4c` と `96f9fa7` にあるDRMのフレーム提示間隔と音声の対策も照合した。試験したRK3566のGLES経路はすでに `video_threaded=true` を使っていた。
 
 SD2の『Columns』をRetroArchのGenesis Plus GXで起動し、各条件で起動10秒後から15秒間、DRMのフレーム提示を数えた。全条件で同じCPUガバナー `ondemand` を使用し、内蔵PCMは `RUNNING` のまま進行した。
 
@@ -39,6 +39,6 @@ SD2の『Columns』をRetroArchのGenesis Plus GXで起動し、各条件で起�
 
 ## SD2の検体
 
-TF2の `/dev/mmcblk2p1` 上に、Bubbleが使う `/storage/user/Roms/psx/` 経由で `PAC-MAN_WORLD.cue` とその実体 `PAC-MAN_WORLD.img`、および『チョロQワンダフォー！』の `chroQW.img` を配置し、元のファイルと一致することを確認した。Game Gearの `gamegear/Columns [V1.0].gg` もSD2にある。検体はSD2に保持する。
+TF2の `/dev/mmcblk2p1` 上に、FEが使う `/storage/user/Roms/psx/` 経由で `PAC-MAN_WORLD.cue` とその実体 `PAC-MAN_WORLD.img`、および『チョロQワンダフォー！』の `chroQW.img` を配置し、元のファイルと一致することを確認した。Game Gearの `gamegear/Columns [V1.0].gg` もSD2にある。検体はSD2に保持する。
 
-SD2のFATが未正常アンマウントと記録されていたため、起動時は既存のライブラリ索引が使われた。一時索引を作って既存844件がすべて見えることを確認し、Bubbleの `START` → `UI Settings` → `Refresh TOP` を実行した。PlayStation一覧に `chroQW` と `PAC-MAN_WORLD` が表示され、更新後の索引をSD2用キャッシュにも記録した。`PAC-MAN_WORLD` には `.cue` と `.img` の2行がある。詳細欄が `.cue` の行から単体版で起動し、オープニングの映像と内蔵PCM、FNメニューを確認した。
+SD2のFATが未正常アンマウントと記録されていたため、起動時は既存のライブラリ索引が使われた。一時索引を作って既存844件がすべて見えることを確認し、FEの `START` → `UI Settings` → `Refresh TOP` を実行した。PlayStation一覧に `chroQW` と `PAC-MAN_WORLD` が表示され、更新後の索引をSD2用キャッシュにも記録した。`PAC-MAN_WORLD` には `.cue` と `.img` の2行がある。詳細欄が `.cue` の行から単体版で起動し、オープニングの映像と内蔵PCM、FNメニューを確認した。

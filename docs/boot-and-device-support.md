@@ -12,7 +12,7 @@
 | Anbernic | RG503 | 共通SDで960×544のFEとTF2を確認。174プロファイルの表示、Appsの起動、USB給電中のスリープ復帰をWi-Fi SSHで検証。別のケーブルでUSB ADBのシェル接続とファイル往復も確認。[実機結果](validation/2026-11-25-rg503-runtime.md) |
 | Powkiddy | RGB30 r1・r2 | 同一SDでDTBの自動切り替え、plumOS init、FE、p5、USB ADBを両機で確認。r2ではSD2も確認 |
 | Powkiddy | RK2023 | 共通SDで640×480のFE、SD2、174エミュレータプロファイルの起動、Apps、USB給電中のスリープ復帰を確認。MacではADBの `NATIVE` 方式で接続した。[初回起動](validation/2026-11-25-rk2023-boot.md) · [実機動作試験](validation/2026-11-25-rk2023-runtime.md) |
-| Powkiddy | RGB10 Max 3 | 機種別DTBを同梱。v0.1.2の実機写真でBubbleの起動と90度の表示ずれを確認。試験イメージで表示方向の修正を確認したとの実機報告あり。音声と電源オフも追加試験版で修正を確認したとの報告あり。内蔵Wi-Fiの修正は実機確認待ち。[表示方向の検証](validation/rgb10max3-display.md) |
+| Powkiddy | RGB10 Max 3 | 機種別DTBを同梱。v0.1.2の実機写真でFEの起動と90度の表示ずれを確認。試験イメージで表示方向の修正を確認したとの実機報告あり。音声と電源オフも追加試験版で修正を確認したとの報告あり。内蔵Wi-Fiの修正は実機確認待ち。[表示方向の検証](validation/rgb10max3-display.md) |
 | Anbernic | RG353VS | JELOS 20240206の対応表に掲載。専用名のDTBは未収録で、plumOSでの実機起動は未確認 |
 
 RG353Vでは共通SDの起動とSD2を確認した。修正版IMGでは、USBを接続したままの再起動とシャットダウン後の電源投入、起動後のUSB ADBも確認した。エミュレータ、Apps、USB DAC、スリープの試験結果も記録した。[RG353Vの共通SD起動とSD2](validation/2026-11-25-rg353v-sd2.md) · [USB接続中の電源投入](validation/2026-11-25-rg353v-usb-cold-boot.md) · [エミュレータ・Apps・電源管理](validation/2026-11-25-rg353v-runtime.md)
@@ -106,14 +106,14 @@ JELOS 20240206の対応表にはRG353VSも載っている。このイメージ�
 
 ## 初回起動時のストレージ準備
 
-### Bubbleとmini PLUS
+### plumOS-Bubbleとmini PLUS
 
 1. stock由来の起動領域からカーネルとplumOSの外部initramfsを起動します。外部initramfsの `/init` が、起動元SD、既存パーティションの位置、イメージのマーカーを照合します。
 2. 初回は `p3` を8 GiBに拡張し、そのext4ファイルシステムを拡張します。続いて、残りの領域に `p4` を作成し、FAT32の `PLUMOS` として初期化します。作成前に `p3` へ処理の記録を保存し、途中で止まった場合の再開に使います。
 3. `p3` を `/storage`、`p4` を `/storage/user` にマウントします。FAT32側に `Roms`・`BIOS`・`Images` などを用意し、`/storage` 側にリンクを作ります。フロントエンドなどの管理Runtimeは `/storage/plumos` に置きます。
 4. `/flash` にあるSystem A/Bから起動するSquashFSを選び、`switch_root` でplumOSの `/init` に引き渡します。このPID 1がRuntimeとフロントエンドのチェックサム等を確認し、ランチャーを監視します。ランチャーは設定の初期化、メディアの準備、ライブラリ走査を経て、DRMと入力を使うFEを起動します。
 
-[Bubbleの再開可能な初回準備の実装](https://github.com/game-de-it/plumOS-Bubble/commit/9424a2e) · [mini PLUSのパーティション構成](https://github.com/game-de-it/plumOS-mini-PLUS/blob/baa7143a0bddb1aef5ebc8ee0c8c3358a6aa8d35/docs/developer/architecture.ja.md) · [mini PLUSの外部initramfs](https://github.com/game-de-it/plumOS-mini-PLUS/blob/baa7143a0bddb1aef5ebc8ee0c8c3358a6aa8d35/rootfs/mini-plus-external-initramfs/init) · [mini PLUSのSystem側PID 1](https://github.com/game-de-it/plumOS-mini-PLUS/blob/baa7143a0bddb1aef5ebc8ee0c8c3358a6aa8d35/rootfs/mini-plus-frontend/init)
+[plumOS-Bubbleの再開可能な初回準備の実装](https://github.com/game-de-it/plumOS-Bubble/commit/9424a2e) · [mini PLUSのパーティション構成](https://github.com/game-de-it/plumOS-mini-PLUS/blob/baa7143a0bddb1aef5ebc8ee0c8c3358a6aa8d35/docs/developer/architecture.ja.md) · [mini PLUSの外部initramfs](https://github.com/game-de-it/plumOS-mini-PLUS/blob/baa7143a0bddb1aef5ebc8ee0c8c3358a6aa8d35/rootfs/mini-plus-external-initramfs/init) · [mini PLUSのSystem側PID 1](https://github.com/game-de-it/plumOS-mini-PLUS/blob/baa7143a0bddb1aef5ebc8ee0c8c3358a6aa8d35/rootfs/mini-plus-frontend/init)
 
 同じシリーズでも、Pixel2 v2とRK2020は既存のSystem領域 `p2` を8 GiBに拡張し、`p3` にFAT32の `PLUMOS_USER` を作ります。V90S V2とXU20V32は `p4` に利用者用FAT32を作ります。MFはstockのフックからplumOSへ入り、SD上の単一FAT32領域をSystemファイル・Runtime・利用者データで共有します。 [Pixel2 v2](https://github.com/game-de-it/plumOS-pixel2_v2/blob/19e135ba996de5d7b7a7ea915edca5eadc43d225/docs/developer/storage-and-updates.ja.md) · [RK2020](https://github.com/game-de-it/plumOS-RK2020/blob/main/docs/user/storage-and-reimaging.ja.md) · [V90S V2](https://github.com/game-de-it/plumOS-V90S_V2/blob/main/docs/developer/storage-and-updates.ja.md) · [XU20V32](https://github.com/game-de-it/plumOS-XU20V32/blob/main/docs/developer/storage-and-updates.ja.md) · [MF](https://github.com/game-de-it/plumOS-MF/blob/0095017c39226ad1c22bf8df852202673075936d/docs/developer/architecture.ja.md)
 

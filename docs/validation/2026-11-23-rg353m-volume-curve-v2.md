@@ -2,6 +2,6 @@
 
 2026-11-23（JST）。前回の曲線はレベル1をraw 181のまま維持したため、0→1の音量は変わっていなかった。利用者の指摘を受け、レベル1をraw 136へ下げた。ALSA softvolの-90〜0 dB設定では、レベル1は約-26 dBから約-42 dBになり、振幅は従来の約16%になる。レベル0はraw 0、レベル20はraw 255を維持する。レベル1以降のraw差分は`2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11`で、上の段階ほど変化が大きい。
 
-既存の0〜20の保存形式と音量ボタン監視は変更しない。`prototype/emulators/set-volume-curve.py`は固定Bubbleソースと前回の実機版のどちらもv2へ変換する。保存済み音量は13だった。再生PCMが閉じている状態で実機スクリプトをバックアップ・更新し、`apply 0`、ボタン監視が使う`runtime-up`2回でraw 0→136→138を読み戻した。試験後のランタイム値と保存値は13に戻り、新しいraw値190を確認した。前回のスクリプトは本体の`/storage/plumos-rk3566/frontend/backups/volume-control-before-v2`へ保存した。
+既存の0〜20の保存形式と音量ボタン監視は変更しない。`prototype/emulators/set-volume-curve.py`は固定plumOS-Bubbleソースと前回の実機版のどちらもv2へ変換する。保存済み音量は13だった。再生PCMが閉じている状態で実機スクリプトをバックアップ・更新し、`apply 0`、ボタン監視が使う`runtime-up`2回でraw 0→136→138を読み戻した。試験後のランタイム値と保存値は13に戻り、新しいraw値190を確認した。前回のスクリプトは本体の`/storage/plumos-rk3566/frontend/backups/volume-control-before-v2`へ保存した。
 
 実機スクリプトのSHA-256は`f91dfe782d14a372177334d0edc321c36c9bf1f1ce2aa08c4859a7952d9e8812`。Dockerの`build-bubble-system.sh`で196のFEプロファイル、可視Apps、9コンポーネントの検査を通過し、生成したSYSTEM内の同一スクリプトとハッシュが一致した。SYSTEMのSHA-256は`516ff7f6b113bbfbb1c2454b279e4d33f39a34835a27b7d643c3dd55dc6880e7`。SDの焼き直しは行っていない。

@@ -8,7 +8,7 @@
 | --- | --- |
 | PPSSPP | 1.20.4、`fa50bb1976065c4f8b1b47af227d367fe9771555` |
 | ビルド環境 | Docker ARM64、`plumos-rk3566-bubble-tools:ec81d42` |
-| ビルド設定 | 既存のPPSSPPビルド設定とBubbleのSDL2_ttfパッチを使用し、`VULKAN=ON` と `USE_VULKAN_DISPLAY_KHR=ON` に設定。OpenGL ES対応もコンパイルした。 |
+| ビルド設定 | 既存のPPSSPPビルド設定とplumOS-BubbleのSDL2_ttfパッチを使用し、`VULKAN=ON` と `USE_VULKAN_DISPLAY_KHR=ON` に設定。OpenGL ES対応もコンパイルした。 |
 | 試験バイナリ | `PPSSPPSDL`、SHA-256 `63f3e77f98fcd4a4d31ed75b2bdace9b52353d01412d36a6e43cfea4172e6ad9` |
 | MaliSX2 ICD | Linux ARM64版0.6.1、SHA-256 `61d1255e78f9e1937dec5d68791ae0caa2fee44a3c2dad1fe1018efbb80c6646`。[上流リリース](https://github.com/bmdhacks/malisx2/releases/tag/v0.6.1) |
 | Vulkanローダー | Debian Bookworm ARM64の `libvulkan1` 1.3.239、`libvulkan.so.1` のSHA-256 `605f52f426f01a2c468ecd920b3de31452fde495f2c0d99602fffb93e782767c` |
@@ -34,7 +34,7 @@ SFTP転送の完了後に、ADBで試験版をRG353MのRAM上の `/run/plumos-pp
 
 Vulkan版をユーザーが操作した際も、描画と操作は正常だった。ユーザーの目視では既存OpenGL ES版が約36 fps、Vulkan版は60 fpsで安定した。Vulkan版のプレイ中に採取した別の20.050秒では提示FPSが60.00、提示間隔の最大値が16.75 msで、50 msを超えた間隔は0回だった。
 
-MaliSX2は既存のkbase UK 11.29に接続した。セットアップ時にRockchip側が72バイトのジョブ記述子を拒否し、MaliSX2が64バイトを選択した。JITゾーンも使えなかったが、ゲーム進行中の描画やフレーム提示は継続した。Vulkanの内蔵画面出力はレース中のスキャンアウト画像と実際の操作で確認した。試験後はBubbleに復帰し、試験版は再起動までRAM上に残した。
+MaliSX2は既存のkbase UK 11.29に接続した。セットアップ時にRockchip側が72バイトのジョブ記述子を拒否し、MaliSX2が64バイトを選択した。JITゾーンも使えなかったが、ゲーム進行中の描画やフレーム提示は継続した。Vulkanの内蔵画面出力はレース中のスキャンアウト画像と実際の操作で確認した。試験後はFEに復帰し、試験版は再起動までRAM上に残した。
 
 今回の比較対象はRG353Mのこの1タイトル・1ステート。
 
@@ -50,4 +50,4 @@ RG353MのPSP一覧でゲームを選び、`SELECT` → `CORES` で左右を押�
 
 Dockerの正式ビルドではPPSSPPにVulkanと `VK_KHR_display` を有効にし、MaliSX2とVulkanローダーをPPSSPP専用ディレクトリへ収録する。公開済みv0.1.0のSYSTEMを基に、更新したPPSSPP、FEバイナリ、ランチャー、ドライバーを入れた開発用SYSTEM `69fcf802b91dd0852453fe725c2194b801b1c44348878e64a698054e7daff319` をDockerで組み立てた。196起動経路と9コンポーネントの検証を通過した。
 
-一時FE経路の試験用セーブをMacへ退避し、RAM上のバインドマウントを解除してから、ADBでRG353Mの既存SDへSYSTEMを配置して試行起動した。Bubble、USB ADB、SD2、PSP一覧に表示された唯一のPPSSPP経路を確認した。FEから『Ridge Racers 2』を起動し、PPSSPPプロセスが同梱の `libvulkan_malisx2.so` を読み込んで内蔵画面にゲームを描画し、FNでメニューが開くことを確認した。このSYSTEMを既定に設定した。
+一時FE経路の試験用セーブをMacへ退避し、RAM上のバインドマウントを解除してから、ADBでRG353Mの既存SDへSYSTEMを配置して試行起動した。FE、USB ADB、SD2、PSP一覧に表示された唯一のPPSSPP経路を確認した。FEから『Ridge Racers 2』を起動し、PPSSPPプロセスが同梱の `libvulkan_malisx2.so` を読み込んで内蔵画面にゲームを描画し、FNでメニューが開くことを確認した。このSYSTEMを既定に設定した。

@@ -35,4 +35,4 @@ USB ADBで最終SYSTEMを転送し、実機の `boot-system publish` が照合�
 
 4件とも電源メニューで送った方向キーがゲーム側のevdev読取り口へ配信されず、復帰後に送った入力は再び配信された。確認はDRM、PCM、プロセス、合成入力の記録に基づく。音の聴感と物理ボタンでの復帰は今回の試験項目に含めていない。先行試験ではDungeon Antiqua、PPSSPP、OpenBOR、RetroArch gpSP、File Managerの復帰も確認した。
 
-最終SYSTEMを `boot-system keep` で既定にし、`active`、`default`、`healthy` の一致を確認した。試験アプリの終了後にBubbleが復帰し、USB ADB、Wi-Fi接続、p5のマウントを確認した。試験中に使った中間SYSTEMも、既定や復旧候補に選ばれていないことを確認してSDから取り除いた。
+最終SYSTEMを `boot-system keep` で既定にし、`active`、`default`、`healthy` の一致を確認した。試験アプリの終了後にFEが復帰し、USB ADB、Wi-Fi接続、p5のマウントを確認した。試験中に使った中間SYSTEMも、既定や復旧候補に選ばれていないことを確認してSDから取り除いた。

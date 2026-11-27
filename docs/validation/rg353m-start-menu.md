@@ -1,6 +1,6 @@
 # RG353MのSTARTメニュー監査
 
-2026年11月23日（JST）。RG353Mの出荷用SYSTEMとBubbleの固定リビジョン `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` を比較した。実機の `menus.json` はBubbleとSHA-256が一致する。Appsは監査済みのため対象外とした。実機のFEバイナリをテキストモードで操作し、設定を変更する試験には `/run` の一時設定を使用した。音量の試験後は保存値の8に戻した。
+2026年11月23日（JST）。RG353Mの出荷用SYSTEMとplumOS-Bubbleの固定リビジョン `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` を比較した。実機の `menus.json` はplumOS-Bubbleの同じ設定ファイルとSHA-256が一致する。Appsは監査済みのため対象外とした。実機のFEバイナリをテキストモードで操作し、設定を変更する試験には `/run` の一時設定を使用した。音量の試験後は保存値の8に戻した。
 
 ## UI Settings
 
@@ -36,7 +36,7 @@
 
 ## 未対応項目の移植と実機再検証
 
-2026年11月23日（JST）。同じBubbleリビジョンからFEとヘルパーをDockerでビルドした。RG353Mの試作SD上にADBで `SYSTEM` を転送し、ハッシュを照合して試験起動した。調整値は操作後に元に戻し、Factory Resetは `/run` の隔離領域で実行した。
+2026年11月23日（JST）。同じplumOS-BubbleリビジョンからFEとヘルパーをDockerでビルドした。RG353Mの試作SD上にADBで `SYSTEM` を転送し、ハッシュを照合して試験起動した。調整値は操作後に元に戻し、Factory Resetは `/run` の隔離領域で実行した。
 
 | 項目 | RG353Mでの確認結果 |
 | --- | --- |
@@ -53,4 +53,4 @@
 
 Dockerの `build-bubble-system.sh` は固定リビジョンにRG353Mのパッチを適用し、FE、BusyBoxのネットワーク用アプレット、Dropbear、SFTP、Samba、TZデータを組み込む。署名付き更新用の `bubble-userland.squashfs` と、SDイメージに収録する `SYSTEM` は同じステージから生成する。新しい外部コマンドとライブラリを必要とするため、旧SYSTEMから最初に更新する場合は、ADBから完全な `SYSTEM` を適用する。
 
-実機で起動した `SYSTEM` のSHA-256は `50efa2c5f6596a5fe7176eb4a508ce2ad356dae6a58780830c031ab76668b877`。試験起動後にこのファイルを `/flash/SYSTEM` に反映し、通常起動でplumOS init、Bubble、USB ADB、Wi-Fi、自動時刻同期、p5、SD2を確認した。`KERNEL`、RG353MのDTB、`extlinux.conf`、`mount-storage.sh` のハッシュとSDのパーティション表を前後で照合した。試験用のSYSTEMは確認後に片付けた。
+実機で起動した `SYSTEM` のSHA-256は `50efa2c5f6596a5fe7176eb4a508ce2ad356dae6a58780830c031ab76668b877`。試験起動後にこのファイルを `/flash/SYSTEM` に反映し、通常起動でplumOS init、FE、USB ADB、Wi-Fi、自動時刻同期、p5、SD2を確認した。`KERNEL`、RG353MのDTB、`extlinux.conf`、`mount-storage.sh` のハッシュとSDのパーティション表を前後で照合した。試験用のSYSTEMは確認後に片付けた。

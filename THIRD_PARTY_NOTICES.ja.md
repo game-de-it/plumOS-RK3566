@@ -22,7 +22,7 @@ plumOS-RK3566が独自に作成したソフトウェアと文書には[MITライ
 
 | コンポーネント | ライセンスと根拠 |
 | --- | --- |
-| plumOS-BubbleのFE、ランチャー、独自ツール | Bubble独自コードはMITです。FEに同梱した `LICENSE` に従います。Bubbleが取り込んだ第三者素材にも固有の条件があります。[Bubbleの第三者ライセンス](https://github.com/game-de-it/plumOS-Bubble/blob/main/THIRD_PARTY_NOTICES.md) |
+| plumOS-BubbleのFE、ランチャー、独自ツール | plumOS-Bubble独自コードはMITです。FEに同梱した `LICENSE` に従います。plumOS-Bubbleが取り込んだ第三者素材にも固有の条件があります。[plumOS-Bubbleの第三者ライセンス](https://github.com/game-de-it/plumOS-Bubble/blob/main/THIRD_PARTY_NOTICES.md) |
 | RetroArchとアセット | RetroArchはGPL-3.0-or-laterです。アセットにはCC BY 4.0の素材が含まれ、個別のフォントや画像にはそれぞれの表記が適用されます。同梱の `licenses/RetroArch-COPYING`、`licenses/RetroArch-Assets-COPYING`、`licenses/RetroArch-Assets-README.md` を参照してください。 |
 | RetroArch・PicoArchのコア | [コア一覧](docs/licenses/libretro-cores.tsv)に136プロファイル分のライセンス表記、同梱文書パス、ソースとリビジョンを掲載しています。Snes9x系、FinalBurn系、Genesis Plus GXなどには非商用条件や独自条件があります。各ライセンス本文で対象範囲と条件を確認してください。 |
 | PicoArch | 本体の独自コードはBSD-3-Clauseです。libpicofeにはGPL・LGPL・MAMEの選択肢があり、一部のフィルターはMITです。同梱の `licenses/picoarch-LICENSE` を参照してください。 |

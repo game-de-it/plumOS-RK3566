@@ -6,7 +6,7 @@
 
 - [plumOS-Bubble `96f9fa7`](https://github.com/game-de-it/plumOS-Bubble/commit/96f9fa79198a2f72f416ac5e66e12d4280246ac7) は、DRM page flip待ちがRetroArchの音声生成経路を止め、低負荷のNESでもALSAが `PREPARED` に戻ると記録している。修正は `video_threaded=true` で、`ondemand` のまま実聴と連続再生を確認している。
 - [plumOS-V90S V2 `af5f445`](https://github.com/game-de-it/plumOS-V90S_V2/commit/af5f4457dddb8006fab8788b4ffee13c8195ec0f) も映像スレッドと実機の画面更新周期を合わせた履歴である。
-- RK3566側の `579d3da` は、Bubbleのランチャーが指定するDRMの `video_threaded=true` を、`prototype/emulators/assemble-runtime.sh` で明示的に `false` に書き換えていた。前回の測定ではCPU使用率の問題と誤認した。
+- RK3566側の `579d3da` は、plumOS-Bubbleのランチャーが指定するDRMの `video_threaded=true` を、`prototype/emulators/assemble-runtime.sh` で明示的に `false` に書き換えていた。前回の測定ではCPU使用率の問題と誤認した。
 
 この書き換えを削除し、gpSPをGL/KMSの描画経路へ加えた。DRMのスレッド化だけではPCM再始動は消えるが画面更新が57fps程度に下がったため、gpSPだけ描画経路も変える必要があった。CPUは `ondemand`、音声は通常のALSA同期出力のままである。
 
@@ -27,7 +27,7 @@
 
 ## ビルドと更新
 
-Dockerで修正済みランタイムとSYSTEMを生成した。ビルド時の検証は196のFEプロファイル、可視Apps、9コンポーネントで合格した。SYSTEMのSHA-256は `f4aca77c10734c899b540a5f5bf4332fdce812f40442dd52c4736c1b973c7818`、Bubbleユーザランドは `e8836298d79be83fb40a313f7d5df6749cbd68f62ab90ea130b904c340c32dbc`。
+Dockerで修正済みランタイムとSYSTEMを生成した。ビルド時の検証は196のFEプロファイル、可視Apps、9コンポーネントで合格した。SYSTEMのSHA-256は `f4aca77c10734c899b540a5f5bf4332fdce812f40442dd52c4736c1b973c7818`、フロントエンドを含むユーザーランドは `e8836298d79be83fb40a313f7d5df6749cbd68f62ab90ea130b904c340c32dbc`。
 
 USB ADBで既存SDへSYSTEMを転送し、`boot-system publish` の照合後に試験起動した。FE・ADB・gpSPの90秒試験後、`boot-system keep` を実行し、`active`・`default`・`healthy` が同じ新SYSTEMのハッシュになった。SDの焼き直し、カーネル、DTB、ブート領域、パーティションの変更はない。旧 `/flash/SYSTEM` は復旧先として保持した。
 

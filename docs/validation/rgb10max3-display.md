@@ -1,10 +1,10 @@
 # RGB10 Max 3の内蔵画面
 
-v0.1.2の実機写真では、Bubbleの上辺が本体の右側に表示されている。JELOS 20240206で使用するRGB10 Max 3用のBSPデバイスツリーは、DSIのネイティブモードを720×1280としている。JELOSはSDL2のKMSDRMにパネルの向きを渡し、librgaで回転していた。現在のROCKNIXのRK3566設定はSwayを起動し、パネルの向きを表示サーバーで扱う。Linuxのメインラインにもこの機種固有のパネル向きが登録されている。 [ROCKNIXのRK3566表示設定](https://github.com/ROCKNIX/distribution/blob/0f4806b59bfd1d3e6b17e3a632e95ced82a28719/projects/ROCKNIX/packages/hardware/quirks/platforms/RK3566/090-ui_service) · [ROCKNIXのパネル向きの説明](https://rocknix.org/contribute/quirks/) · [Linuxのデバイスツリー](https://github.com/torvalds/linux/blob/master/arch/arm64/boot/dts/rockchip/rk3566-powkiddy-rgb10max3.dts)
+v0.1.2の実機写真では、FEの上辺が本体の右側に表示されている。JELOS 20240206で使用するRGB10 Max 3用のBSPデバイスツリーは、DSIのネイティブモードを720×1280としている。JELOSはSDL2のKMSDRMにパネルの向きを渡し、librgaで回転していた。現在のROCKNIXのRK3566設定はSwayを起動し、パネルの向きを表示サーバーで扱う。Linuxのメインラインにもこの機種固有のパネル向きが登録されている。 [ROCKNIXのRK3566表示設定](https://github.com/ROCKNIX/distribution/blob/0f4806b59bfd1d3e6b17e3a632e95ced82a28719/projects/ROCKNIX/packages/hardware/quirks/platforms/RK3566/090-ui_service) · [ROCKNIXのパネル向きの説明](https://rocknix.org/contribute/quirks/) · [Linuxのデバイスツリー](https://github.com/torvalds/linux/blob/master/arch/arm64/boot/dts/rockchip/rk3566-powkiddy-rgb10max3.dts)
 
-plumOSではRGB10 Max 3の縦型表示に合わせ、横長の各ピクセル `(x, y)` をネイティブ座標の `(y, width - 1 - x)` に配置する。Bubbleの共有DRMレンダラーを使う画面とPicoArchに共通の補正を適用する。RetroArchのソフトウェアDRM経路ではコアの回転を維持し、ゲーム・RGUI・OSDをパネルに合わせる。DraSticの描画ランナーはゲームとメニューの合成時に回転し、PPSSPPの直接表示Vulkan経路はネイティブのスワップチェーンに回転して描画する。
+plumOSではRGB10 Max 3の縦型表示に合わせ、横長の各ピクセル `(x, y)` をネイティブ座標の `(y, width - 1 - x)` に配置する。FEの共有DRMレンダラーを使う画面とPicoArchに共通の補正を適用する。RetroArchのソフトウェアDRM経路ではコアの回転を維持し、ゲーム・RGUI・OSDをパネルに合わせる。DraSticの描画ランナーはゲームとメニューの合成時に回転し、PPSSPPの直接表示Vulkan経路はネイティブのスワップチェーンに回転して描画する。
 
-Bubble、PicoArch、RetroArch、DraSticの描画ランナー、PPSSPPをARM64 Dockerでビルドした。Bubbleの変換は1280×720のフレーム、端数のあるタイル、パディング付きストライドで全画素の位置と境界外書き込みがないことを確認した。
+FE、PicoArch、RetroArch、DraSticの描画ランナー、PPSSPPをARM64 Dockerでビルドした。FEの変換は1280×720のフレーム、端数のあるタイル、パディング付きストライドで全画素の位置と境界外書き込みがないことを確認した。
 
 ## KMS GLESとSDL2
 
@@ -22,10 +22,10 @@ v0.1.2のSYSTEMをベースにARM64 Dockerで試験イメージを生成した�
 
 ### 実機で確認する項目
 
-- Bubbleの縦横と操作、テキスト・グラフィック・ギャラリーモードの表示
+- FEの表示方向と操作、テキスト・グラフィック・ギャラリーモードの表示
 - RetroArchのGLES経路で起動するコアのゲーム画面、メニュー、Core Providedのアスペクト比
 - PCSX-ReARMedとOpenBORのゲーム画面とメニュー、Pyxelのアスペクト比
-- 各経路を終了した後のBubbleの描画と、HDMI接続時の表示
+- 各経路を終了した後のFEの描画と、HDMI接続時の表示
 
 RGB10 Max 3の実機利用者から、試験イメージで画面の向きが直ったと報告を受けた。個別のエミュレータやフレームレートについては詳細な結果を受け取っていない。
 
