@@ -43,3 +43,19 @@ ARM64 Dockerで、音声設定とジャック検出の組み合わせ、機種�
 | `plumOS-RK3566-rgb10max3-power-audio-test.img.gz` | `8e84196199fb285144985a9c63d7bd8f285ed11bfccfa7cdbfe4585d593ae975` |
 
 実機では、スピーカー、ヘッドフォン、自動切替と、バッテリー駆動時・USB給電時それぞれのシャットダウンと再起動を確認する。シャットダウン後にロゴが再表示された場合は、利用者領域の `Logs/rgb10max3-power.log` を採取する。ログには直近20件の要求、起動ID、USB給電状態、電源操作前のRK817保存値、起動時のPMIC理由が残る。
+
+利用者から、追加試験版で音声と電源オフの問題が解消したと報告を受けた。
+
+## 内蔵Wi-Fi
+
+ROCKNIXの機種資料では内蔵無線をRTL8723DSと記載している。試験SDのJELOS BSPカーネル用DTBでは、SDIOホストとカードの電源シーケンスが有効だった。JELOS 20240206の参照SYSTEMから `8723ds.ko` を取得し、4.19.172のARM64用であること、SDIO ID `024c:d723` と `024c:d724` を受け付けること、Wi-Fi用のファームウェアがモジュールに内蔵されていることを確認した。JELOSの `rtl8723d_fw` と `rtl8723d_config` はBluetooth用で、Wi-Fiの組み込みファームウェアとは別に扱う。 [ROCKNIXの機種資料](https://rocknix.org/devices/powkiddy/rgb10-max-3/) · [JELOSのWi-Fiドライバー](https://github.com/JustEnoughLinuxOS/rk356x-kernel/tree/c741d56477939654bb4056be240f93d1ad1ae91e/drivers/net/wireless/rockchip_wlan/rtl8723ds) · [JELOSのBluetoothファームウェア定義](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/packages/kernel/linux-firmware/RTL8723DS-firmware/package.mk)
+
+モジュールは共通イメージ内の機種専用ディレクトリに置いた。Network SettingsはRGB10 Max 3の機種名と該当するSDIO IDが揃ったときにのみ読み込む。RTL8821CS搭載個体は従来のSDIO経路で読み込み、既存の `wlan0` があればそのまま使用する。ARM64 Dockerの模擬試験で、起動、スキャン、接続、Wi-FiをOFFにした場合と他機種のドライバー選択を確認した。
+
+Dockerで共通SD試験イメージを生成し、前回の試験版とブート領域、初期GPT、カーネル、DTB、既存モジュールのエイリアスとファームウェアを照合した。初回のp5作成とSYSTEMの更新・復旧も確認した。
+
+| 配布ファイル | SHA-256 |
+| --- | --- |
+| `plumOS-RK3566-rgb10max3-wifi-test.img.gz` | `f99fcef37a2b0897b2787d2b2a3497fdf64d4562ad54e5ca6306fb0d342c2b82` |
+
+実機ではドングルを外した状態で `START → Network Settings → Connect Wi-Fi` から2.4 GHzのSSIDを選び、IPアドレスの取得と再起動後の自動再接続を確認する。

@@ -127,6 +127,7 @@ for library in libmali.so.1 libEGL.so.1 libGLESv1_CM.so.1 libGLESv2.so.2; do
 done
 
 cp -a /layer/usr/lib/plumos-353m "$root/usr/lib/"
+bash /prototype/stage-rgb10max3-wifi.sh /support "$root"
 install -m644 /prototype/system/etc/issue "$root/etc/issue"
 payload=$root/usr/lib/plumos-353m
 install -m755 /prototype/boot-system/init "$payload/init"

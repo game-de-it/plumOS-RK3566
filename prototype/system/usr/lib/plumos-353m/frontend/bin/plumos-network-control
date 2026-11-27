@@ -11,11 +11,21 @@ export PLUMOS_WPA_CLI="$PLUMOS_ROOT/bin/wpa_cli"
 export PLUMOS_DHCP_SCRIPT="$PLUMOS_ROOT/bin/plumos-wifi-dhcp"
 
 load_driver() {
+    local model attempt entry modalias
     [ -d "/sys/class/net/$PLUMOS_WIFI_INTERFACE" ] && return 0
+    model=$(tr -d '\000' </proc/device-tree/model 2>/dev/null || :)
     for attempt in 1 2 3 4 5; do
         for entry in /sys/bus/sdio/devices/*/modalias; do
             [ -r "$entry" ] || continue
-            modprobe "$(cat "$entry")" 2>/dev/null || continue
+            modalias=$(cat "$entry") || continue
+            case "$model:$modalias" in
+                'Powkiddy RGB10 Max 3':sdio:c??v024CdD72[34]|'Powkiddy RGB10MAX3':sdio:c??v024CdD72[34])
+                    if [ ! -d /sys/module/8723ds ]; then
+                        insmod /usr/lib/plumos-353m/hardware/rgb10max3/8723ds.ko || continue
+                    fi
+                    ;;
+                *) modprobe "$modalias" 2>/dev/null || continue ;;
+            esac
             [ -d "/sys/class/net/$PLUMOS_WIFI_INTERFACE" ] && return 0
         done
         sleep 1

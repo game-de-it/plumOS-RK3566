@@ -11,7 +11,7 @@ plumOS-RK3566が独自に作成したソフトウェアと文書には[MITライ
 | コンポーネント | ライセンスと根拠 |
 | --- | --- |
 | JELOS 20240206の起動スクリプトとinitramfs | JELOSのソフトウェアはGPLバージョン2、BusyBox 1.36.1はGPL-2.0-onlyです。JELOSの初期ブート処理を引き継いでいます。[ソースとビルド情報](docs/jelos-20240206-source.md) |
-| Linux 4.19.172、DTB、RTL8821CSカーネルモジュール | カーネルはGPL-2.0-onlyです。一部のユーザー空間向けヘッダーにはLinux syscall例外があり、デバイスツリーのソースは各ファイルの表記に従います。Realtekの `8821cs.ko` ドライバーはGPLを宣言しています。[カーネルソース](https://github.com/JustEnoughLinuxOS/rk356x-kernel/tree/c741d56477939654bb4056be240f93d1ad1ae91e) |
+| Linux 4.19.172、DTB、Realtek Wi-Fiカーネルモジュール | カーネルはGPL-2.0-onlyです。一部のユーザー空間向けヘッダーにはLinux syscall例外があり、デバイスツリーのソースは各ファイルの表記に従います。Realtekの `8821cs.ko` と `8723ds.ko` はGPLを宣言しています。RTL8723DSのWi-Fiファームウェアは固定したドライバーのソースに内蔵されています。[カーネルソース](https://github.com/JustEnoughLinuxOS/rk356x-kernel/tree/c741d56477939654bb4056be240f93d1ad1ae91e) |
 | U-Boot | GPLバージョン2です。大半のファイルはそれ以降のバージョンも選択でき、一部には個別の例外があります。RGB30・RG353V向けの変更は同ソースへのパッチとして提供しています。[対象リビジョンのライセンス](https://github.com/JustEnoughLinuxOS/rk356x-uboot/blob/97c658238f7ccd436fbdede451bfd7488514a5c8/Licenses/README) |
 | Rockchip rkbinのDDR、SPL、BL31 | 採用したリビジョンの[Rockchip Binary Software License Agreement](docs/licenses/rockchip-rkbin.txt)に従います。Rockchipプラットフォームや同梱文書に関する条件があります。[ファイル名とリビジョン](docs/jelos-20240206-source.md) |
 | Arm Maliユーザー空間ドライバー | プロプライエタリ。JELOSのレシピではBifrost G52 g13p0を `libmali.so.1.9.0` として収録しています。実際に配布するバイナリに適用される契約を確認します。[JELOS収録のMali契約文](docs/licenses/jelos-mali-eula.txt) |
