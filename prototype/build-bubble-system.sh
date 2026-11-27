@@ -196,6 +196,8 @@ install -m644 "$prototype/update/rk3566-update-public.pem" \
 for file in "$payload/frontend/share/update/plumos-system-update.py" \
     "$stage/source/scripts/build-bubble-update-package.py"; do
     sed -e 's/"gkd-bubble"/"rg353m"/' -e 's/"bubble-stockos-r1"/"rk3566-plumos-r1"/' \
+        -e 's/f"plumos-bubble-{args.type}-{args.version}/f"plumos-rk3566-{args.type}-{args.version}/' \
+        -f "$prototype/update/update-filename.sed" \
         "$file" > "$file.rk3566"
     mv "$file.rk3566" "$file"
 done
