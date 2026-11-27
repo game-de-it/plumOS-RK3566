@@ -25,10 +25,10 @@ I²Cの追加処理はレジスターの読み取りだけを行います。r2�
 
 利用者が共通IMGのSDで起動した。USB ADBからSDのp1と `/flash/SYSTEM` のSHA-256を照合し、共通IMGの内容と一致した。実行中のデバイスツリーは `tcs4525@1c` で、互換名は `tcs,tcs452x`。I²Cの `0-001c` にドライバーがバインドされ、CPUは4コアすべてがオンライン、`cpufreq-dt` と `ondemand` で408 MHz〜1.992 GHzの設定を確認した。
 
-plumOSのinit、720×720の内蔵DSI、Bubbleプロセス、USB ADBを確認した。初回セットアップの完了マーカーがあり、p5は `/storage/user` にFAT32で読み書きマウントされていた。
+plumOSのinit、720×720の内蔵DSI、FEプロセス、USB ADBを確認した。初回セットアップの完了マーカーがあり、p5は `/storage/user` にFAT32で読み書きマウントされていた。
 
 ## RGB30r2の実機試験
 
 利用者が同じSDをr2に移して起動した。SDのCIDのハッシュ、p1、カーネル、FAT上の両DTB、extlinux設定、SYSTEMをr1で採取した値と照合し、すべて一致した。実行中のデバイスツリーは `fan53555@40`（`fcs,fan53555`）に切り替わり、カーネルがI²C `0-0040` でFAN53555 Option 8 Rev 1を認識した。同一SD・同一IMGで実機の基板に応じてDTBが切り替わることを確認した。
 
-r2でもCPU 4コアがオンラインで、`cpufreq-dt` と `ondemand` が有効だった。plumOSのinit、720×720の内蔵DSI、Bubbleプロセス、USB ADBを確認した。r1で初期化したp5は `/storage/user` に読み書きマウントされ、r2のTF2はSD2として認識された。
+r2でもCPU 4コアがオンラインで、`cpufreq-dt` と `ondemand` が有効だった。plumOSのinit、720×720の内蔵DSI、FEプロセス、USB ADBを確認した。r1で初期化したp5は `/storage/user` に読み書きマウントされ、r2のTF2はSD2として認識された。

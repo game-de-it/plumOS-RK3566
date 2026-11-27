@@ -2,7 +2,7 @@
 
 [English](architecture.md) · [ガイドの目次](README.ja.md)
 
-共通イメージはJELOS 20240206のRK3566用ブートチェーンを使います。パッチを適用したU-Boot FITは、CPUレギュレーターに応じてRGB30 r1/r2のデバイスツリーを選び、RG353VはUSB接続中の電源投入にも対応します。Linux 4.19.172とextlinux・initramfsの引き渡しを維持し、再構成したSYSTEMからplumOS init、Bubble、デバイスサービスを起動します。[ブート方式と機種対応](../boot-and-device-support.md) · [JELOSのソースリビジョン](../jelos-20240206-source.md)
+共通イメージはJELOS 20240206のRK3566用ブートチェーンを使います。パッチを適用したU-Boot FITは、CPUレギュレーターに応じてRGB30 r1/r2のデバイスツリーを選び、RG353VはUSB接続中の電源投入にも対応します。Linux 4.19.172とextlinux・initramfsの引き渡しを維持し、再構成したSYSTEMからplumOS init、フロントエンド、デバイスサービスを起動します。[ブート方式と機種対応](../boot-and-device-support.md) · [JELOSのソースリビジョン](../jelos-20240206-source.md)
 
 | 領域 | 役割 |
 | --- | --- |

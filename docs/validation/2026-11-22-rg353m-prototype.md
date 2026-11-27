@@ -49,9 +49,9 @@ r3のSHA-256は `62120d0cf4740dc48162484e1dd57c18d00d0315daef681753e6c0665cbbbc2
 
 実機上のフロントエンドのメニュースクリプトで、確認入力を経た再起動とシャットダウンがそれぞれ `reboot` と `poweroff` に解決されることをドライランで確認しました。修正後の実電源断は未実施です。
 
-### Bubbleのグラフィック起動ロゴ
+### plumOS-Bubbleのグラフィック起動ロゴ
 
-Bubble `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` の `boot-splash.png` と、ビルドに使うmini PLUSの画像は、SHA-256 `f55f1ad088fe842217f4d62153978c5227c470807303d266ecd6badcba7a553d` で一致しました。色と画素寸法を保ったままXRGB8888に変換し、静的リンクしたAArch64の描画プログラムとともにADBで転送しました。[Bubbleの起動画像](https://github.com/game-de-it/plumOS-Bubble/blob/ec81d42c0c2c39e7a32973bfe4df9b3027512a5d/package/frontend-bubble/plumos/config/frontend/boot-splash.png)
+plumOS-Bubble `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` の `boot-splash.png` と、ビルドに使うmini PLUSの画像は、SHA-256 `f55f1ad088fe842217f4d62153978c5227c470807303d266ecd6badcba7a553d` で一致しました。色と画素寸法を保ったままXRGB8888に変換し、静的リンクしたAArch64の描画プログラムとともにADBで転送しました。[plumOS-Bubbleの起動画像](https://github.com/game-de-it/plumOS-Bubble/blob/ec81d42c0c2c39e7a32973bfe4df9b3027512a5d/package/frontend-bubble/plumos/config/frontend/boot-splash.png)
 
 既存の `post-sysroot.sh` から、initramfsの `load_splash` が画像を描画するようにしました。同じ試作SDからの再起動後に描画成功マーカー、フロントエンドの初回描画マーカー、ADB接続を確認し、実機の液晶に画像が表示されたと利用者から確認を得ました。
 
@@ -63,15 +63,15 @@ Bubble `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` の `boot-splash.png` と、�
 
 移動した作業ツリーのJELOSイメージを展開し、新しいパスから `build-image.sh` を実行しました。完成イメージのSHA-256、FAT32上の起動フック、`SYSTEM` の読み戻しを照合し、収録されたフロントエンドと起動画像の描画プログラムもビルド出力とバイト単位で一致しました。このイメージはMac上で検証し、実機では既存SDへのADB差分デプロイを検証しました。
 
-### BubbleのDockerビルド環境
+### plumOS-BubbleのDockerビルド環境
 
-MacにDocker Desktop 4.99.0をインストールしました。Docker Engine 29.9.3でBubble `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` のDockerfileを使い、`linux/arm64` の `plumos-rk3566-bubble-tools:ec81d42` を構築しました。
+MacにDocker Desktop 4.99.0をインストールしました。Docker Engine 29.9.3でplumOS-Bubble `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` のDockerfileを使い、`linux/arm64` の `plumos-rk3566-bubble-tools:ec81d42` を構築しました。
 
 `prototype/build-frontend-docker.sh` でJELOSの共有ライブラリを使ってフロントエンドとライブラリスキャナーをビルドしました。生成物はAArch64 ELFで、Dockerコンテナ内で両方の `--help` の実行を確認しました。RG353Mでは既存SDのジャーナル待ちが継続しており、PID 1試作の実機配備は未検証です。
 
 ### plumOS PID 1のSDイメージ
 
-初回書き込み用に `plumOS-RK3566-rg353m-pid1-prototype.img` を作成しました。JELOSのカーネル、DTB、ブート領域とGPTは元イメージと比較しました。FAT32から `SYSTEM` を読み戻し、JELOSの引き渡し先からplumOS initへのリンク、初回拡張スクリプト、DockerでビルドしたFE・スキャナー、Bubble由来の初回進捗フレームを照合しました。
+初回書き込み用に `plumOS-RK3566-rg353m-pid1-prototype.img` を作成しました。JELOSのカーネル、DTB、ブート領域とGPTは元イメージと比較しました。FAT32から `SYSTEM` を読み戻し、JELOSの引き渡し先からplumOS initへのリンク、初回拡張スクリプト、DockerでビルドしたFE・スキャナー、plumOS-Bubble由来の初回進捗フレームを照合しました。
 
 Dockerの別テストでは、元イメージの複製を拡大した後にGPTの既存 `p4` を拡張し、取り出したext4を新しい容量へ拡張しました。UUIDの維持と、GPTが4区画のままであることを確認しました。この段階の初回セットアップは既存のext4拡張までです。利用者用FAT32の作成と、完成SDからのRG353M実機起動は未検証です。
 
@@ -170,7 +170,7 @@ JELOSのカーネルソースで `broken-cd` が `MMC_CAP_NEEDS_POLL` を有効�
 
 ### ビルド時にplumOSのストレージ構成を作る12 GiBイメージ
 
-JELOS 20240206のrawイメージを複製し、従来のBubble ARM64 Docker環境でGPTとファイルシステムを準備しました。既存の `p1`〜`p3` のGPTエントリと `p4` の開始位置・識別子を保持し、`p4` のext4を8 GiBへ拡張しました。残りにFAT32 `PLUMOS`（`p5`）を作成し、`Roms`、`BIOS`、`Images` を用意しました。ビルド前後のIDBから `p3` 末尾までを照合し、レイアウト作成の前後で一致しました。
+JELOS 20240206のrawイメージを複製し、従来のplumOS-Bubble ARM64 Docker環境でGPTとファイルシステムを準備しました。既存の `p1`〜`p3` のGPTエントリと `p4` の開始位置・識別子を保持し、`p4` のext4を8 GiBへ拡張しました。残りにFAT32 `PLUMOS`（`p5`）を作成し、`Roms`、`BIOS`、`Images` を用意しました。ビルド前後のIDBから `p3` 末尾までを照合し、レイアウト作成の前後で一致しました。
 
 完成した `plumOS-RK3566-rg353m-12GiB.img` をDockerで読み取り専用マウントし、GPT、元のカーネル・DTB、両ファイルシステムと利用者領域のPARTUUID、plumOS initへのリンクを確認しました。別の書き込み可能な複製では、TF1のデバイス名とSD種別、PARTUUID参照を試験用に再現し、実際のFAT32で初回マーカーの記録と次回の再マウントを確認しました。内蔵画面とゲームパッド、USB ADBを含むRG353Mの実機起動は未確認です。既存の物理SDと内蔵eMMCには書き込んでいません。
 

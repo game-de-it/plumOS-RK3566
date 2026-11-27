@@ -2,7 +2,7 @@
 
 [日本語](architecture.ja.md) · [Guide index](README.md)
 
-The common image inherits the JELOS 20240206 RK3566 boot chain. The patched U-Boot FIT selects the RGB30 r1/r2 device tree by CPU regulator and handles RG353V power-on with USB attached. Linux 4.19.172 and the extlinux/initramfs handoff are retained. The handoff enters plumOS init and starts the Bubble frontend and hardware services from the newly assembled SYSTEM. [Boot chain and board support](../boot-and-device-support.md) · [JELOS source revisions](../jelos-20240206-source.md)
+The common image inherits the JELOS 20240206 RK3566 boot chain. The patched U-Boot FIT selects the RGB30 r1/r2 device tree by CPU regulator and handles RG353V power-on with USB attached. Linux 4.19.172 and the extlinux/initramfs handoff are retained. The handoff enters plumOS init and starts the frontend and hardware services from the newly assembled SYSTEM. [Boot chain and board support](../boot-and-device-support.md) · [JELOS source revisions](../jelos-20240206-source.md)
 
 | Area | Role |
 | --- | --- |

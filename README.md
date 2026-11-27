@@ -12,7 +12,7 @@
 
 # plumOS-RK3566
 
-plumOS-RK3566 is SD-boot Linux firmware for RK3566 handhelds. A single image brings the Bubble frontend and RetroArch, PicoArch, and standalone emulators to tested Anbernic and Powkiddy devices.
+plumOS-RK3566 is SD-boot Linux firmware for RK3566 handhelds. The common SD image includes a frontend, RetroArch, PicoArch, and standalone emulators for tested Anbernic and Powkiddy devices.
 
 ## Documentation
 

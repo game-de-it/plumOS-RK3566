@@ -1,8 +1,8 @@
-# RG353M: Bubble runtime parity follow-up (2026-11-23)
+# RG353M: plumOS-Bubble runtime parity follow-up (2026-11-23)
 
 ## Scope and source
 
-The tested SYSTEM is built from the pinned Bubble source
+The tested SYSTEM is built from the pinned plumOS-Bubble source
 `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` with the preserved JELOS
 boot path, kernel, DTB, and SD partition table. Source and build changes are in
 `prototype/boot-system/init`, `prototype/build-bubble-system.sh`,
@@ -20,7 +20,7 @@ known-good default remains
   a requested reboot or shutdown. It cancels the request on an unmount or
   remount failure.
 - The audio route watcher is restarted if it exits.
-- Bubble's power-key listener, power overlay, quiesce helper, DRM broker,
+- plumOS-Bubble's power-key listener, power overlay, quiesce helper, DRM broker,
   shared DRM library, and DRM master helper are included. FE owns the power
   menu while it owns the display; during a game, the overlay quiesces the
   display owner and uses the DRM handoff.
@@ -34,8 +34,8 @@ known-good default remains
 - Docker build completed and `SYSTEM` passed SHA-256 verification on the SD.
   The generated SYSTEM contains the DRM helpers, shared library, overlay, and
   quiesce helper. The installed PID 1 script matches the source hash.
-- Trial boot reached Bubble: FE PID 347, volume/power listener PID 713, and
-  audio route watcher PID 345. `boot-system status` reported the new hash as
+- Trial boot started the frontend (PID 347), volume/power listener (PID 713),
+  and audio route watcher (PID 345). `boot-system status` reported the new hash as
   both active and healthy. ADB was attached; Wi-Fi acquired
   `192.168.10.159`; p5 and SD2 were mounted read-write.
 - Killing watcher PID 345 resulted in a new watcher PID 2080, with
@@ -45,14 +45,14 @@ known-good default remains
 - An 8-second RTC wakealarm test with `--sleep --wakeup-sec 8` suspended the
   device and disconnected ADB. Automatic wake did not occur; USB ADB and Wi-Fi
   were still absent after the interval. A short physical power-key press did
-  not wake the display either. After a long-press power cycle, Bubble and ADB returned. `boot-system status`
+  not wake the display either. After a long-press power cycle, the frontend and ADB returned. `boot-system status`
   showed that the boot selector had fallen back to the unchanged known-good
   default. Sleep remains under investigation; the test was performed while
   USB ADB supplied power. The in-game power overlay remains to be confirmed.
 
 ## Sleep investigation under USB power
 
-Bubble defaults to `mem` for non-MF devices. Its RG35XX-family validation
+plumOS-Bubble defaults to `mem` for non-MF devices. Its RG35XX-family validation
 records `deep` as the selected `mem_sleep` mode. Its Wi-Fi suspend fix
 (`37520b4`) bounds termination of `wpa_supplicant` and DHCP before entering
 sleep. RK2020 unloads and reloads its USB controller around suspend, while
@@ -72,8 +72,8 @@ explain the RG353M behavior.
 With the same cable connected, a bounded diagnostic `freeze` run (`--wakeup-sec 8`)
 entered `s2idle`, incremented the RTC alarm IRQ, and resumed. A second
 `freeze` run with a 60-second backup alarm resumed from a short physical
-power-key press before the alarm fired; the user confirmed that Bubble's
-screen returned. The power-key IRQ incremented, and the frontend process
+power-key press before the alarm fired; the user confirmed that the
+frontend screen returned. The power-key IRQ incremented, and the frontend process
 remained alive. The diagnostic run manually restarted the ADB monitor after
 resume; ADB and saved Wi-Fi then returned. This only establishes that the
 shallower suspend state can resume. The user requested investigation of the
@@ -103,36 +103,36 @@ Docker produced trial SYSTEM
 The embedded init and safe power script matched their source SHA-256 values.
 It was published and trial-booted through ADB without rewriting the SD; the
 known-good default stayed `36986639c5ff450e909ad590143d9e25c55bbbd6660fa1095e5d2abdedc1339a`.
-At boot, `mem_sleep` read `[s2idle] deep lite ultra`, Bubble and ADB ran, and
+At boot, `mem_sleep` read `[s2idle] deep lite ultra`, the frontend and ADB ran, and
 `boot-system` recorded the trial as healthy. With USB power still present,
 the production safe power script entered `mem` with an 8-second RTC alarm.
 The log records `sleep=enter backend=mem` at 12:54:13 UTC and resume at
 12:54:21 UTC; the kernel recorded `PM: suspend entry (s2idle)` and exit.
-The boot ID and Bubble PID 348 did not change. PID 1 restarted the ADB
+The boot ID and the frontend PID 348 did not change. PID 1 restarted the ADB
 monitor (PID 202 to 2514), ADB reappeared without manual recovery, and Wi-Fi
 reacquired `192.168.10.159`.
 
-The user then chose Sleep through Bubble's START menu and woke the RG353M
+The user then chose Sleep through the frontend’s START menu and woke the RG353M
 with one short physical power-key press. The user confirmed that display and
 controls returned. The production log shows `backend=mem`, `ac=1`, and
 `mem_sleep=[s2idle]` at 12:57:08 UTC, with resume at 12:57:11 UTC. The
 kernel again recorded `PM: suspend entry (s2idle)` and exit. The boot ID and
-Bubble PID 348 stayed unchanged; PID 1 restarted the ADB monitor, USB ADB
+the frontend PID 348 stayed unchanged; PID 1 restarted the ADB monitor, USB ADB
 reappeared, and Wi-Fi again held `192.168.10.159`.
 
 ## In-game power-menu handoff
 
 An NES game launched through PicoArch could not show the power menu. The
 overlay log recorded `fbdev renderer init failed: mmap framebuffer: Invalid
-argument`. The RG353M overlay script had copied Bubble's DRM master handoff
+argument`. The RG353M overlay script had copied plumOS-Bubble's DRM master handoff
 but invoked the menu without `PLUMOS_DRM_DEVICE`, so the renderer attempted
-to map `/dev/fb0` while the game used KMS. Bubble's history introduced an
+to map `/dev/fb0` while the game used KMS. plumOS-Bubble's history introduced an
 SCM_RIGHTS DRM broker and a DRM-backed power overlay (`4005c3f`), then hid
 foreground KMS planes under the menu (`f682c81`). Both features were already
-present in the pinned Bubble frontend; the missing RG353M environment
+present in the pinned plumOS-Bubble frontend; the missing RG353M environment
 variable prevented their use.
 
-The overlay now passes `/dev/dri/card0`, the RG353M DRM flag, and Bubble's
+The overlay now passes `/dev/dri/card0`, the RG353M DRM flag, and plumOS-Bubble's
 frontend library path. The script was copied over ADB to the existing SD,
 with the previous version backed up in the logs directory. In the same
 PicoArch process, the repaired menu opened `/dev/dri/card0` and held the
@@ -147,16 +147,16 @@ Docker generated the final SYSTEM
 `4904ef22573ac247ca45b192a839c3c8ed89892b88c635ce8606a28b1e2ad240`.
 Its embedded init, safe power script, and overlay script matched source
 hashes. It was published and trial-booted over ADB, without SD rewrite.
-The device selected `[s2idle] deep lite ultra`, launched Bubble, attached
+The device selected `[s2idle] deep lite ultra`, launched the frontend, attached
 ADB, reacquired Wi-Fi, and marked the candidate healthy. A production
 `mem`/RTC test on this exact SYSTEM entered `s2idle` at 13:09:08 UTC and
-resumed at 13:09:16 UTC under `ac/online=1`; the boot ID and Bubble PID 350
+resumed at 13:09:16 UTC under `ac/online=1`; the boot ID and the frontend PID 350
 were unchanged, PID 1 rebound ADB, and Wi-Fi retained `192.168.10.159`.
 The final SYSTEM was then set as the boot default with `boot-system keep`;
 `active`, `default`, and `healthy` all matched its hash. The previous
 working `mem` SYSTEM remains on the SD as a recovery candidate.
 
-Bubble history: [DRM master handoff](https://github.com/game-de-it/plumOS-Bubble/commit/4005c3f56994f9cf7279800038283c81dab27903),
+plumOS-Bubble history: [DRM master handoff](https://github.com/game-de-it/plumOS-Bubble/commit/4005c3f56994f9cf7279800038283c81dab27903),
 [foreground plane handling](https://github.com/game-de-it/plumOS-Bubble/commit/f682c814374010d9c13eea487685c98b29113a9b).
 
 ### Input and display after game resume
@@ -187,14 +187,14 @@ successful plane restore after resume. RetroArch PID 7108 kept `event5`
 open and the game plane continued rotating through framebuffer IDs 137,
 139 and 141 at the original position. Injected FN opened RGUI and two
 successive SELECT+START presses closed RetroArch cleanly and returned to
-Bubble. The existing `quit_press_twice=true` setting requires both presses.
+the frontend. The existing `quit_press_twice=true` setting requires both presses.
 
 The final inline Sleep path also passed an RTC run on PicoArch PID 11215.
 It retained the joypad descriptor, resumed PCM playback, and accepted an
 injected FN/menu Exit sequence after wake. The final Docker SYSTEM
 `fc01b5ed99c5745be0ee701e1f4ceed7e1c5c52e477e34d382187d61a1daba02`
 contains the same two binaries and overlay script tested live. It was
-verified against the source artifacts and trial-booted over ADB. Bubble,
+verified against the source artifacts and trial-booted over ADB. The frontend,
 Wi-Fi, and ADB came up, and `boot-system keep` set the verified SYSTEM as
 the default. The trial did not require rewriting the SD image.
 
@@ -203,7 +203,7 @@ The JELOS source is
 with the state selection in
 [`suspendmode`](https://github.com/JustEnoughLinuxOS/distribution/blob/f8cac7b92040d734506e238f5a44560a4f0e81b0/packages/jelos/sources/scripts/suspendmode).
 
-Sources: [Bubble sleep path](https://github.com/game-de-it/plumOS-Bubble/commit/37520b4372af9d6968648f9e25c650a20d9c624d),
+Sources: [plumOS-Bubble sleep path](https://github.com/game-de-it/plumOS-Bubble/commit/37520b4372af9d6968648f9e25c650a20d9c624d),
 [RK2020 stock suspend validation](https://github.com/game-de-it/plumOS-RK2020/blob/846c462f42c229baa73b1c93ab639293a511e99b/docs/validation/2026-10-26-rk2020-stock-suspend-path.md),
 [V90S V2 ADB resume fix](https://github.com/game-de-it/plumOS-V90S_V2/commit/519b3b7c49bda6fe65d8ede46c6394a811edc85a),
 [mini PLUS charging-state fix](https://github.com/game-de-it/plumOS-mini-PLUS/commit/3a2ddb37d99c29860d25713e48136d4b17c777d9).

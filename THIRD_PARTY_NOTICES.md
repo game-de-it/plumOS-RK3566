@@ -22,7 +22,7 @@ The emulator inventory comes from the tested RG353V `SYSTEM` with SHA-256 `4c3a4
 
 | Component | License and evidence |
 | --- | --- |
-| plumOS-Bubble frontend, launchers and original helpers | MIT for original Bubble code. See the shipped frontend `LICENSE`. Preserve the separate terms for third-party material from that build. [Bubble notices](https://github.com/game-de-it/plumOS-Bubble/blob/main/THIRD_PARTY_NOTICES.md) |
+| plumOS-Bubble frontend, launchers and original helpers | MIT for original plumOS-Bubble code. See the shipped frontend `LICENSE`. Preserve the separate terms for third-party material from that build. [plumOS-Bubble notices](https://github.com/game-de-it/plumOS-Bubble/blob/main/THIRD_PARTY_NOTICES.md) |
 | RetroArch and assets | RetroArch uses GPL-3.0-or-later. The assets collection includes CC BY 4.0 material and retains notices for separately licensed fonts and artwork. See `licenses/RetroArch-COPYING`, `licenses/RetroArch-Assets-COPYING` and `licenses/RetroArch-Assets-README.md`. |
 | RetroArch and PicoArch cores | The [per-profile inventory](docs/licenses/libretro-cores.tsv) lists source revisions, upstream license labels and notice paths for 136 profiles. The set includes non-commercial and custom terms, including those for several Snes9x, FinalBurn and Genesis Plus GX builds. Follow each recorded notice for version, scope and restrictions. |
 | PicoArch | BSD-3-Clause for PicoArch's own code, with separate GPL/LGPL/MAME options for libpicofe and MIT filters. See `licenses/picoarch-LICENSE`. |

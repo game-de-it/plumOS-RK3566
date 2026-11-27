@@ -2,7 +2,7 @@
 
 従来の全プロファイル試験では、Pyxelを別のSquashFSで一時マウントしていた。通常のDockerビルドはSDLの段階で止まり、出荷用SYSTEMにはPyxelのランチャー、Python、依存ライブラリが収録されていなかった。
 
-現在のビルドでは、RetroArch、Libretro、PicoArch、Standalone、Pyxel、PortMaster、FreeJ2ME-Plusをすべて同じSYSTEMへ組み込む。PyxelはBubbleのPythonとSDLのビルドを使い、PortMasterはBubbleの固定版を使う。J2MEの既定は、ゲームを起動できなかったSquirrelJMEからFreeJ2ME-Plusへ変更した。JavaはDockerで作ったOpenJDKランタイムを同梱し、Java SoundにplumOSのALSA経路を渡す。[BubbleのPyxel設定の履歴](https://github.com/game-de-it/plumOS-Bubble/commit/cf99f17d76747be65cc27615de2259c3b5a13c0a) · [FreeJ2ME-Plus 1.53](https://github.com/TASEmulators/freej2me-plus/tree/52b25f75824d247c23e352625be45157bfe87620)
+現在のビルドでは、RetroArch、Libretro、PicoArch、Standalone、Pyxel、PortMaster、FreeJ2ME-Plusをすべて同じSYSTEMへ組み込む。PyxelはplumOS-BubbleのPythonとSDLのビルドを使い、PortMasterはplumOS-Bubbleの固定版を使う。J2MEの既定は、ゲームを起動できなかったSquirrelJMEからFreeJ2ME-Plusへ変更した。JavaはDockerで作ったOpenJDKランタイムを同梱し、Java SoundにplumOSのALSA経路を渡す。[plumOS-BubbleのPyxel設定の履歴](https://github.com/game-de-it/plumOS-Bubble/commit/cf99f17d76747be65cc27615de2259c3b5a13c0a) · [FreeJ2ME-Plus 1.53](https://github.com/TASEmulators/freej2me-plus/tree/52b25f75824d247c23e352625be45157bfe87620)
 
 SYSTEM生成前にFEのカタログからカバレッジを再生成し、97システム・196経路が参照するランチャー、コア、Standaloneバイナリと、コンポーネントのチェックサムを検査する。Pyxelのランチャーを欠いた複製を検査にかけ、ビルドが失敗することを確認した。SDイメージ生成にも全7コンポーネントの存在確認を追加した。実機試験のランタイムは起動中のSYSTEMから読み込む。
 
@@ -14,7 +14,7 @@ PortMasterのネイティブ実行環境では、Python専用のglibcをライ�
 
 ## 2026年11月22日の実機試験
 
-RG353Mの既存SDへUSB ADBでSYSTEMを転送し、実機上でも全196経路と7コンポーネントのファイルを照合した。以下の10検体は最終SYSTEMの測定値で、Powermangaの行は公開設定追加前の先行SYSTEMでの結果。音量は20％、内蔵スピーカーのミキサー値は全検体で `215,215`。BubbleのテキストUIから通常の起動処理を通し、試験用の設定とセーブ領域を分けて計測した。
+RG353Mの既存SDへUSB ADBでSYSTEMを転送し、実機上でも全196経路と7コンポーネントのファイルを照合した。以下の10検体は最終SYSTEMの測定値で、Powermangaの行は公開設定追加前の先行SYSTEMでの結果。音量は20％、内蔵スピーカーのミキサー値は全検体で `215,215`。FEのテキストUIから通常の起動処理を通し、試験用の設定とセーブ領域を分けて計測した。
 
 | FEの経路 | 検体 | DRM画面提示 | PCM |
 | --- | --- | ---: | --- |
@@ -36,7 +36,7 @@ FPSは画面提示の計測値。PCM進行はスピーカーからの出力経�
 
 ## FEの公開設定
 
-ファイルがそろっていても、従来は8システムをBubbleのライブラリスキャンが除外していた。ビルド時に全97システムを有効にし、製品検査も無効なシステムを検出するようにした。対応メディアのある項目が一覧に現れる。2048とMr.BoomにはSYSTEM同梱の項目を設け、通常のFE操作からRetroArchを `--no-content` で起動する。カタログが更新されたときは、既存SDでもFEのキャッシュが自動で再生成される。
+ファイルがそろっていても、従来は8システムをFEのライブラリスキャンが除外していた。ビルド時に全97システムを有効にし、製品検査も無効なシステムを検出するようにした。対応メディアのある項目が一覧に現れる。2048とMr.BoomにはSYSTEM同梱の項目を設け、通常のFE操作からRetroArchを `--no-content` で起動する。カタログが更新されたときは、既存SDでもFEのキャッシュが自動で再生成される。
 
 最終のARM64 Dockerビルドで、従来非表示だった6システムに対応拡張子のファイルを置き、実際にFEが使うライブラリスキャナで列挙されたことを確認した。2048とMr.Boomの同梱項目は、Dockerと実機の通常ライブラリで生成され、RetroArchのゲーム面とFNメニューを確認した。MAME 2003+も供給されたROMで起動した。
 
@@ -45,8 +45,8 @@ Dockerで生成したSDイメージは、JELOSの先頭16 MiB、GPT、カーネ�
 ## 最終成果物
 
 - SYSTEM SHA-256 `07b4a8608ca276107901c5724b91c2bd76af53466afa1d7d1cf847c218e5a429`
-- Bubbleユーザーランド SHA-256 `2e4194cd6e351af9627312196f767d15b1f00ac067d8fdcb7a040d4ac92aaf37`
+- フロントエンドを含むユーザーランドのSHA-256 `2e4194cd6e351af9627312196f767d15b1f00ac067d8fdcb7a040d4ac92aaf37`
 - 2.05 GiBのraw SDイメージ SHA-256 `3576132024f19475643eeb20770b629c368de2b8d89077f21b917cea86806314`
 - gzip版 SHA-256 `83fb8837755a3285f63afbe9f477efff9ed63157bea5344503974b68fcd7e940`
 
-最終SYSTEMをADBで既定に設定し、通常再起動でも同じハッシュが選ばれた。起動準備マーカーはカーネル起動から6.21秒。plumOS init、通常のBubbleプロセス、p5・SD2の読み書きマウント、USB ADBのCONFIGURED、音量20％を確認した。試験用マウントと起動保留を解除した状態で、FEの実行ファイルをSYSTEMから参照している。復旧用SYSTEM `0218880c4a5b494a74f496f5e771cd65f6f9a9d4861f21df2ddb91ad0a1b66e6` は実機に保持した。
+最終SYSTEMをADBで既定に設定し、通常再起動でも同じハッシュが選ばれた。起動準備マーカーはカーネル起動から6.21秒。plumOS init、通常のFEプロセス、p5・SD2の読み書きマウント、USB ADBのCONFIGURED、音量20％を確認した。試験用マウントと起動保留を解除した状態で、FEの実行ファイルをSYSTEMから参照している。復旧用SYSTEM `0218880c4a5b494a74f496f5e771cd65f6f9a9d4861f21df2ddb91ad0a1b66e6` は実機に保持した。

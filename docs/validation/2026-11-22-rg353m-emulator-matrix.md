@@ -1,6 +1,6 @@
-# RG353MでのBubbleエミュレータ全プロファイル試験
+# RG353Mでのエミュレータ全プロファイル試験
 
-2026年11月22日（JST）。Bubbleの `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` のカタログに登録された97システム・196プロファイルを対象にした。指定のROM2から各システムの代表ROMを選んだ。同一コアでもランチャーや対象機種が異なるプロファイルは個別に試した。
+2026年11月22日（JST）。plumOS-Bubbleの `ec81d42c0c2c39e7a32973bfe4df9b3027512a5d` のカタログに登録された97システム・196プロファイルを対象にした。指定のROM2から各システムの代表ROMを選んだ。同一コアでもランチャーや対象機種が異なるプロファイルは個別に試した。
 
 DockerでLibretroの114レシピが成功した。RG353M上では配備した118個のLibretro共有ライブラリがロードされ、Libretro API 1を返した。118個には別名やバージョン違いも含まれる。
 
@@ -8,7 +8,7 @@ DockerでLibretroの114レシピが成功した。RG353M上では配備した118
 
 ## 計測方法
 
-- 普段の実行と同じエミュレータランチャーを起動した。Bubbleの監視プロセスからFEの再起動を一時保留し、試験後に解除した。テストROM・BIOSの置き場はp5の `.plumos-emulator-matrix`、エミュレータの設定とセーブは試験用の一時領域を使用した。
+- 普段の実行と同じエミュレータランチャーを起動した。監視プロセスによるFEの再起動を一時保留し、試験後に解除した。テストROM・BIOSの置き場はp5の `.plumos-emulator-matrix`、エミュレータの設定とセーブは試験用の一時領域を使用した。
 - 内蔵画面のDRMページフリップ通知を約3秒間数え、毎秒の画面提示回数を計測した。エミュレータ内部の実行速度やゲームの更新頻度とは差が出る。PALなど公称値が60 Hz未満のゲームもある。
 - ALSAのPCM状態とハードウェアポインタの進みを確認した。途中で `XRUN` を観測した行を表で識別できる。実機スピーカーから出る音の聴感は、ADBの計測からは確定できない。
 - 物理FNと同じevdevの `BTN_MODE`（316）を送り、RetroArchのメニュー面のログ、画面提示の変化、ゲームの再開を記録した。メニュー面の記録を持たない経路では動作の変化を根拠としている。
@@ -16,7 +16,7 @@ DockerでLibretroの114レシピが成功した。RG353M上では配備した118
 
 ## 再現用ファイル
 
-`prototype/emulators/plan-rg353m-matrix.py` はBubbleの `systems.json` とROM2から試験表を作る。隣に `runtime-coverage.json` がある場合はBIOSの名前と配置も参照する。 `--adb` を指定すると実機の試験用ディレクトリへ検体とBIOSを転送する。 `prototype/emulators/run-rg353m-matrix.py` は試験表をADBで実行し、各回の結果JSONを記録する。再試験では起動待ち時間、計測時間、PicoArchの連続フレーム数を指定できる。
+`prototype/emulators/plan-rg353m-matrix.py` はFEの `systems.json` とROM2から試験表を作る。隣に `runtime-coverage.json` がある場合はBIOSの名前と配置も参照する。 `--adb` を指定すると実機の試験用ディレクトリへ検体とBIOSを転送する。 `prototype/emulators/run-rg353m-matrix.py` は試験表をADBで実行し、各回の結果JSONを記録する。再試験では起動待ち時間、計測時間、PicoArchの連続フレーム数を指定できる。
 
 全行の要約は [rg353m-emulator-matrix.tsv](rg353m-emulator-matrix.tsv) に記録した。 `main` は初回試験、`followup` と `late_followup` は条件を整えた再試験、`continuous_no_fn` はメニュー操作を挟まない連続試験を示す。元の計測JSONにはエミュレータの出力も含まれる。ROM・BIOS・画面キャプチャはGitに収録していない。
 
@@ -68,4 +68,4 @@ DockerでLibretroの114レシピが成功した。RG353M上では配備した118
 
 FN操作では、画面提示を確認したRetroArch 127件でメニュー面またはメニューによる音声停止・再開を記録した。PicoArch 36件はFNの前後で画面提示が低下して復帰し、StandaloneのPCSX-ReARMedでも同じ変化を記録した。PPSSPPとOpenBORは映像とPCMの進行を確認できたが、FNメニューが開いたかは画面提示とPCMの計測から判定できなかった。Pyxelの対象アプリにはエミュレータ共通のFNメニューを適用していない。
 
-試験終了後に一時マウントを解除し、Bubbleの再起動と描画準備、p5の読み書き、USB ADBの `CONFIGURED`、内蔵スピーカーの `215,215` を確認した。全コア版SYSTEMはADBで試験起動した状態。再起動時の既定は作業前の `0218880c4a5b494a74f496f5e771cd65f6f9a9d4861f21df2ddb91ad0a1b66e6`。
+試験終了後に一時マウントを解除し、FEの再起動と描画準備、p5の読み書き、USB ADBの `CONFIGURED`、内蔵スピーカーの `215,215` を確認した。全コア版SYSTEMはADBで試験起動した状態。再起動時の既定は作業前の `0218880c4a5b494a74f496f5e771cd65f6f9a9d4861f21df2ddb91ad0a1b66e6`。

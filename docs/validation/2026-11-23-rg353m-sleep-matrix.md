@@ -2,7 +2,7 @@
 
 2026年11月23日（JST）。試験機の既定SYSTEMは `fc01b5ed99c5745be0ee701e1f4ceed7e1c5c52e477e34d382187d61a1daba02`（`2253bc1`）。USB ADB給電中（`ac/online=1`）に `mem` とJELOS由来の `mem_sleep=s2idle` を使用した。SDの再書き込みは行っていない。
 
-単体エミュレータ、ゲーム、外部Appsは出荷用ランチャーとBubbleと同じDRMブローカーで起動した。電源キーと十字キー・Aのevdevイベントを送り、電源メニューからSleepを選んだ。RTCで復帰させ、起動ID、描画プロセスのPIDと開始時刻、DRMの描画面とフレームバッファ、ALSAの再生状態を前後で比較した。復帰後に入力を送り、入力デバイスの保持と、取得できた範囲で描画やアプリの反応を照合した。Apps内の設定・結果画面は実際のBubbleのSTARTメニューから開いた。
+単体エミュレータ、ゲーム、外部Appsは出荷用ランチャーとplumOS-Bubbleと同じDRMブローカーで起動した。電源キーと十字キー・Aのevdevイベントを送り、電源メニューからSleepを選んだ。RTCで復帰させ、起動ID、描画プロセスのPIDと開始時刻、DRMの描画面とフレームバッファ、ALSAの再生状態を前後で比較した。復帰後に入力を送り、入力デバイスの保持と、取得できた範囲で描画やアプリの反応を照合した。Apps内の設定・結果画面は実際のFEのSTARTメニューから開いた。
 
 ## エミュレータとゲーム
 
@@ -27,9 +27,9 @@
 | RetroArch | ゲーム未起動のRGUIでPID 20927のまま復帰。描画面と内蔵パッドのFDを確認。 |
 | Game Gear | 一覧画面でPID 22322のまま復帰。描画更新と内蔵パッドのFDを確認。 |
 | PortMaster | PID 24796のまま復帰。描画更新、ALSA `RUNNING`、内蔵パッドのFDを確認。 |
-| Scraping | 設定画面からSleep。同じBubbleプロセスで設定画面へ戻り、Bでメニューへ戻った。 |
-| Pyxel Setup | 同梱のPythonモジュールの検証が成功。結果画面からSleepし、同じBubbleプロセスの結果画面に戻り、BでTOPへ戻れた。 |
-| Update PortMaster | 既にstable版 `2026.06.23-0015` が入っていることを確認。結果画面からSleepし、同じBubbleプロセスの結果画面に戻り、BでTOPへ戻れた。 |
-| Repair SD2 | 実行確認の画面からSleep。同じBubbleプロセスとAppsの同じ項目に戻り、Bで離脱できた。SD2の修復は実行していない。 |
+| Scraping | 設定画面からSleep。同じFEプロセスで設定画面へ戻り、Bでメニューへ戻った。 |
+| Pyxel Setup | 同梱のPythonモジュールの検証が成功。結果画面からSleepし、同じFEプロセスの結果画面に戻り、BでTOPへ戻れた。 |
+| Update PortMaster | 既にstable版 `2026.06.23-0015` が入っていることを確認。結果画面からSleepし、同じFEプロセスの結果画面に戻り、BでTOPへ戻れた。 |
+| Repair SD2 | 実行確認の画面からSleep。同じFEプロセスとAppsの同じ項目に戻り、Bで離脱できた。SD2の修復は実行していない。 |
 
 描画・PCM・入力の確認は実機の状態とADBから送った入力に基づく。物理ボタンでの復帰、実聴、全コア・全タイトルの総当たりは今回の追加試験の範囲外。PCSX-ReARMed、YabaSanshiro、DraSticは起動を直した後にSleep試験が必要。Finardryは同じ起動経路で直接のSleepと電源メニュー経由の結果が分かれており、終了の原因は未確定。
