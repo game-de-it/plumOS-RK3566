@@ -36,3 +36,14 @@ fi
 "$prototype/emulators/stage-jelos-gpu.sh" "$stock" "$work/bubble/build/rg353m-jelos-gpu"
 PLUMOS_BUBBLE_INCLUDE_CAPTURED_VENDOR_GPU=1 ./scripts/build-standalone-bubble.sh
 "$prototype/emulators/assemble-runtime.sh" "$work/bubble" "$work/runtime"
+display="$prototype/emulators/display"
+private_display="$work/runtime/lib/rgb10max3"
+"$display/build-rgb10max3-sdl.sh" "$work/bubble/build/downloads/SDL2-2.32.0.tar.gz" \
+    "$work/bubble/display/plumos-rga" "$private_display/libSDL2-2.0.so.0"
+"$display/stage-jelos-rga.sh" "$stock" "$private_display"
+install -m644 "$prototype/../docs/licenses/linux-rga-Apache-2.0.txt" "$work/runtime/licenses/"
+(
+    cd "$work/runtime"
+    shasum -a 256 lib/rgb10max3/{libSDL2-2.0.so.0,librga.so.2} licenses/linux-rga-Apache-2.0.txt \
+        >> components/pyxel/checksums.sha256
+)

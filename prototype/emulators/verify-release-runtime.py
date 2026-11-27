@@ -99,6 +99,9 @@ for dependency in (
     "apps/pyxel/lib/libSDL2-2.0.so.0",
     "emulator/standalone/pcsx_rearmed/lib/libSDL2-2.0.so.0",
     "apps/pyxel/lib/plumos-pyxel-fit.so",
+    "lib/rgb10max3/libSDL2-2.0.so.0",
+    "lib/rgb10max3/librga.so.2",
+    "licenses/linux-rga-Apache-2.0.txt",
     "apps/portmaster/upstream/PortMaster/pylibs.zip",
     "share/libretro-system/freej2me-plus/freej2me_plus_runtime/linux-arm64/bin/freej2me_plus-lr.jar",
 ):

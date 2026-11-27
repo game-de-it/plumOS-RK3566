@@ -1,0 +1,224 @@
+diff --git a/src/video/kmsdrm/SDL_kmsdrmopengles.c b/src/video/kmsdrm/SDL_kmsdrmopengles.c
+index 3115862..5ea2e6e 100644
+--- a/src/video/kmsdrm/SDL_kmsdrmopengles.c
++++ b/src/video/kmsdrm/SDL_kmsdrmopengles.c
+@@ -92,6 +92,7 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+     SDL_DisplayData *dispdata = (SDL_DisplayData *)SDL_GetDisplayForWindow(window)->driverdata;
+     SDL_VideoData *viddata = ((SDL_VideoData *)_this->driverdata);
+     KMSDRM_FBInfo *fb_info;
++    struct gbm_bo *scanout;
+     int ret = 0;
+ 
+     /* Always wait for the previous issued flip before issuing a new one,
+@@ -106,8 +107,8 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+     }
+ 
+     /* Recreate the GBM / EGL surfaces if the display mode has changed */
+-    if (windata->egl_surface_dirty) {
+-        KMSDRM_CreateSurfaces(_this, window);
++    if (windata->egl_surface_dirty && KMSDRM_CreateSurfaces(_this, window) < 0) {
++        return -1;
+     }
+ 
+     /* Wait for confirmation that the next front buffer has been flipped, at which
+@@ -143,13 +144,17 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+     }
+ 
+     /* Get an actual usable fb for the next front buffer. */
+-    fb_info = KMSDRM_FBFromBO(_this, windata->next_bo);
++    scanout = plumos_panel_render(&windata->panel, windata->next_bo);
++    if (!scanout) {
++        return SDL_SetError("RGB10 Max 3 scanout rotation failed");
++    }
++    fb_info = KMSDRM_FBFromBO(_this, scanout);
+     if (!fb_info) {
+         SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not get a framebuffer");
+         return 0;
+     }
+ 
+-    if (!windata->bo) {
++    if (windata->panel.initialized ? !windata->panel.submitted : !windata->bo) {
+         /* On the first swap, immediately present the new front buffer. Before
+            drmModePageFlip can be used the CRTC has to be configured to use
+            the current connector and mode with drmModeSetCrtc */
+@@ -161,6 +166,7 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+             SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not set videomode on CRTC.");
+             return 0;
+         }
++        plumos_panel_submitted(&windata->panel);
+     } else {
+         /* On subsequent swaps, queue the new front buffer to be flipped during
+            the next vertical blank
+@@ -183,6 +189,7 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+ 
+         if (ret == 0) {
+             windata->waiting_for_flip = SDL_TRUE;
++            plumos_panel_submitted(&windata->panel);
+         } else {
+             SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not queue pageflip: %d", ret);
+         }
+diff --git a/src/video/kmsdrm/SDL_kmsdrmsym.h b/src/video/kmsdrm/SDL_kmsdrmsym.h
+index b0be627..8f94ad4 100644
+--- a/src/video/kmsdrm/SDL_kmsdrmsym.h
++++ b/src/video/kmsdrm/SDL_kmsdrmsym.h
+@@ -133,6 +133,7 @@ SDL_KMSDRM_SYM(void,gbm_surface_destroy,(struct gbm_surface *surf))
+ SDL_KMSDRM_SYM(struct gbm_bo *,gbm_surface_lock_front_buffer,(struct gbm_surface *surf))
+ SDL_KMSDRM_SYM(void,gbm_surface_release_buffer,(struct gbm_surface *surf, struct gbm_bo *bo))
+ 
++SDL_KMSDRM_SYM_OPT(int,gbm_bo_get_fd,(struct gbm_bo *bo))
+ SDL_KMSDRM_SYM_OPT(uint64_t,gbm_bo_get_modifier,(struct gbm_bo *bo))
+ SDL_KMSDRM_SYM_OPT(int,gbm_bo_get_plane_count,(struct gbm_bo *bo))
+ SDL_KMSDRM_SYM_OPT(uint32_t,gbm_bo_get_offset,(struct gbm_bo *bo, int plane))
+diff --git a/src/video/kmsdrm/SDL_kmsdrmvideo.c b/src/video/kmsdrm/SDL_kmsdrmvideo.c
+index 8f080c2..2393ca4 100644
+--- a/src/video/kmsdrm/SDL_kmsdrmvideo.c
++++ b/src/video/kmsdrm/SDL_kmsdrmvideo.c
+@@ -898,8 +898,11 @@ static void KMSDRM_AddDisplay(_THIS, drmModeConnector *connector, drmModeRes *re
+     modedata->mode_index = mode_index;
+ 
+     display.driverdata = dispdata;
+-    display.desktop_mode.w = dispdata->mode.hdisplay;
+-    display.desktop_mode.h = dispdata->mode.vdisplay;
++    dispdata->rotate_panel = plumos_rgb10max3_portrait(
++        connector->connector_type == DRM_MODE_CONNECTOR_DSI,
++        dispdata->mode.hdisplay, dispdata->mode.vdisplay);
++    display.desktop_mode.w = dispdata->rotate_panel ? dispdata->mode.vdisplay : dispdata->mode.hdisplay;
++    display.desktop_mode.h = dispdata->rotate_panel ? dispdata->mode.hdisplay : dispdata->mode.vdisplay;
+     display.desktop_mode.refresh_rate = dispdata->mode.vrefresh;
+     display.desktop_mode.format = SDL_PIXELFORMAT_ARGB8888;
+     display.desktop_mode.driverdata = modedata;
+@@ -1090,7 +1093,9 @@ static void KMSDRM_DestroySurfaces(_THIS, SDL_Window *window)
+     /**********************************************/
+     /* Wait for last issued pageflip to complete. */
+     /**********************************************/
+-    /*KMSDRM_WaitPageflip(_this, windata);*/
++    if (windata->panel.initialized) {
++        KMSDRM_WaitPageflip(_this, windata);
++    }
+ 
+     /***********************************************************************/
+     /* Restore the original CRTC configuration: configue the crtc with the */
+@@ -1112,6 +1117,8 @@ static void KMSDRM_DestroySurfaces(_THIS, SDL_Window *window)
+         SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not restore CRTC");
+     }
+ 
++    plumos_panel_close(&windata->panel);
++
+     /***************************/
+     /* Destroy the EGL surface */
+     /***************************/
+@@ -1171,6 +1178,7 @@ static void KMSDRM_GetModeToSet(SDL_Window *window, drmModeModeInfo *out_mode)
+ static void KMSDRM_DirtySurfaces(SDL_Window *window)
+ {
+     SDL_WindowData *windata = (SDL_WindowData *)window->driverdata;
++    SDL_DisplayData *dispdata = SDL_GetDisplayForWindow(window)->driverdata;
+     drmModeModeInfo mode;
+ 
+     /* Can't recreate EGL surfaces right now, need to wait until SwapWindow
+@@ -1181,7 +1189,9 @@ static void KMSDRM_DirtySurfaces(SDL_Window *window)
+        or SetWindowFullscreen, send a fake event for now since the actual
+        recreation is deferred */
+     KMSDRM_GetModeToSet(window, &mode);
+-    SDL_SendWindowEvent(window, SDL_WINDOWEVENT_RESIZED, mode.hdisplay, mode.vdisplay);
++    SDL_SendWindowEvent(window, SDL_WINDOWEVENT_RESIZED,
++                        dispdata->rotate_panel ? mode.vdisplay : mode.hdisplay,
++                        dispdata->rotate_panel ? mode.hdisplay : mode.vdisplay);
+ }
+ 
+ /* This determines the size of the fb, which comes from the GBM surface
+@@ -1216,19 +1226,31 @@ int KMSDRM_CreateSurfaces(_THIS, SDL_Window *window)
+        mode that's set in sync with what SDL_video.c thinks is set */
+     KMSDRM_GetModeToSet(window, &dispdata->mode);
+ 
+-    display->current_mode.w = dispdata->mode.hdisplay;
+-    display->current_mode.h = dispdata->mode.vdisplay;
++    display->current_mode.w = dispdata->rotate_panel ? dispdata->mode.vdisplay : dispdata->mode.hdisplay;
++    display->current_mode.h = dispdata->rotate_panel ? dispdata->mode.hdisplay : dispdata->mode.vdisplay;
+     display->current_mode.refresh_rate = dispdata->mode.vrefresh;
+     display->current_mode.format = SDL_PIXELFORMAT_ARGB8888;
+ 
+     windata->gs = KMSDRM_gbm_surface_create(viddata->gbm_dev,
+-                                            dispdata->mode.hdisplay, dispdata->mode.vdisplay,
++                                            display->current_mode.w, display->current_mode.h,
+                                             surface_fmt, surface_flags);
+ 
+     if (!windata->gs) {
+         return SDL_SetError("Could not create GBM surface");
+     }
+ 
++    if (dispdata->rotate_panel) {
++        const struct plumos_gbm_ops gbm = {
++            KMSDRM_gbm_bo_create, KMSDRM_gbm_bo_destroy, KMSDRM_gbm_bo_get_fd,
++            KMSDRM_gbm_bo_get_stride, KMSDRM_gbm_bo_get_modifier
++        };
++        if (!plumos_panel_open(&windata->panel, &gbm, viddata->gbm_dev,
++                               dispdata->mode.hdisplay, dispdata->mode.vdisplay, surface_fmt)) {
++            ret = SDL_SetError("Could not create RGB10 Max 3 rotated scanout buffers");
++            goto cleanup;
++        }
++    }
++
+     /* We can't get the EGL context yet because SDL_CreateRenderer has not been called,
+        but we need an EGL surface NOW, or GL won't be able to render into any surface
+        and we won't see the first frame. */
+@@ -1246,7 +1268,7 @@ int KMSDRM_CreateSurfaces(_THIS, SDL_Window *window)
+     ret = SDL_EGL_MakeCurrent(_this, windata->egl_surface, egl_context);
+ 
+     SDL_SendWindowEvent(window, SDL_WINDOWEVENT_RESIZED,
+-                        dispdata->mode.hdisplay, dispdata->mode.vdisplay);
++                        display->current_mode.w, display->current_mode.h);
+ 
+     windata->egl_surface_dirty = SDL_FALSE;
+ 
+@@ -1254,6 +1276,11 @@ cleanup:
+ 
+     if (ret) {
+         /* Error (complete) cleanup. */
++        plumos_panel_close(&windata->panel);
++        if (windata->egl_surface != EGL_NO_SURFACE) {
++            SDL_EGL_DestroySurface(_this, windata->egl_surface);
++            windata->egl_surface = EGL_NO_SURFACE;
++        }
+         if (windata->gs) {
+             KMSDRM_gbm_surface_destroy(windata->gs);
+             windata->gs = NULL;
+@@ -1363,8 +1390,8 @@ void KMSDRM_GetDisplayModes(_THIS, SDL_VideoDisplay *display)
+             modedata->mode_index = i;
+         }
+ 
+-        mode.w = conn->modes[i].hdisplay;
+-        mode.h = conn->modes[i].vdisplay;
++        mode.w = dispdata->rotate_panel ? conn->modes[i].vdisplay : conn->modes[i].hdisplay;
++        mode.h = dispdata->rotate_panel ? conn->modes[i].hdisplay : conn->modes[i].vdisplay;
+         mode.refresh_rate = conn->modes[i].vrefresh;
+         mode.format = SDL_PIXELFORMAT_ARGB8888;
+         mode.driverdata = modedata;
+diff --git a/src/video/kmsdrm/SDL_kmsdrmvideo.h b/src/video/kmsdrm/SDL_kmsdrmvideo.h
+index 1643143..85488e1 100644
+--- a/src/video/kmsdrm/SDL_kmsdrmvideo.h
++++ b/src/video/kmsdrm/SDL_kmsdrmvideo.h
+@@ -33,6 +33,8 @@
+ #include <gbm.h>
+ #include <EGL/egl.h>
+ 
++#include "rk3566-kms-panel.h"
++
+ #ifndef DRM_FORMAT_MOD_INVALID
+ #define DRM_FORMAT_MOD_INVALID 0x00ffffffffffffffULL
+ #endif
+@@ -106,6 +108,7 @@ typedef struct SDL_DisplayData
+     drmModeModeInfo mode;
+     drmModeModeInfo original_mode;
+     drmModeModeInfo fullscreen_mode;
++    bool rotate_panel;
+ 
+     drmModeCrtc *saved_crtc; /* CRTC to restore on quit */
+     SDL_bool saved_vrr;
+@@ -131,6 +134,7 @@ typedef struct SDL_WindowData
+     struct gbm_surface *gs;
+     struct gbm_bo *bo;
+     struct gbm_bo *next_bo;
++    struct plumos_panel panel;
+ 
+     SDL_bool waiting_for_flip;
+     SDL_bool double_buffer;

@@ -33,6 +33,7 @@ install -m 755 "$scripts/plumos-rk3566-audio-output" "$runtime/bin/plumos-audio-
 install -m 755 "$scripts/plumos-rk3566-audio-route" "$runtime/bin/"
 ln -s /usr/bin/aplay "$runtime/bin/plumos-aplay"
 python3 "$scripts/configure-emulator-launchers.py" "$runtime"
+python3 "$scripts/display/configure-launchers.py" "$runtime"
 python3 - "$runtime" <<'PY'
 import hashlib
 import json

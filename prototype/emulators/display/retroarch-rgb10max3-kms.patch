@@ -1,0 +1,199 @@
+diff --git a/gfx/drivers_context/drm_ctx.c b/gfx/drivers_context/drm_ctx.c
+index 929f296..af2bf44 100644
+--- a/gfx/drivers_context/drm_ctx.c
++++ b/gfx/drivers_context/drm_ctx.c
+@@ -33,6 +33,8 @@
+ #include <libdrm/drm.h>
+ #include <gbm.h>
+ 
++#include "rk3566-kms-panel.h"
++
+ #include <lists/dir_list.h>
+ #include <string/stdstring.h>
+ 
+@@ -72,6 +74,8 @@ typedef struct gfx_ctx_drm_data
+    struct gbm_bo *next_bo;
+    struct gbm_surface *gbm_surface;
+    struct gbm_device  *gbm_dev;
++   struct plumos_panel panel;
++   bool rotate_panel;
+    int fd;
+    int interval;
+    unsigned fb_width;
+@@ -481,8 +485,9 @@ static void gfx_ctx_drm_check_window(void *data, bool *quit,
+ {
+    *resize = false;
+    *quit   = (bool)frontend_driver_get_signal_handler_state();
+-   *width = g_drm_mode->hdisplay;
+-   *height = g_drm_mode->vdisplay;
++   gfx_ctx_drm_data_t *drm = (gfx_ctx_drm_data_t*)data;
++   *width  = drm->rotate_panel ? drm->fb_width : g_drm_mode->hdisplay;
++   *height = drm->rotate_panel ? drm->fb_height : g_drm_mode->vdisplay;
+ }
+ 
+ static void drm_flip_handler(int fd, unsigned frame,
+@@ -516,6 +521,7 @@ static bool gfx_ctx_drm_wait_flip(gfx_ctx_drm_data_t *drm, bool block)
+    gbm_surface_release_buffer(drm->gbm_surface, drm->bo);
+    /* This buffer is being shown now. */
+    drm->bo = drm->next_bo;
++   drm->next_bo = NULL;
+ 
+    return false;
+ }
+@@ -523,12 +529,20 @@ static bool gfx_ctx_drm_wait_flip(gfx_ctx_drm_data_t *drm, bool block)
+ static bool gfx_ctx_drm_queue_flip(gfx_ctx_drm_data_t *drm)
+ {
+    struct drm_fb *fb = NULL;
++   struct gbm_bo *scanout;
+ 
+-   drm->next_bo      = gbm_surface_lock_front_buffer(drm->gbm_surface);
+-   fb                = (struct drm_fb*)gbm_bo_get_user_data(drm->next_bo);
++   drm->next_bo = gbm_surface_lock_front_buffer(drm->gbm_surface);
++   if (!drm->next_bo)
++      return false;
++   scanout = plumos_panel_render(&drm->panel, drm->next_bo);
++   if (!scanout)
++      goto error;
++   fb = (struct drm_fb*)gbm_bo_get_user_data(scanout);
+ 
+    if (!fb)
+-      fb             = (struct drm_fb*)drm_fb_get_from_bo(drm->next_bo);
++      fb = drm_fb_get_from_bo(scanout);
++   if (!fb)
++      goto error;
+ 
+    if (switch_mode)
+    {
+@@ -539,9 +553,16 @@ static bool gfx_ctx_drm_queue_flip(gfx_ctx_drm_data_t *drm)
+ 
+    if (drmModePageFlip(g_drm_fd, g_crtc_id, fb->fb_id,
+          DRM_MODE_PAGE_FLIP_EVENT, &drm->waiting_for_flip) == 0)
++   {
++      plumos_panel_submitted(&drm->panel);
+       return true;
++   }
+ 
+-   /* Failed to queue page flip. */
++error:
++   if (drm->panel.initialized)
++      RARCH_ERR("[KMS] Failed to present RGB10 Max 3 rotated frame.\n");
++   gbm_surface_release_buffer(drm->gbm_surface, drm->next_bo);
++   drm->next_bo = NULL;
+    return false;
+ }
+ 
+@@ -560,7 +581,7 @@ static void gfx_ctx_drm_swap_buffers(void *data)
+          if (drm->bo)
+             gbm_surface_release_buffer(drm->gbm_surface, drm->bo);
+          if (drm->next_bo)
+-            gbm_surface_release_buffer(drm->gbm_surface, drm->bo);
++            gbm_surface_release_buffer(drm->gbm_surface, drm->next_bo);
+          egl_ctx_data_t *egl = &drm->egl;
+          eglDestroySurface(egl->dpy, egl->surf);
+ 
+@@ -635,6 +656,7 @@ static void free_drm_resources(gfx_ctx_drm_data_t *drm)
+ 
+    /* Restore original CRTC. */
+    drm_restore_crtc();
++   plumos_panel_close(&drm->panel);
+ 
+    if (drm->gbm_surface)
+       gbm_surface_destroy(drm->gbm_surface);
+@@ -736,7 +758,15 @@ nextgpu:
+      - custom timings from configuration
+      - else the current video mode from the CRTC
+      - otherwise pick first connector mode */
+-   if (gfx_ctx_drm_get_mode_from_video_state(&gfx_ctx_crt_switch_mode))
++   drm->rotate_panel = plumos_rgb10max3_portrait(
++         g_drm_connector->connector_type == DRM_MODE_CONNECTOR_DSI,
++         g_drm_connector->modes[0].hdisplay, g_drm_connector->modes[0].vdisplay);
++   if (drm->rotate_panel)
++   {
++      drm->fb_width  = g_drm_connector->modes[0].vdisplay;
++      drm->fb_height = g_drm_connector->modes[0].hdisplay;
++   }
++   else if (gfx_ctx_drm_get_mode_from_video_state(&gfx_ctx_crt_switch_mode))
+    {
+       drm->fb_width  = gfx_ctx_crt_switch_mode.hdisplay;
+       drm->fb_height = gfx_ctx_crt_switch_mode.vdisplay;
+@@ -798,6 +828,7 @@ static bool gfx_ctx_drm_set_video_mode(void *data,
+ {
+    float refresh_mod;
+    int i, ret                      = 0;
++   struct gbm_bo *scanout;
+    struct drm_fb *fb               = NULL;
+    gfx_ctx_drm_data_t *drm         = (gfx_ctx_drm_data_t*)data;
+    settings_t *settings            = config_get_ptr();
+@@ -816,7 +847,7 @@ static bool gfx_ctx_drm_set_video_mode(void *data,
+    /* Find desired video mode, and use that.
+     * If not fullscreen, we get desired windowed size,
+     * which is not appropriate. */
+-   if (gfx_ctx_drm_get_mode_from_video_state(&gfx_ctx_crt_switch_mode))
++   if (!drm->rotate_panel && gfx_ctx_drm_get_mode_from_video_state(&gfx_ctx_crt_switch_mode))
+    {
+       RARCH_DBG("[KMS] New mode detected: %dx%d.\n", gfx_ctx_crt_switch_mode.hdisplay, gfx_ctx_crt_switch_mode.vdisplay);
+       g_drm_mode     = &gfx_ctx_crt_switch_mode;
+@@ -826,7 +857,9 @@ static bool gfx_ctx_drm_set_video_mode(void *data,
+       /* Let's exit, since modeswitching will happen while swapping buffers */
+       return true;
+    }
+-   if ((width == 0 && height == 0) || !fullscreen)
++   if (drm->rotate_panel)
++      g_drm_mode = &g_drm_connector->modes[0];
++   else if ((width == 0 && height == 0) || !fullscreen)
+    {
+       RARCH_WARN("[KMS] Falling back to mode 0 (default).\n");
+       g_drm_mode     = &g_drm_connector->modes[0];
+@@ -880,8 +913,8 @@ static bool gfx_ctx_drm_set_video_mode(void *data,
+       goto error;
+    }
+ 
+-   drm->fb_width                   = g_drm_mode->hdisplay;
+-   drm->fb_height                  = g_drm_mode->vdisplay;
++   drm->fb_width  = drm->rotate_panel ? g_drm_mode->vdisplay : g_drm_mode->hdisplay;
++   drm->fb_height = drm->rotate_panel ? g_drm_mode->hdisplay : g_drm_mode->vdisplay;
+ 
+    /* Create GBM surface. */
+    drm->gbm_surface                = gbm_surface_create(
+@@ -897,6 +930,20 @@ static bool gfx_ctx_drm_set_video_mode(void *data,
+       goto error;
+    }
+ 
++   if (drm->rotate_panel)
++   {
++      const struct plumos_gbm_ops gbm = {
++         gbm_bo_create, gbm_bo_destroy, gbm_bo_get_fd,
++         gbm_bo_get_stride, gbm_bo_get_modifier
++      };
++      if (!plumos_panel_open(&drm->panel, &gbm, drm->gbm_dev,
++               g_drm_mode->hdisplay, g_drm_mode->vdisplay, GBM_FORMAT_XRGB8888))
++      {
++         RARCH_ERR("[KMS] Could not create RGB10 Max 3 rotated scanout buffers.\n");
++         goto error;
++      }
++   }
++
+ #ifdef HAVE_EGL
+    if (!gfx_ctx_drm_egl_set_video_mode(drm))
+       goto error;
+@@ -904,13 +951,16 @@ static bool gfx_ctx_drm_set_video_mode(void *data,
+ 
+    drm->bo   = gbm_surface_lock_front_buffer(drm->gbm_surface);
+ 
+-   if (!(fb = (struct drm_fb*)gbm_bo_get_user_data(drm->bo)))
+-      fb     = drm_fb_get_from_bo(drm->bo);
+-
+-   if ((ret  = drmModeSetCrtc(g_drm_fd,
++   scanout = plumos_panel_render(&drm->panel, drm->bo);
++   if (!scanout)
++      goto error;
++   if (!(fb = (struct drm_fb*)gbm_bo_get_user_data(scanout)))
++      fb = drm_fb_get_from_bo(scanout);
++   if (!fb || (ret = drmModeSetCrtc(g_drm_fd,
+          g_crtc_id, fb->fb_id, 0, 0, &g_connector_id, 1, g_drm_mode)) < 0)
+       goto error;
+ 
++   plumos_panel_submitted(&drm->panel);
+    return true;
+ 
+ error:

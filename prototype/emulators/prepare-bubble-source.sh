@@ -36,6 +36,11 @@ cp "$scripts/quicknes-rg353m.patch" "$destination/patches/libretro-cores-bubble/
 cp "$scripts/atari800-caverns-cartridge.patch" "$destination/patches/libretro-cores-bubble/"
 patch -s -d "$destination" -p1 < "$scripts/rg353m-standalone.patch"
 patch -s -d "$destination" -p1 < "$scripts/rg353m-drastic-cleanup.patch"
+mkdir -p "$destination/display"
+cp "$scripts/display/rk3566-kms-panel.h" "$destination/display/"
+"$scripts/display/fetch-rga-headers.sh" "$destination/display/plumos-rga"
+cp "$scripts/display/retroarch-rgb10max3-kms.patch" "$destination/patches/retroarch/024-rk3566-rgb10max3-kms.patch"
+patch -s -d "$destination" -p1 < "$scripts/display/pyxel-rgb10max3-drawable.patch"
 python3 - "$destination" <<'PY'
 from pathlib import Path
 import sys
@@ -108,6 +113,12 @@ replace("scripts/build-picoarch-bubble.sh",
         'rg353m-evdev:$(sha256sum "$ROOT_DIR/package/picoarch-bubble/patches/rg353m-evdev.patch" | cut -d " " -f 1) '
         'rk3566-display:$(sha256sum "$ROOT_DIR/package/picoarch-bubble/patches/rk3566-display.patch" | cut -d " " -f 1) ', 1)
 replace("scripts/build-pyxel-bubble.sh", "guide:b17", "guide:b10", 1)
+retroarch = "scripts/build-bubble-retroarch.sh"
+clean = 'git -C "$work" clean -fdx --quiet\n'
+replace(retroarch, clean,
+        clean + 'cp "$repo_root/display/rk3566-kms-panel.h" "$work/gfx/drivers_context/"\n'
+        'cp -R "$repo_root/display/plumos-rga" "$work/gfx/drivers_context/"\n', 1)
+
 replace("scripts/build-portmaster-bubble.sh",
         'ZIP_VERSION="3.0-13"', 'ZIP_VERSION="3.0-13+deb12u1"', 1)
 replace("scripts/build-drastic-bubble.sh",

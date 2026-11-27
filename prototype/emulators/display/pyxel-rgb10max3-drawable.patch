@@ -1,0 +1,24 @@
+--- a/package/pyxel-bubble/plumos_pyxel_fit.c
++++ b/package/pyxel-bubble/plumos_pyxel_fit.c
+@@ -180,6 +180,21 @@
+     if (context && real_sdl_gl_make_current) {
+         current_rc = real_sdl_gl_make_current(window, context);
+     }
++    if (context && env_enabled("PLUMOS_PYXEL_FIT_USE_DRAWABLE", 0)) {
++        typedef void (*SDLGLGetDrawableSize)(SDL_Window *, int *, int *);
++        SDLGLGetDrawableSize get_drawable =
++            (SDLGLGetDrawableSize)dlsym(RTLD_NEXT, "SDL_GL_GetDrawableSize");
++        int width = 0, height = 0;
++
++        init_config();
++        if (get_drawable) {
++            get_drawable(window, &width, &height);
++            if (width > 0 && height > 0) {
++                output_width = width;
++                output_height = height;
++            }
++        }
++    }
+     fprintf(stderr,
+             "plumos-pyxel-display: context=%s make-current=%d%s%s\n",
+             context ? "created" : "failed", current_rc,

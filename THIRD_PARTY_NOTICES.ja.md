@@ -46,6 +46,7 @@ plumOS-RK3566が独自に作成したソフトウェアと文書には[MITライ
 | Dropbear、OpenSSH SFTP、OpenSSL、Samba | DropbearはMIT系の条件と依存コードの個別表記、OpenSSHはBSD・ISC系などの個別表記に従います。OpenSSL 3はApache-2.0、SambaはGPL-3.0-or-laterで、個別ライセンスのライブラリも含みます。 |
 | wpa_supplicant、ALSAツール、Info-ZIP UnZip | wpa_supplicantとwpa_cliはBSD-3-Clause、ALSAツールはGPLとパッケージ内の個別条件、UnZipはInfo-ZIPライセンスです。 |
 | 共有ライブラリ、CA証明書、タイムゾーンデータ | 各共有ライブラリ、Sambaモジュール、ALSAデータ、`ca-certificates`、`tzdata` は、採用したDebianパッケージの文書を参照してください。例としてglibc・ALSAの共有ライブラリはLGPL、SDL2はzlib、GCCランタイムは該当部分にランタイム例外が適用されます。 |
+| RGB10 Max 3 用の表示ライブラリ | Rockchip の librga は Apache-2.0、SDL2 2.32.0 は zlib ライセンスです。librga のバイナリは参照用の JELOS 20240206 SYSTEM に由来し、ヘッダーは固定した JELOS のソースを使用しています。 [RGA ソース](https://github.com/JustEnoughLinuxOS/linux-rga/tree/df26244eb0c3991df319d4276ab80e8c0bf91f64) · [RGA ライセンス](docs/licenses/linux-rga-Apache-2.0.txt) · [SDL2 ライセンス](https://github.com/libsdl-org/SDL/blob/release-2.32.0/LICENSE.txt) |
 | Standalone Linux adbd | 採用した `v36.0.1-linux.2` のソースは[Apache-2.0](docs/licenses/standalone-linux-adbd-Apache-2.0.txt)です。静的実行ファイルに組み込まれた依存関係にも個別の条件があるため、ビルドで使用した各ソースの表記を保持します。[対象ソースとビルド情報](https://github.com/happyme531/standalone-linux-adbd/tree/v36.0.1-linux.2) |
 
 [Debianパッケージ一覧](docs/licenses/debian-runtime.tsv)には、検証済みSYSTEMとDockerランタイムで少なくとも1ファイルがバイト単位で一致した164パッケージを掲載しています。バイナリとソースのバージョン、およびDebianの著作権文書の表記を記録しています。CA証明書バンドルのような生成物と、別のレイヤーでビルドしたファイルは個別に出典を確認します。
