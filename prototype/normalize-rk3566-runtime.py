@@ -117,6 +117,17 @@ for path in (
 ):
     edit_text(path)
 
+portmaster_control = root / "bin/plumos-portmaster-frontend-control"
+text = portmaster_control.read_text()
+old_hold = 'VALIDATION_HOLD="${PLUMOS_FRONTEND_VALIDATION_HOLD:-/run/plumos/validation/frontend-hold}"'
+hold = 'FRONTEND_HOLD="${PLUMOS_RUNTIME_ROOT:-/run/plumos-353m}/portmaster-frontend-hold"'
+if old_hold not in text and hold not in text:
+    raise SystemExit(f"Unexpected frontend hold in {portmaster_control}")
+updated = text.replace(old_hold, hold).replace("VALIDATION_HOLD", "FRONTEND_HOLD").replace(
+    "refusing foreign validation hold", "refusing foreign frontend hold",
+)
+write(portmaster_control, updated, text)
+
 for path in (
     *root.glob("components/*/manifest.json"),
     *root.glob("config/frontend/*.json"),

@@ -1,6 +1,5 @@
 #!/bin/sh
 set -eu
-while [ -e /run/plumos/validation/frontend-hold ]; do sleep 1; done
 payload=${PLUMOS_PAYLOAD:-/usr/lib/plumos-353m}
 export PLUMOS_ROOT=${PLUMOS_ROOT:-/storage/plumos-353m/frontend}
 export PLUMOS_SDCARD_ROOT=/storage
@@ -11,6 +10,8 @@ export PLUMOS_ROM_ROOT=$PLUMOS_SDCARD_ROOT/Roms
 export PLUMOS_BIOS_ROOT=$PLUMOS_SDCARD_ROOT/BIOS
 export PLUMOS_IMAGE_ROOT=$PLUMOS_SDCARD_ROOT/Images
 export PLUMOS_RUNTIME_ROOT=${PLUMOS_RUNTIME_ROOT:-/run/plumos-353m}
+# A directly launched PortMaster session temporarily owns the display.
+while grep -qs '^owner=portmaster$' "$PLUMOS_RUNTIME_ROOT/portmaster-frontend-hold"; do sleep 1; done
 export PLUMOS_BUSYBOX=/usr/bin/busybox
 if [ -x "$payload/frontend/bin/busybox" ]; then
     export PLUMOS_BUSYBOX="$payload/frontend/bin/busybox"

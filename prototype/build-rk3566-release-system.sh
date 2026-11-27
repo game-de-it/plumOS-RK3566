@@ -51,7 +51,7 @@ if [ -f /build/retroarch ]; then
     sed -i "s|^[[:xdigit:]]\{64\}  bin/retroarch\$|$digest  bin/retroarch|" \
         "$frontend/components/retroarch/checksums.sha256"
 fi
-install -m755 /prototype/system/usr/lib/plumos-353m/mount-frontend "$payload/mount-frontend"
+install -m755 /prototype/system/usr/lib/plumos-353m/{mount-frontend,start-frontend} "$payload/"
 python3 /prototype/normalize-rk3566-runtime.py "$payload"
 for file in "$frontend/VERSION" "$root/etc/plumos-system-version"; do
     printf '%s\n' "$1" > "$file"

@@ -83,6 +83,7 @@ for executable in (
     "bin/plumos-pyxel-setup",
     "apps/python/lib/ld-linux-aarch64.so.1",
     "bin/plumos-portmaster-launch",
+    "bin/plumos-portmaster-frontend-control",
     "bin/plumos-portmaster-port-stop",
     "bin/plumos-portmaster-runtime",
     "apps/portmaster/adapter/bin/aarch64/bash",
