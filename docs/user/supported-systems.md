@@ -65,6 +65,8 @@ RA means RetroArch, PICO means PicoArch, and SA means standalone emulator. Highl
 | Palm OS | `Roms/PALM/`<br>`Roms/palm/` | `.prc`, `.pqa`, `.img`, `.pdb`, `.zip` | RA `mu` | — |
 | Dreamcast VMU | `Roms/VMU/`<br>`Roms/vmu/`<br>`Roms/_etc/vmu/` | `.vms`, `.dci`, `.bin` | RA `vemulator` | — |
 
+See [PPSSPP save locations](storage.md#ppsspp) for backing up PSP saves and save states.
+
 ## Arcade
 
 | System | ROM folders | Recognized extensions | Default launcher | Alternatives |

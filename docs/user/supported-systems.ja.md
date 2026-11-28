@@ -65,6 +65,8 @@ RAはRetroArch、PICOはPicoArch、SAは単体エミュレータです。フロ�
 | Palm OS | `Roms/PALM/`<br>`Roms/palm/` | `.prc`, `.pqa`, `.img`, `.pdb`, `.zip` | RA `mu` | — |
 | Dreamcast VMU | `Roms/VMU/`<br>`Roms/vmu/`<br>`Roms/_etc/vmu/` | `.vms`, `.dci`, `.bin` | RA `vemulator` | — |
 
+PSPの通常セーブとステートの保存先は、[PPSSPPの保存先](storage.ja.md#ppsspp)を参照してください。
+
 ## アーケード
 
 | システム | ROMフォルダ | 認識する拡張子 | 既定の起動方法 | その他の選択肢 |
