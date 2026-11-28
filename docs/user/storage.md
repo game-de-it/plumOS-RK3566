@@ -23,7 +23,23 @@ After adding games, use `START` → `UI Settings` → `Refresh TOP`. To fetch ar
 
 ## Saves and backups
 
-Save data, save states and settings live on the system card's managed area under `/storage/plumos-rk3566/frontend/`. RetroArch uses `saves/` and `states/` under that path; standalone emulators and ports can use their own subdirectories. A copy of the visible FAT32 files alone misses these saves. Back up the whole card or retrieve the files using SFTP or ADB. Keep the original emulator and core available when relying on save states.
+These paths apply to games launched through the v0.2.0 frontend. They are relative to `/storage/plumos-rk3566/frontend/` on SD1. The locations in the table remain on SD1 when games are launched from SD2.
+
+| Emulator | In-game saves | Save states |
+| --- | --- | --- |
+| RetroArch (RA) | Under `saves/` | Under `states/` |
+| PicoArch (PICO) | `.sav` files in `saves/<system-id>/` | `.st0`, `.st1`, and other slots in `state/picoarch/<system-id>/.picoarch-<core-name>-<system-id>/` |
+| DraStic (SA, Nintendo DS) | `.dsv` files in `config/standalone/drastic/work/backup/` | `.dss` files in `config/standalone/drastic/work/savestates/` |
+| PCSX-ReARMed (SA, PlayStation) | Memory cards in `config/standalone/pcsx_rearmed/home/.pcsx/memcards/` (defaults are `card1.mcd` and `card2.mcd`) | `config/standalone/pcsx_rearmed/home/.pcsx/sstates/` |
+| YabaSanshiro (SA, Sega Saturn) | `config/standalone/yabasanshiro/home/.yabasanshiro/backup.bin` | `.yss` files in the same `.yabasanshiro/` folder |
+| OpenBOR (SA) | `config/standalone/openbor/data/Saves/` | Unavailable |
+| PPSSPP (SA, PSP) | [PPSSPP save locations](#ppsspp) | [PPSSPP save locations](#ppsspp) |
+
+For RetroArch, also check subfolders named for the core or the ROM's parent folder. Save and state support and file formats depend on the core. Games using writable disk images can also store changes in the disk image itself.
+
+Pyxel and Ports save locations depend on the game. For Pyxel games that write to their home directory, check `state/pyxel-home/`. For ports launched through PortMaster, also check `state/portmaster/home/` and `state/portmaster/data/upstream/`. Include the game's own folder in backups, even on SD2, because a game can save there. Pyxel has no shared save-state feature. Save states for ports depend on the individual port.
+
+Exit the emulator before backing up. Back up the whole card or copy the relevant folders over SFTP or ADB. Include the folders starting with a dot for PicoArch, PCSX-ReARMed, and YabaSanshiro. Use the same emulator and core when restoring save states.
 
 ### PPSSPP
 

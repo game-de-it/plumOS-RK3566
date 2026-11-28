@@ -23,7 +23,23 @@
 
 ## セーブとバックアップ
 
-セーブ、ステート、設定は、SD1の管理領域 `/storage/plumos-rk3566/frontend/` 以下に保存されます。RetroArchではその中の `saves/` と `states/` を使い、単体エミュレータやPortsは個別の保存先を使う場合があります。セーブを含めるにはカード全体をバックアップするか、SFTPやADBで保存先からコピーしてください。ステートを使い続ける場合は、作成時のエミュレータとコアも控えておいてください。
+v0.2.0のフロントエンドから起動した場合、以下のパスはSD1の管理領域 `/storage/plumos-rk3566/frontend/` からの相対パスです。SD2からゲームを起動する場合も、表の保存先はSD1です。
+
+| エミュレータ | 通常セーブ | セーブステート |
+| --- | --- | --- |
+| RetroArch（RA） | `saves/` 以下 | `states/` 以下 |
+| PicoArch（PICO） | `saves/<システムID>/` の `.sav` | `state/picoarch/<システムID>/.picoarch-<コア名>-<システムID>/` の `.st0`、`.st1` など |
+| DraStic（SA、Nintendo DS） | `config/standalone/drastic/work/backup/` の `.dsv` | `config/standalone/drastic/work/savestates/` の `.dss` |
+| PCSX-ReARMed（SA、PlayStation） | `config/standalone/pcsx_rearmed/home/.pcsx/memcards/` のメモリーカード（既定は `card1.mcd` と `card2.mcd`） | `config/standalone/pcsx_rearmed/home/.pcsx/sstates/` |
+| YabaSanshiro（SA、セガサターン） | `config/standalone/yabasanshiro/home/.yabasanshiro/backup.bin` | 同じ `.yabasanshiro/` にある `.yss` |
+| OpenBOR（SA） | `config/standalone/openbor/data/Saves/` | 非対応 |
+| PPSSPP（SA、PSP） | [PPSSPPの保存先](#ppsspp) | [PPSSPPの保存先](#ppsspp) |
+
+RetroArchではコアやROMの親フォルダで分けられたサブフォルダも確認してください。セーブやステートへの対応とファイル形式はコアによって異なります。書き込み可能なディスクイメージを使うゲームでは、ディスク自体に変更が保存される場合もあります。
+
+PyxelとPortsの保存先はゲームごとに異なります。ホームフォルダに保存するPyxelゲームでは `state/pyxel-home/` を確認してください。PortMasterから起動するPortsでは `state/portmaster/home/` と `state/portmaster/data/upstream/` も確認してください。ゲーム自身がゲームフォルダに保存する場合もあるので、SD2のゲームフォルダもバックアップ対象に含めてください。Pyxelの共通ステート機能はなく、Portsのステートは各移植版の実装によります。
+
+バックアップ前にエミュレータを終了してください。カード全体をバックアップするか、SFTPやADBで該当フォルダをコピーします。PicoArch、PCSX-ReARMed、YabaSanshiroではドットで始まるフォルダも含めてください。ステートを移行する場合は、作成時と同じエミュレータとコアを使ってください。
 
 ### PPSSPP
 
