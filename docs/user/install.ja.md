@@ -10,11 +10,11 @@
 
 ## 書き込みと起動
 
-1. v0.2.0のリリースからイメージとチェックサムを入手し、圧縮ファイルを照合してから展開します。[v0.2.0リリース](https://github.com/game-de-it/plumOS-RK3566/releases/tag/v0.2.0)
+1. v0.2.1のリリースからイメージとチェックサムを入手し、圧縮ファイルを照合してから展開します。[v0.2.1リリース](https://github.com/game-de-it/plumOS-RK3566/releases/tag/v0.2.1)
 
    ```sh
-   shasum -a 256 -c plumOS-RK3566-v0.2.0.img.gz.sha256
-   gzip -dk plumOS-RK3566-v0.2.0.img.gz
+   shasum -a 256 -c plumOS-RK3566-v0.2.1.img.gz.sha256
+   gzip -dk plumOS-RK3566-v0.2.1.img.gz
    ```
 
    Linuxでは `sha256sum -c` でも照合できます。Windowsでは `Get-FileHash -Algorithm SHA256` で各ファイルの値を出し、チェックサムの該当行と比較します。

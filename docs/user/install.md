@@ -10,11 +10,11 @@ Back up the target card before writing. If it already runs plumOS, back up saves
 
 ## Write and boot
 
-1. Download both files from the v0.2.0 release and verify the compressed image before extracting it. [v0.2.0 release](https://github.com/game-de-it/plumOS-RK3566/releases/tag/v0.2.0)
+1. Download both files from the v0.2.1 release and verify the compressed image before extracting it. [v0.2.1 release](https://github.com/game-de-it/plumOS-RK3566/releases/tag/v0.2.1)
 
    ```sh
-   shasum -a 256 -c plumOS-RK3566-v0.2.0.img.gz.sha256
-   gzip -dk plumOS-RK3566-v0.2.0.img.gz
+   shasum -a 256 -c plumOS-RK3566-v0.2.1.img.gz.sha256
+   gzip -dk plumOS-RK3566-v0.2.1.img.gz
    ```
 
    On Linux, `sha256sum -c` performs the same check. On Windows, use `Get-FileHash -Algorithm SHA256` and compare the digest for each file with the matching entry.
