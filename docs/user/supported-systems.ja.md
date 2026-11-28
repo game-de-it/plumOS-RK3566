@@ -67,6 +67,8 @@ RAはRetroArch、PICOはPicoArch、SAは単体エミュレータです。フロ�
 
 PSPの通常セーブとステートの保存先は、[PPSSPPの保存先](storage.ja.md#ppsspp)を参照してください。
 
+PSPの自作ゲームが `EBOOT.PBP` と付属ファイルの入ったフォルダで配布されている場合は、フォルダごとSD1またはSD2の `Roms/PSP/` に置きます。たとえば `Roms/PSP/MARIO_FUSION/EBOOT.PBP` は一覧に `MARIO_FUSION` と表示されます。PPSSPPだけを開くには `START` → `Apps` → `PPSSPP` を選びます。
+
 ## アーケード
 
 | システム | ROMフォルダ | 認識する拡張子 | 既定の起動方法 | その他の選択肢 |

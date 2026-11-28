@@ -1,0 +1,58 @@
+--- a/bin/plumos-standalone-launch
++++ b/bin/plumos-standalone-launch
+@@ -37,20 +37,26 @@
+     exit 2
+ }
+ 
+-rom_root="$("$BB" readlink -f "$PLUMOS_ROM_ROOT")"
+-content_resolved="$("$BB" readlink -f "$content")"
+-case "$content_resolved" in
+-    "$rom_root"/*) content="$content_resolved" ;;
+-    *)
+-        printf 'plumos-standalone-launch: rejected content path: %s\n' \
+-            "$content" >&2
+-        exit 2
+-        ;;
+-esac
+-[ -f "$content" ] || {
+-    printf 'plumos-standalone-launch: content is missing\n' >&2
+-    exit 1
+-}
++# Apps can open PPSSPP's main menu without selecting a ROM.
++ppsspp_menu=0
++if [ "$emulator_id" = ppsspp ] && [ "$content" = --menu ]; then
++    ppsspp_menu=1
++else
++    rom_root="$("$BB" readlink -f "$PLUMOS_ROM_ROOT")"
++    content_resolved="$("$BB" readlink -f "$content")"
++    case "$content_resolved" in
++        "$rom_root"/*) content="$content_resolved" ;;
++        *)
++            printf 'plumos-standalone-launch: rejected content path: %s\n' \
++                "$content" >&2
++            exit 2
++            ;;
++    esac
++    [ -f "$content" ] || {
++        printf 'plumos-standalone-launch: content is missing\n' >&2
++        exit 1
++    }
++fi
+ "$BB" mkdir -p "$PLUMOS_ROOT/logs"
+ printf 'stage=S60_STANDALONE_ROUTE emulator=%s content=%s\n' \
+     "$emulator_id" "${content##*/}" >>"$route_log"
+@@ -188,8 +194,12 @@
+         export AUDIODEV="$alsa_device"
+         export SDL_VIDEO_KMSDRM_DEVICE_INDEX=0
+         export SDL_GAMECONTROLLERCONFIG='190000004b4800000111000000010000,retrogame_joypad,a:b1,b:b0,x:b2,y:b3,leftshoulder:b4,rightshoulder:b5,lefttrigger:b6,righttrigger:b7,back:b8,start:b9,guide:b10,leftstick:b11,rightstick:b12,dpup:b13,dpdown:b14,dpleft:b15,dpright:b16,leftx:a0,lefty:a1,rightx:a3,righty:a4,platform:Linux,'
+-        exec "$ppsspp" --fullscreen --graphics=vulkan \
+-            --pause-menu-exit "$content"
++        if [ "$ppsspp_menu" -eq 0 ]; then
++            set -- --pause-menu-exit "$content"
++        else
++            set --
++        fi
++        exec "$ppsspp" --fullscreen --graphics=vulkan "$@"
+     ) >>"$log" 2>&1 &
+     ppsspp_pid=$!
+ 

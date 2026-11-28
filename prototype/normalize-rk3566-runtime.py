@@ -128,6 +128,13 @@ updated = text.replace(old_hold, hold).replace("VALIDATION_HOLD", "FRONTEND_HOLD
 )
 write(portmaster_control, updated, text)
 
+launcher = root / "bin/plumos-standalone-launch"
+if 'ppsspp_menu=0\n' not in launcher.read_text():
+    with (prototype / "patches/rk3566-ppsspp-app-launch.patch").open() as patch:
+        subprocess.run(["patch", "--batch", "--forward", "-p1", "-d", str(root)],
+                       stdin=patch, check=True)
+    changed.add("bin/plumos-standalone-launch")
+
 for path in (
     *root.glob("components/*/manifest.json"),
     *root.glob("config/frontend/*.json"),
@@ -136,6 +143,17 @@ for path in (
     text = path.read_text()
     data = json.loads(text)
     updated = update_metadata(data)
+    if path == root / "config/frontend/apps.json":
+        apps = updated["apps"]
+        if not any(app["id"] == "ppsspp" for app in apps):
+            apps.append({
+                "id": "ppsspp",
+                "display_name": "PPSSPP",
+                "kind": "emulator",
+                "launch_profile": "shell:$PLUMOS_ROOT/bin/plumos-standalone-launch ppsspp --menu",
+                "visible": True,
+                "menu": "apps",
+            })
     if updated != data:
         write(path, json.dumps(updated, ensure_ascii=False, indent=2) + "\n", text)
 

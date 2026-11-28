@@ -67,6 +67,8 @@ RA means RetroArch, PICO means PicoArch, and SA means standalone emulator. Highl
 
 See [PPSSPP save locations](storage.md#ppsspp) for backing up PSP saves and save states.
 
+For PSP homebrew distributed as a folder with `EBOOT.PBP` and supporting files, copy the entire folder into `Roms/PSP/` on SD1 or SD2. For example, `Roms/PSP/MARIO_FUSION/EBOOT.PBP` appears in the list as `MARIO_FUSION`. To open PPSSPP directly, select `START` → `Apps` → `PPSSPP`.
+
 ## Arcade
 
 | System | ROM folders | Recognized extensions | Default launcher | Alternatives |

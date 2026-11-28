@@ -1,0 +1,17 @@
+--- a/src/frontend/plumos_library_scan.c
++++ b/src/frontend/plumos_library_scan.c
+@@ -805,6 +805,14 @@
+   if (is_dir_entry) {
+     copy_string(rel_stem, sizeof(rel_stem), rel_path);
+     copy_string(flat_stem, sizeof(flat_stem), entry.file_name);
++  } else if (strcmp(system->id, "psp") == 0 &&
++             strcasecmp(entry.file_name, "EBOOT.PBP") == 0 && strchr(rel_path, '/')) {
++    // PSP homebrew packages share a filename. Keep the real launch path and
++    // use the containing folder for the library title and artwork.
++    copy_string(rel_stem, sizeof(rel_stem), rel_path);
++    *strrchr(rel_stem, '/') = '\0';
++    copy_string(entry.title, sizeof(entry.title), path_basename(rel_stem));
++    copy_string(flat_stem, sizeof(flat_stem), entry.title);
+   } else {
+     stem_from_relative_path(rel_stem, sizeof(rel_stem), rel_path);
+     stem_from_name(flat_stem, sizeof(flat_stem), entry.file_name);
