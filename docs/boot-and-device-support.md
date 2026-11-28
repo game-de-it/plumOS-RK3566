@@ -13,7 +13,7 @@
 | Anbernic | RG503 | 共通SDで960×544のFEとTF2を確認。174プロファイルの表示、Appsの起動、USB給電中のスリープ復帰をWi-Fi SSHで検証。別のケーブルでUSB ADBのシェル接続とファイル往復も確認。[実機結果](validation/2026-11-25-rg503-runtime.md) |
 | Powkiddy | RGB30 r1・r2 | 同一SDでDTBの自動切り替え、plumOS init、FE、p5、USB ADBを両機で確認。r2ではSD2も確認 |
 | Powkiddy | RK2023 | 共通SDで640×480のFE、SD2、174エミュレータプロファイルの起動、Apps、USB給電中のスリープ復帰を確認。MacではADBの `NATIVE` 方式で接続した。[初回起動](validation/2026-11-25-rk2023-boot.md) · [実機動作試験](validation/2026-11-25-rk2023-runtime.md) |
-| Powkiddy | RGB10 Max 3 | 機種別DTBを同梱。2026年11月28日、利用者からplumOSでの実機動作報告あり。先行版でも表示方向、音声出力、シャットダウンの修正を実機で確認したとの報告あり。内蔵Wi-Fiの接続は実機確認待ち。[表示方向の検証](validation/rgb10max3-display.md) |
+| Powkiddy | RGB10 Max 3 | 機種別DTBを同梱。2026年11月28日、利用者からplumOSでの実機動作報告あり。先行版でも表示方向、音声出力、シャットダウンの修正を実機で確認したとの報告あり。内蔵Wi-Fiの接続も利用者が実機で確認済み。[表示方向の検証](validation/rgb10max3-display.md) |
 | Anbernic | RG353VS | JELOS 20240206の対応表に掲載。専用名のDTBは未収録で、plumOSでの実機起動は未確認 |
 
 RG353Vでは共通SDの起動とSD2を確認した。修正版IMGでは、USBを接続したままの再起動とシャットダウン後の電源投入、起動後のUSB ADBも確認した。エミュレータ、Apps、USB DAC、スリープの試験結果も記録した。[RG353Vの共通SD起動とSD2](validation/2026-11-25-rg353v-sd2.md) · [USB接続中の電源投入](validation/2026-11-25-rg353v-usb-cold-boot.md) · [エミュレータ・Apps・電源管理](validation/2026-11-25-rg353v-runtime.md)
